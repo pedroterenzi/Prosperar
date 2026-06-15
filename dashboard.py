@@ -113,6 +113,7 @@ if 'user' not in st.session_state: st.session_state['user'] = None
 if 'perfil' not in st.session_state: st.session_state['perfil'] = None
 if 'nome_usuario' not in st.session_state: st.session_state['nome_usuario'] = None
 if 'reg_sucesso' not in st.session_state: st.session_state['reg_sucesso'] = 0
+if 'ultimo_horario_salvo' not in st.session_state: st.session_state['ultimo_horario_salvo'] = None
 
 # --- ESTILIZAÇÃO CSS PREMIUM ---
 st.markdown("""
@@ -188,14 +189,10 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # =========================================================
-# 🛡️ POP-UP DIALOG SEQUENCIAL (MELHORIA SOLICITADA - image_93b8df.png)
+# 🛡️ POP-UP DIALOG CORRIGIDO E ESTRUTURADO POR SESSÃO DE HORÁRIO
 # =========================================================
 @st.dialog("🛡️ Confirmar seu Agendamento")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
-    # Controla o estado de exibição interno desse pop-up específico
-    if "confirmado_neste_clique" not in st.session_state:
-        st.session_state["confirmado_neste_clique"] = False
-
     st.markdown(f"Você escolheu o horário das **{hora}**.")
     st.markdown(f"""
     * **Profissional:** {barbeiro}
@@ -204,8 +201,8 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
     * **Data:** {data.strftime('%d/%m/%Y')}
     """, unsafe_allow_html=True)
     
-    # SE JÁ CLICOU EM CONFIRMAR: Some com tudo e mostra apenas o botão do WhatsApp
-    if st.session_state["confirmado_neste_clique"]:
+    # CHECAGEM DE SEGURANÇA: Só mostra a tela do WhatsApp se o horário atual bater com o último confirmado
+    if st.session_state["ultimo_horario_salvo"] == hora:
         msg_wpp = f"💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\n\n📅 *Data:* {data.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora}\n👤 *Barbeiro:* {barbeiro}\n🛠️ *Serviço:* {servico}\n💵 *Valor:* R$ {preco:.2f}"
         url_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_wpp)}"
         
@@ -224,11 +221,11 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
         """, unsafe_allow_html=True)
         
         if st.button("Concluir e Sair", use_container_width=True):
-            del st.session_state["confirmado_neste_clique"]
+            st.session_state["ultimo_horario_salvo"] = None  # Reseta o estado para o próximo clique
             st.rerun()
             
     else:
-        # TELA INICIAL: Mostra a pergunta e os botões padrão da image_93b8df.png
+        # Mostra os botões de ação se for um novo horário clicado
         st.markdown("Deseja confirmar a gravação do seu compromisso?")
         col_pop1, col_pop2 = st.columns(2)
         with col_pop1:
@@ -240,15 +237,14 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                         VALUES (:u, :b, :d, :h, :s, :v)
                     """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco})
                 
-                # Muda a visualização para a próxima sequência
-                st.session_state["confirmado_neste_clique"] = True
+                # Atribui o horário específico que acabou de salvar com sucesso
+                st.session_state["ultimo_horario_salvo"] = hora
                 st.balloons()
                 st.rerun()
                 
         with col_pop2:
             if st.button("❌ Cancelar", use_container_width=True):
-                if "confirmado_neste_clique" in st.session_state:
-                    del st.session_state["confirmado_neste_clique"]
+                st.session_state["ultimo_horario_salvo"] = None
                 st.rerun()
 
 # =========================================================
@@ -335,6 +331,7 @@ else:
     with col_h2:
         if st.button("Encerra Sessão", use_container_width=True):
             st.session_state['auth'] = False
+            st.session_state["ultimo_horario_salvo"] = None
             st.rerun()
             
     st.markdown("---")
@@ -456,6 +453,8 @@ else:
     # =========================================================
     elif st.session_state['perfil'] == 'barbeiro':
         menu_b = st.sidebar.radio("Navegação do Negócio", ["📈 BI & Visão Estratégica", "📅 Painel de Controle Operacional"])
+        
+        st.sidebar.subheader("Segmentação")
         
         if menu_b == "📈 BI & Visão Estratégica":
             st.markdown("## 📊 Inteligência de Negócio & Insights Gerenciais")
