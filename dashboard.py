@@ -136,16 +136,16 @@ def init_db():
         """))
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS estoque_produtos (
-                id SERIAL PRIMARY KEY, nome_produto TEXT UNIQUE, quantidade INTEGER, limite_minimo INTEGER, preco_venda REAL, tipo_estoque TEXT DEFAULT 'Venda'
+                id SERIAL PRIMARY KEY, nome_produto TEXT UNIQUE, quantity INTEGER, limite_minimo INTEGER, preco_venda REAL, tipo_estoque TEXT DEFAULT 'Venda'
             )
         """))
         
         # Carga padrão de produtos uso interno vs venda
         if conn.execute(text("SELECT COUNT(*) FROM estoque_produtos")).fetchone()[0] == 0:
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Pomada Efeito Matte Elesid', 3, 5, 35.0, 'Venda')"))
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Minoxidil Kirkland 6%', 14, 4, 89.90, 'Venda')"))
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Gola Higiênica Rolo', 2, 5, 0.0, 'Uso Interno')"))
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Shampoo Lavatório 5L', 1, 2, 0.0, 'Uso Interno')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantity, limite_minimo, preco_venda, tipo_estoque) VALUES ('Pomada Efeito Matte Elesid', 3, 5, 35.0, 'Venda')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantity, limite_minimo, preco_venda, tipo_estoque) VALUES ('Minoxidil Kirkland 6%', 14, 4, 89.90, 'Venda')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantity, limite_minimo, preco_venda, tipo_estoque) VALUES ('Gola Higiênica Rolo', 2, 5, 0.0, 'Uso Interno')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantity, limite_minimo, preco_venda, tipo_estoque) VALUES ('Shampoo Lavatório 5L', 1, 2, 0.0, 'Uso Interno')"))
 
         # Cadastro padrão de contas administrativas
         conn.execute(text("""
@@ -234,15 +234,15 @@ st.markdown("""
     .section-barber { background: #1e2028; padding: 12px 20px; border-radius: 8px; color: #fff; font-weight: 700; border-left: 5px solid #f59e0b; margin-bottom: 15px; }
     .product-card {
         background: #14151b; border: 1px solid #2a2d3a; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px;
-        min-height: 290px; display: flex; flex-direction: column; justify-content: space-between;
+        min-height: 290px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease-in-out;
     }
-    .barber-card-visual { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px; text-align: center; }
+    .barber-card-visual { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px; text-align: center; transition: all 0.2s ease-in-out; }
     .barber-agenda-row { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
     </style>
     """, unsafe_allow_html=True)
 
 # =========================================================
-# FLUXO DE CORPO PRINCIPAL DE NAVEGAÇÃO
+# MONITORAMENTO DE ACESSO CENTRALIZADO
 # =========================================================
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBEARIA PROSPERIDADE</h1>", unsafe_allow_html=True)
@@ -463,7 +463,7 @@ else:
                         </div>
                     """, unsafe_allow_html=True)
                     if st.button("Comprar e Retirar no Balcão", key=f"buy_p_{p_idx}", use_container_width=True):
-                        st.toast(f"Pedido de {p_nome} reservado para seu próximo corte!", icon="🛒")
+                        st.toast(f"Pedido de {p_nome} reserved para seu próximo corte!", icon="🛒")
 
         with c_menu[3]:
             st.markdown("### ⏳ Check-in e Ouvidoria Privada")
@@ -500,7 +500,7 @@ else:
                     SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, u.nome as cliente_nome, u.preferencias, u.celular 
                     FROM agendamentos a 
                     LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
-                    WHERE a.status = 'Agendado' AND a.barbeiro_nome = :b AS a.data = :d ORDER BY a.horario ASC
+                    WHERE a.status = 'Agendado' AND a.barbeiro_nome = :b AND a.data = :d ORDER BY a.horario ASC
                 """), conn, params={"b": barbeiro_ativo, "d": str(date.today())})
             
             faturamento_cadeira = df_b_hoje['valor'].sum()
@@ -642,8 +642,8 @@ else:
                 st.markdown("### 📦 Backoffice de Almoxarifado Inteligente")
                 df_estoque = pd.read_sql_query("SELECT * FROM estoque_produtos", engine)
                 for _, r in df_estoque.iterrows():
-                    if r['quantidade'] <= r['limite_minimo']:
-                        st.error(f"🚨 **ALERTA DE ESTOQUE CRÍTICO:** O produto {r['nome_produto']} possui apenas `{r['quantidade']}` unidades.")
+                    if r['quantity'] <= r['limite_minimo']:
+                        st.error(f"🚨 **ALERTA DE ESTOQUE CRÍTICO:** O produto {r['nome_produto']} possui apenas `{r['quantity']}` unidades.")
                 st.dataframe(df_estoque, use_container_width=True)
 
             with adm_menu[4]:
