@@ -187,7 +187,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # =========================================================
-# 🛡️ POP-UP DIALOG (ESTÁGIO ÚNICO - RETIRADO WHATSAPP)
+# 🛡️ POP-UP DIALOG ATUALIZADO (REMOVIDO WHATSAPP SEQUENCIAL)
 # =========================================================
 @st.dialog("🛡️ Confirmar seu Agendamento")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
@@ -354,8 +354,10 @@ else:
             
             st.markdown("<div class='section-barber'>Horários Disponíveis</div>", unsafe_allow_html=True)
             
-            agora = datetime.now()
-            hora_atual_str = agora.strftime("%H:%M")
+            # --- FIXADO: TRAVA DINÂMICA DE FUSO HORÁRIO BRASILEIRO (GMT-3) ---
+            # O Streamlit Cloud roda em UTC. Subtraímos 3 horas para cravar o horário de Brasília correto.
+            agora_brasil = datetime.utcnow() - timedelta(hours=3)
+            hora_atual_str = agora_brasil.strftime("%H:%M")
             eh_hoje = (data_sel == date.today())
 
             cols_grade = st.columns(4)
@@ -540,10 +542,6 @@ else:
                         st.plotly_chart(fig_rank, use_container_width=True)
 
         elif menu_b == "📅 Painel de Controle Operacional":
-            
-            # =========================================================
-            # ✨ NOVA FUNÇÃO: LANÇAMENTO MANUAL DE HORÁRIOS PELO BARBEIRO
-            # =========================================================
             st.markdown("<div class='section-barber'>➕ CRIAR AGENDAMENTO MANUAL (BALCÃO / WHATSAPP)</div>", unsafe_allow_html=True)
             with st.expander("📝 Abrir Formulário de Agendamento Direto", expanded=False):
                 col_man1, col_man2, col_man3 = st.columns(3)
@@ -554,20 +552,17 @@ else:
                     manual_data = st.date_input("Data do Atendimento:", date.today(), key="dt_man_b")
                     manual_servico = st.selectbox("Serviço Solicitado:", list(SERVICOS.keys()), key="sv_man_b")
                 
-                # Resgata horários ocupados para o profissional no dia para filtrar os botões livres
                 df_man_ocupados = pd.read_sql_query(
                     text("SELECT horario FROM agendamentos WHERE barbeiro_nome = :b AND data = :d AND status = 'Agendado'"),
                     engine, params={"b": manual_barbeiro, "d": str(manual_data)}
                 )
                 man_ocupados_list = df_man_ocupados['horario'].tolist()
                 
-                # Monta lista de slots horários das 09h às 19h
                 horarios_totais_sistema = []
                 b_time_man = datetime.strptime("09:00", "%H:%M")
                 for k in range(20):
                     horarios_totais_sistema.append((b_time_man + timedelta(minutes=30*k)).strftime("%H:%M"))
                 
-                # Cria uma lista apenas com os horários que estão realmente vagos para evitar conflito
                 horarios_livres_man = [h for h in horarios_totais_sistema if h not in man_ocupados_list]
                 
                 with col_man3:
@@ -582,7 +577,6 @@ else:
                         st.error("⚠️ Não há horários disponíveis para este profissional nesta data.")
                     else:
                         with engine.begin() as conn:
-                            # Salva o agendamento direto. O campo 'cliente_login' recebe o nome digitado precedido por 'manual_'
                             conn.execute(text("""
                                 INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor)
                                 VALUES (:u, :b, :d, :h, :s, :v)
@@ -595,7 +589,6 @@ else:
                                 "v": manual_preco
                             })
                         
-                        # Injeta o nome na tabela de usuários para que o INNER JOIN da listagem diária funcione perfeitamente
                         with engine.begin() as conn:
                             conn.execute(text("""
                                 INSERT INTO usuarios_barber (login, senha, nome, perfil, celular)
@@ -608,7 +601,7 @@ else:
                         st.rerun()
 
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<div class='section-barber'> Rhine 📅 MINHA AGENDA DIÁRIA (VISÃO VISUAL DO BARBEIRO)</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-barber'>📅 MINHA AGENDA DIÁRIA (VISÃO VISUAL DO BARBEIRO)</div>", unsafe_allow_html=True)
             
             col_b_data, col_b_name = st.columns(2)
             with col_b_data:
