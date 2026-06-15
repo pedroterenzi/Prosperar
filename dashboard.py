@@ -189,7 +189,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # =========================================================
-# 🛡️ POP-UP DIALOG CORRIGIDO E ESTRUTURADO POR SESSÃO DE HORÁRIO
+# 🛡️ POP-UP DIALOG SEQUENCIAL COM INTERFACE DO WHATSAPP
 # =========================================================
 @st.dialog("🛡️ Confirmar seu Agendamento")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
@@ -201,31 +201,33 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
     * **Data:** {data.strftime('%d/%m/%Y')}
     """, unsafe_allow_html=True)
     
-    # CHECAGEM DE SEGURANÇA: Só mostra a tela do WhatsApp se o horário atual bater com o último confirmado
+    # Se o horário atual condiz com o que acabamos de salvar, exibe a tela de envio do WhatsApp
     if st.session_state["ultimo_horario_salvo"] == hora:
-        msg_wpp = f"💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\n\n📅 *Data:* {data.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora}\n👤 *Barbeiro:* {barbeiro}\n🛠️ *Serviço:* {servico}\n💵 *Valor:* R$ {preco:.2f}"
+        msg_wpp = f"💈 *NOTIFICAÇÃO DE AGENDAMENTO* 💈\n\nFala, {barbeiro}! Entrou um novo cliente na sua linha do tempo:\n\n👤 *Cliente:* {st.session_state['nome_usuario']}\n📅 *Data:* {data.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora}\n✂️ *Serviço:* {servico}\n💵 *Valor:* R$ {preco:.2f}\n\n_Enviado automaticamente via BarberFlow OS_"
         url_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_wpp)}"
         
         st.markdown(f"""
             <div style="background-color:#10b98115; border:1px solid #10b981; color:#34d399; padding:15px; border-radius:10px; font-weight:bold; text-align:center; margin-top:15px; margin-bottom:15px;">
-                🎉 Agendado com sucesso para as {hora}!
+                🎉 Vaga bloqueada! Agora avise o barbeiro pelo WhatsApp.
             </div>
         """, unsafe_allow_html=True)
         
+        # Botão exclusivo e limpo para redirecionamento sequencial
         st.markdown(f"""
             <a href="{url_wpp}" target="_blank" style="text-decoration:none;">
-                <div style="background-color:#25d366; color:white; padding:16px; text-align:center; border-radius:12px; font-weight:bold; box-shadow: 0 4px 12px rgba(37,211,102,0.3); font-size:1.05rem;">
-                    💬 NOTIFICAR NO WHATSAPP
+                <div style="background-color:#25d366; color:white; padding:16px; text-align:center; border-radius:12px; font-weight:bold; box-shadow: 0 4px 14px rgba(37,211,102,0.4); font-size:1.05rem; transition: background 0.2s;">
+                    💬 ENVIAR AGENDA PARA O WHATSAPP DO BARBEIRO
                 </div>
             </a>
         """, unsafe_allow_html=True)
         
-        if st.button("Concluir e Sair", use_container_width=True):
-            st.session_state["ultimo_horario_salvo"] = None  # Reseta o estado para o próximo clique
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("Concluir e Voltar para os Horários", use_container_width=True):
+            st.session_state["ultimo_horario_salvo"] = None  
             st.rerun()
             
     else:
-        # Mostra os botões de ação se for um novo horário clicado
+        # Tela inicial do pop-up para confirmar a gravação de dados
         st.markdown("Deseja confirmar a gravação do seu compromisso?")
         col_pop1, col_pop2 = st.columns(2)
         with col_pop1:
@@ -237,7 +239,7 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                         VALUES (:u, :b, :d, :h, :s, :v)
                     """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco})
                 
-                # Atribui o horário específico que acabou de salvar com sucesso
+                # Seta o estado local indicando que a vaga deste horário específico foi salva
                 st.session_state["ultimo_horario_salvo"] = hora
                 st.balloons()
                 st.rerun()
@@ -248,7 +250,7 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                 st.rerun()
 
 # =========================================================
-# FLUXO DE AUTENTICAÇÃO
+# FLUXO DE AUTENTICAÇÃO SEPARADO (CLIENTE VS BARBEIRO)
 # =========================================================
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBERFLOW OS</h1>", unsafe_allow_html=True)
@@ -331,7 +333,6 @@ else:
     with col_h2:
         if st.button("Encerra Sessão", use_container_width=True):
             st.session_state['auth'] = False
-            st.session_state["ultimo_horario_salvo"] = None
             st.rerun()
             
     st.markdown("---")
