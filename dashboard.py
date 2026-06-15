@@ -74,6 +74,45 @@ try:
 except Exception as e:
     st.error(f"⚠️ Erro de Banco de Dados: {e}")
 
+# =========================================================
+# 🧪 FUNÇÃO INJETORA PARA DEMONSTRAÇÃO
+# =========================================================
+def injetar_dados_demonstracao():
+    engine = obter_engine()
+    clientes_fake = ['alexandre_guerra', 'leonardo_arengue', 'bruno_felicio', 'danilo_santos', 'luciano_souza', 'paulo_higuchi']
+    barbeiros_fake = ['Gabriel', 'Lucas']
+    servicos_fake = list(SERVICOS.keys())
+    
+    hoje = date.today()
+    
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM agendamentos;"))
+        
+        for cli in clientes_fake:
+            nome_formatado = cli.replace('_', ' ').title()
+            conn.execute(text("""
+                INSERT INTO usuarios_barber (login, senha, nome, perfil, celular)
+                VALUES (:l, 'sistema', :n, 'cliente', '19999999999')
+                ON CONFLICT (login) DO NOTHING
+            """), {"l": cli, "n": nome_formatado})
+        
+        contador = 0
+        for i in range(-7, 15):  
+            data_alvo = hoje + timedelta(days=i)
+            for j, hora in enumerate(["09:30", "11:00", "14:30", "16:00", "17:30"]):
+                if (i + j) % 2 == 0 or i == 0: 
+                    cliente = clientes_fake[(i + j) % len(clientes_fake)]
+                    barbeiro = barbeiros_fake[(i * j) % len(barbeiros_fake)]
+                    servico = servicos_fake[(j) % len(servicos_fake)]
+                    valor = SERVICOS[servico]["preco"]
+                    
+                    conn.execute(text("""
+                        INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status)
+                        VALUES (:u, :b, :d, :h, :s, :v, 'Agendado')
+                    """), {"u": cliente, "b": barbeiro, "d": str(data_alvo), "h": hora, "s": servico, "v": valor})
+                    contador += 1
+    return contador
+
 # --- CONTROLE DE ESTADOS ---
 if 'auth' not in st.session_state: st.session_state['auth'] = False
 if 'user' not in st.session_state: st.session_state['user'] = None
@@ -88,386 +127,598 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     * { font-family: 'Plus Jakarta Sans', sans-serif; }
     .stApp { background-color: #0d0e12; color: #e2e8f0; }
+    
     div[data-baseweb="popover"] { z-index: 999999 !important; }
     
-    /* Barra Lateral Premium */
+    /* --- CUSTOMIZAÇÃO PREMIUM DA BARRA LATERAL --- */
     [data-testid="stSidebar"] { background-color: #111217; border-right: 1px solid #1e2028; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+    
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p img { display:none !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label [data-testid="stWidgetLabel"] { display: none !important; }
+    
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
         background-color: #1e2028 !important; border: 1px solid #2a2d3a !important;
-        padding: 14px 18px !important; border-radius: 12px !important; color: #94a3b8 !important; cursor: pointer;
-        font-weight: 600; font-size: 0.9rem; transition: all 0.25s ease-in-out; display: flex !important; width: 100% !important;
-    }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child { display: none !important; }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover { background-color: #262933 !important; color: #ffffff !important; transform: translateX(3px); }
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; color: #ffffff !important; font-weight: 700; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25) !important;
+        padding: 14px 18px !important; border-radius: 12px !important; margin-bottom: 2px !important; 
+        color: #94a3b8 !important; cursor: pointer; font-weight: 600; font-size: 0.9rem;
+        transition: all 0.25s ease-in-out; display: flex !important; align-items: center; 
+        justify-content: flex-start; width: 100% !important; box-sizing: border-box !important;
     }
     
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child { display: none !important; }
+    
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover { 
+        background-color: #262933 !important; border-color: #404557 !important; 
+        color: #ffffff !important; transform: translateX(3px); 
+    }
+    
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; 
+        color: #ffffff !important; border: 1px solid #b45309 !important; font-weight: 700; 
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25) !important;
+    }
+    
+    /* --- COMPONENTES DO DASHBOARD --- */
     .metric-card-barber {
         background: linear-gradient(135deg, #1e2028 0%, #14151b 100%);
-        padding: 22px; border-radius: 16px; border: 1px solid #2a2d3a; text-align: center;
+        padding: 22px; border-radius: 16px; border: 1px solid #2a2d3a;
+        text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
     }
-    .metric-title { color: #94a3b8; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; }
+    .metric-title { color: #94a3b8; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
     .metric-value { color: #f59e0b; font-size: 2.2rem; font-weight: 800; margin-top: 5px; }
-    .time-slot-card { background: #1e2028; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid #2a2d3a; margin-bottom: 12px; }
-    .section-barber { background: #1e2028; padding: 12px 20px; border-radius: 8px; color: #fff; font-weight: 700; border-left: 5px solid #f59e0b; margin-bottom: 15px; }
-    .barber-agenda-row { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    
+    .time-slot-card {
+        background: #1e2028; padding: 15px; border-radius: 12px;
+        text-align: center; border: 1px solid #2a2d3a; margin-bottom: 12px;
+    }
+    .status-badge {
+        display: inline-block; padding: 4px 10px; border-radius: 20px;
+        font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .badge-livre { background: #10b98120; color: #34d399; border: 1px solid #10b981; }
+    .badge-ocupado { background: #ef444420; color: #f87171; border: 1px solid #ef4444; }
+    
+    .section-barber {
+        background: #1e2028; padding: 12px 20px; border-radius: 8px;
+        color: #fff; font-weight: 700; border-left: 5px solid #f59e0b; margin-bottom: 15px;
+    }
+    
+    .product-card {
+        background: #14151b; border: 1px solid #2a2d3a; padding: 20px 15px;
+        border-radius: 12px; text-align: center; margin-bottom: 15px;
+        min-height: 230px; display: flex; flex-direction: column; justify-content: space-between;
+    }
+    
+    .barber-agenda-row {
+        background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px;
+        padding: 15px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# POP-UP AGENDAMENTO CLIENTE
+# =========================================================
+# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO DE HORÁRIO
+# =========================================================
 @st.dialog("🛡️ Confirmar seu Agendamento")
-def popup_confirmacao(hora, barbeiro, servico, preco, data):
-    st.markdown(f"Horário escolhido: **{hora}**")
-    st.markdown(f"• **Barbeiro:** {barbeiro}\n• **Serviço:** {servico}\n• **Valor:** R$ {preco:.2f}\n• **Data:** {data.strftime('%d/%m/%Y')}")
+def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
+    st.markdown(f"Você escolheu o horário das **{hora}**.")
+    st.markdown(f"""
+    * **Profissional:** {barbeiro}
+    * **Serviço:** {servico}
+    * **Preço:** <span style='color:#10b981; font-weight:bold;'>R$ {preco:.2f}</span>
+    * **Data:** {data.strftime('%d/%m/%Y')}
+    """, unsafe_allow_html=True)
     
     if st.session_state["ultimo_horario_salvo"] == hora:
-        st.success(f"🎉 Horário reservado com sucesso no sistema para as {hora}!")
-        if st.button("Fechar Janela", use_container_width=True):
-            st.session_state["ultimo_horario_salvo"] = None
+        st.markdown(f"""
+            <div style="background-color:#10b98115; border:1px solid #10b981; color:#34d399; padding:15px; border-radius:10px; font-weight:bold; text-align:center; margin-top:15px; margin-bottom:15px;">
+                🎉 Agendado com sucesso no sistema para as {hora}!
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("Concluir e Fechar", use_container_width=True, type="primary"):
+            st.session_state["ultimo_horario_salvo"] = None  
             st.rerun()
+            
     else:
-        # Seletor de forma de pagamento direto no check-out
-        forma_p = st.selectbox("Forma de Pagamento pelo Aplicativo:", ["Pix (Split Automático)", "Cartão de Crédito", "Dinheiro (No Balcão)"])
-        if st.button("✅ Confirmar e Efetuar Reserva", type="primary", use_container_width=True):
-            engine = obter_engine()
-            with engine.begin() as conn:
-                conn.execute(text("""
-                    INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, forma_pagamento)
-                    VALUES (:u, :b, :d, :h, :s, :v, :p)
-                """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco, "p": forma_p})
+        st.markdown("Deseja confirmar a gravação do seu compromisso?")
+        col_pop1, col_pop2 = st.columns(2)
+        with col_pop1:
+            if st.button("✅ Confirmar Vaga", type="primary", use_container_width=True):
+                engine = obter_engine()
+                with engine.begin() as conn:
+                    conn.execute(text("""
+                        INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor)
+                        VALUES (:u, :b, :d, :h, :s, :v)
+                    """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco})
                 
-                # Atribui pontos fidelidade (+1 por corte)
-                conn.execute(text("UPDATE usuarios_barber SET pontos_fidelidade = pontos_fidelidade + 1 WHERE login = :u"), {"u": st.session_state['user']})
-            st.session_state["ultimo_horario_salvo"] = hora
-            st.rerun()
+                st.session_state["ultimo_horario_salvo"] = hora
+                st.balloons()
+                st.rerun()
+                
+        with col_pop2:
+            if st.button("❌ Cancelar", use_container_width=True):
+                st.session_state["ultimo_horario_salvo"] = None
+                st.rerun()
 
 # =========================================================
-# TELA DE ENTRADA / LOGIN UNIFICADA
+# FLUXO DE AUTENTICAÇÃO
 # =========================================================
 if not st.session_state['auth']:
-    st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBEARIA PROSPERIDADE</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; color:#94a3b8;'>Plataforma Unificada de Agendamentos & Inteligência Comercial</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBERFLOW OS</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; color:#94a3b8;'>Gestão Inteligente & Agendamento de Alta Performance</p>", unsafe_allow_html=True)
     
-    tab_c, tab_b, tab_a = st.tabs(["📱 PORTAL DO CLIENTE", "✂️ ÁREA DO BARBEIRO", "👑 PAINEL DO ADMINISTRADOR"])
+    st.sidebar.markdown("### 🧪 Central de Testes")
+    if st.sidebar.button("⚡ Injetar Dados de Demonstração", use_container_width=True):
+        try:
+            dados_gerados = injetar_dados_demonstracao()
+            st.sidebar.success(f"🔥 {dados_gerados} agendamentos gerados!")
+            st.balloons()
+        except Exception as error_db:
+            st.sidebar.error(f"Falha na injeção: {error_db}")
+            
+    portal_cliente, portal_barbeiro = st.tabs(["📱 PORTAL DO CLIENTE", "💼 ÁREA DO PROFISSIONAL"])
     
-    with tab_c:
-        sub_tab1, sub_tab2 = st.tabs(["🔐 Entrar", "📝 Criar Nova Conta"])
-        with sub_tab1:
-            log_c = st.text_input("Usuário (Login)", key="login_cli").strip().lower()
-            senha_c = st.text_input("Senha", type="password", key="senha_cli")
+    with portal_cliente:
+        aba_login_c, aba_cad_c = st.tabs(["🔐 Entrar", "📝 Criar Nova Conta"])
+        with aba_login_c:
+            st.markdown("<div class='section-barber'>Acesse sua conta para agendar</div>", unsafe_allow_html=True)
+            log_c = st.text_input("Usuário (Login)", key="log_c").strip().lower()
+            senha_c = st.text_input("Senha", type="password", key="senha_c")
             if st.button("🚀 ENTRAR COMO CLIENTE", use_container_width=True):
                 engine = obter_engine()
                 df_u = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :l AND senha = :s AND perfil = 'cliente'"), engine, params={"l": log_c, "s": hash_senha(senha_c)})
                 if not df_u.empty:
-                    st.session_state['auth'], st.session_state['user'], st.session_state['perfil'], st.session_state['nome_usuario'] = True, df_u.iloc[0]['login'], 'cliente', df_u.iloc[0]['nome']
+                    st.session_state['auth'] = True
+                    st.session_state['user'] = df_u.iloc[0]['login']
+                    st.session_state['perfil'] = 'cliente'
+                    st.session_state['nome_usuario'] = df_u.iloc[0]['nome']
                     st.rerun()
                 else: st.error("Usuário ou Senha incorretos.")
-        with sub_tab2:
+                
+        with aba_cad_c:
+            st.markdown("<div class='section-barber'>Cadastro Rápido de Novo Cliente</div>", unsafe_allow_html=True)
             v_reg = st.session_state['reg_sucesso']
-            cad_nome = st.text_input("Nome Completo", key=f"n_{v_reg}")
-            cad_login = st.text_input("Usuário", key=f"l_{v_reg}").strip().lower()
-            cad_cel = st.text_input("WhatsApp com DDD", key=f"w_{v_reg}")
-            cad_senha = st.text_input("Senha", type="password", key=f"s_{v_reg}")
+            cad_nome_c = st.text_input("Nome Completo", key=f"c_nome_{v_reg}")
+            cad_log_c = st.text_input("Escolha seu Nome de Usuário", key=f"c_log_{v_reg}").strip().lower()
+            cad_cel_c = st.text_input("WhatsApp (Com DDD - Apenas números)", placeholder="Ex: 19971374936", key=f"c_cel_{v_reg}")
+            cad_senha_c = st.text_input("Defina sua Senha", type="password", key=f"c_pass_{v_reg}")
+            
             if st.button("🎯 FINALIZAR MEU CADASTRO", use_container_width=True):
-                if cad_nome and cad_login and cad_senha:
+                if cad_nome_c and cad_log_c and cad_senha_c:
                     engine = obter_engine()
                     try:
                         with engine.begin() as conn:
-                            conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) VALUES (:l, :s, :n, 'cliente', :c)"), {"l": cad_login, "s": hash_senha(cad_senha), "n": cad_nome, "c": cad_cel})
+                            conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) VALUES (:l, :s, :n, 'cliente', :c)"),
+                                         {"l": cad_log_c, "s": hash_senha(cad_senha_c), "n": cad_nome_c, "c": cad_cel_c})
                         st.session_state['reg_sucesso'] += 1
-                        st.success("Conta criada! Acesse a aba Entrar.")
-                    except: st.error("Nome de usuário indisponível.")
+                        st.success("🎉 Conta criada com sucesso! Acesse a aba 'Entrar' para fazer o seu agendamento.")
+                        st.rerun()
+                    except Exception: 
+                        st.error("Este nome de usuário já está sendo utilizado.")
+                else: st.warning("Por favor, preencha todos os campos do formulário.")
 
-    with tab_b:
-        log_b = st.text_input("Login do Barbeiro", key="l_b").strip().lower()
-        senha_b = st.text_input("Senha do Barbeiro", type="password", key="s_b")
-        if st.button("🔑 ACESSAR AGENDA DO BARBEIRO", use_container_width=True):
+    with portal_barbeiro:
+        st.markdown("<div class='section-barber'>Painel de Autenticação do Profissional</div>", unsafe_allow_html=True)
+        log_b = st.text_input("Login Administrativo", key="log_b").strip().lower()
+        senha_b = st.text_input("Senha Corporativa", type="password", key="senha_b")
+        if st.button("🔑 ACESSAR PAINEL GERENCIAL", use_container_width=True):
             engine = obter_engine()
             df_b = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :l AND senha = :s AND perfil = 'barbeiro'"), engine, params={"l": log_b, "s": hash_senha(senha_b)})
             if not df_b.empty:
-                st.session_state['auth'], st.session_state['user'], st.session_state['perfil'], st.session_state['nome_usuario'] = True, df_b.iloc[0]['login'], 'barbeiro', df_b.iloc[0]['nome']
+                st.session_state['auth'] = True
+                st.session_state['user'] = df_b.iloc[0]['login']
+                st.session_state['perfil'] = 'barbeiro'
+                st.session_state['nome_usuario'] = df_b.iloc[0]['nome']
                 st.rerun()
-            else: st.error("Credenciais inválidas.")
+            else: st.error("Credenciais administrativas inválidas.")
 
-    with tab_a:
-        log_a = st.text_input("Login do Administrador", key="l_a").strip().lower()
-        senha_a = st.text_input("Senha Master", type="password", key="s_a")
-        if st.button("👑 ENTRAR NO PAINEL EXECUTIVO", use_container_width=True):
-            engine = obter_engine()
-            df_a = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :l AND senha = :s AND perfil = 'admin'"), engine, params={"l": log_a, "s": hash_senha(senha_a)})
-            if not df_a.empty:
-                st.session_state['auth'], st.session_state['user'], st.session_state['perfil'], st.session_state['nome_usuario'] = True, df_a.iloc[0]['login'], 'admin', 'Dono Prosperidade'
-                st.rerun()
-            else: st.error("Senha administradora incorreta.")
-
+# =========================================================
+# ECOSSISTEMA DO USUÁRIO CONECTADO
+# =========================================================
 else:
     engine = obter_engine()
     
-    # Header de sessão logada
     col_h1, col_h2 = st.columns([4, 1])
     with col_h1:
         st.markdown(f"### 💈 **{st.session_state['nome_usuario']}** <span style='color:#f59e0b'>[{st.session_state['perfil'].upper()}]</span>", unsafe_allow_html=True)
     with col_h2:
-        if st.button("🚪 Encerrar Sessão", use_container_width=True):
+        if st.button("Encerra Sessão", use_container_width=True):
             st.session_state['auth'] = False
             st.rerun()
+            
     st.markdown("---")
 
     # =========================================================
-    # 1. VISÃO DO CLIENTE: EXPERIÊNCIA E CLUBE DE ASSINATURA
+    # AMBIENTE DO CLIENTE
     # =========================================================
     if st.session_state['perfil'] == 'cliente':
-        # Carrega dados atualizados do cliente na sessão
-        df_cli_data = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :u"), engine, params={"u": st.session_state['user']}).iloc[0]
+        menu_c = st.tabs(["📅 Agendamento de Horários", "✨ Promoções & Combos", "🧴 Vitrine de Produtos"])
         
-        c_tab1, c_tab2, c_tab3 = st.tabs(["📅 Agendamento Expresso", "👤 Meu Estilo & Clube Fidelidade", "🛡️ Sala de Espera Virtual"])
-        
-        with c_tab1:
-            st.markdown("### 📅 Marcar um Horário em 3 Passos (Fricção Zero)")
-            col1, col2, col3 = st.columns(3)
-            with col1: s_sel = st.selectbox("1. Escolha o Serviço:", list(SERVICOS.keys()))
-            with col2: b_sel = st.selectbox("2. Escolha o Profissional:", ["Gabriel", "Lucas"])
-            with col3: d_sel = st.date_input("3. Escolha o Dia:", date.today(), min_value=date.today())
+        with menu_c[0]:
+            st.markdown("## 📅 Agende seu Horário na Linha do Tempo")
             
-            # Grade horária dinâmica baseada em tempo real com travas GMT-3
-            horarios = [(datetime.strptime("09:00", "%H:%M") + timedelta(minutes=30*i)).strftime("%H:%M") for i in range(20)]
-            df_oc = pd.read_sql_query(text("SELECT horario FROM agendamentos WHERE barbeiro_nome = :b AND data = :d AND status = 'Agendado'"), engine, params={"b": b_sel, "d": str(d_sel)})
-            ocupados = df_oc['horario'].tolist()
+            df_barbers = pd.read_sql_query("SELECT nome FROM barbeiros", engine)
+            list_barbers = df_barbers['nome'].tolist()
             
-            agora_br = datetime.utcnow() - timedelta(hours=3)
-            hora_str = agora_br.strftime("%H:%M")
-            eh_hoje = (d_sel == date.today())
-            
-            st.markdown("#### Escolha seu horário abaixo:")
-            grid = st.columns(4)
-            for idx, h in enumerate(horarios):
-                with grid[idx % 4]:
-                    if h in ocupados or (eh_hoje and h < hora_str):
-                        st.markdown(f"<div class='time-slot-card' style='border-color:#ef4444;'><span class='status-badge badge-ocupado'>🛑 Ocupado</span><h4>{h}</h4></div>", unsafe_allow_html=True)
-                        st.button("Indisponível", key=f"btn_{h}", disabled=True, use_container_width=True)
-                    else:
-                        st.markdown(f"<div class='time-slot-card' style='border-color:#10b981;'><span class='status-badge badge-livre'>🟢 Livre</span><h4>{h}</h4></div>", unsafe_allow_html=True)
-                        if st.button("Reservar", key=f"btn_{h}", use_container_width=True):
-                            popup_confirmacao(hora=h, barbeiro=b_sel, servico=s_sel, preco=SERVICOS[s_sel]["preco"], data=d_sel)
-                            
-            # Feedback e cancelamentos do cliente
-            st.markdown("#### Meus Compromissos Ativos")
-            df_meus = pd.read_sql_query(text("SELECT id, barbeiro_nome, data, horario, servico, valor FROM agendamentos WHERE cliente_login = :u AND status = 'Agendado'"), engine, params={"u": st.session_state['user']})
-            if not df_meus.empty:
-                st.dataframe(df_meus, use_container_width=True)
-                id_c = st.number_input("Digite o ID do agendamento para cancelar:", min_value=1, step=1)
-                if st.button("❌ CANCELAR COMPROMISSO", type="primary"):
-                    if id_c in df_meus['id'].values:
-                        with engine.begin() as conn: conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(id_c)})
-                        st.success("Horário desmarcado com sucesso!")
-                        st.rerun()
-            else: st.caption("Nenhum agendamento ativo encontrado.")
-
-        with c_tab2:
-            st.markdown("### 🏆 Meu Perfil de Estilo & Clube de Vantagens")
-            col_prof1, col_prof2 = st.columns(2)
-            with col_prof1:
-                st.markdown(f"""
-                <div class='metric-card-barber'>
-                    <div class='metric-title'>Meus Pontos Acumulados</div>
-                    <div class='metric-value'>{df_cli_data['pontos_fidelidade']} / 10</div>
-                    <p style='color:#94a3b8; font-size:0.8rem; margin-top:10px;'>Ao completar 10 pontos, ganhe uma Hidratação de Barba ou Cabelo de graça!</p>
-                </div>
-                """, unsafe_allow_html=True)
-            with col_prof2:
-                st.markdown("#### 🗒️ Minhas Notas de Preferência (Dono & Barbeiro enxergam)")
-                st.info(df_cli_data['preferencias'])
+            col_c1, col_c2, col_c3 = st.columns(3)
+            with col_c1:
+                barbeiro_sel = st.selectbox("Escolha seu Barbeiro de Preferência:", list_barbers)
+            with col_c2:
+                data_sel = st.date_input("Escolha o Dia do Atendimento:", date.today(), min_value=date.today())
+            with col_c3:
+                servico_sel = st.selectbox("Selecione o Serviço Desejado:", list(SERVICOS.keys()))
                 
-                # Compra de assinatura
-                st.markdown("#### 👑 Assinatura Recorrente Prosperidade Clube")
-                plano_atual = df_cli_data['plano_assinatura']
-                st.markdown(f"Plano Atual: **{plano_atual}**")
-                if plano_atual == "Nenhum":
-                    if st.button("Comprar Plano VIP Executivo (Cortes Ilimitados por R$ 119/mês)"):
-                        with engine.begin() as conn: conn.execute(text("UPDATE usuarios_barber SET plano_assinatura = 'VIP Executivo' WHERE login = :u"), {"u": st.session_state['user']})
-                        st.success("Assinatura confirmada com sucesso! Você faz parte do clube.")
-                        st.rerun()
-            
-            st.markdown("#### 📸 Meu Histórico Visual de Cortes (Últimos cortes tirados pelos barbeiros)")
-            st.caption("Gabriel Barber anexou uma foto ao seu perfil em sua última visita: 'Estilo Degradê Navalhado Mid-Fade com Pomada Matte Elesid'.")
+            preco_servico = SERVICOS[servico_sel]["preco"]
+            st.markdown(f"💵 **Investimento do Serviço:** <span style='color:#10b981; font-size:1.2rem; font-weight:800;'>R$ {preco_servico:.2f}</span>", unsafe_allow_html=True)
 
-        with c_tab3:
-            st.markdown("### 🛡️ Sala de Espera Virtual & Check-in Expresso")
-            st.markdown("<p style='color:#94a3b8;'>Está no caminho? Avise nossos barbeiros para otimizar sua recepção!</p>", unsafe_allow_html=True)
-            if st.button("🎯 FAZER CHECK-IN (AVISAR QUE ESTOU CHEGANDO)"):
-                st.toast("Check-in efetuado! O barbeiro foi alertado no painel interno.", icon="🚀")
+            horarios_janela = []
+            base_time = datetime.strptime("09:00", "%H:%M")
+            for i in range(20):
+                slot = (base_time + timedelta(minutes=30*i)).strftime("%H:%M")
+                horarios_janela.append(slot)
+                
+            df_ocupados = pd.read_sql_query(text("SELECT horario FROM agendamentos WHERE barbeiro_nome = :b AND data = :d AND status = 'Agendado'"),
+                                            engine, params={"b": barbeiro_sel, "d": str(data_sel)})
+            ocupados_list = df_ocupados['horario'].tolist()
             
-            st.markdown("#### ⏱️ Status de Ocupação da Cadeira em Tempo Real")
-            st.metric("Tempo Estimado de Atraso das Cadeiras", "0 minutos", delta="Agenda Sem Atrasos", delta_color="normal")
+            st.markdown("<div class='section-barber'>Horários Disponíveis</div>", unsafe_allow_html=True)
+            
+            agora_brasil = datetime.utcnow() - timedelta(hours=3)
+            hora_atual_str = agora_brasil.strftime("%H:%M")
+            eh_hoje = (data_sel == date.today())
+
+            cols_grade = st.columns(4)
+            for idx, hora in enumerate(horarios_janela):
+                col_slot = cols_grade[idx % 4]
+                with col_slot:
+                    if hora in ocupados_list or (eh_hoje and hora < hora_atual_str):
+                        st.markdown(f"""
+                            <div class='time-slot-card' style='border-color: #ef4444;'>
+                                <span class='status-badge badge-ocupado'>🛑 Ocupado</span>
+                                <h4 style='margin:5px 0; color:#94a3b8;'>{hora}</h4>
+                            </div>
+                        """, unsafe_allow_html=True)
+                        st.button("Indisponível", key=f"ind_btn_{hora}", disabled=True, use_container_width=True)
+                    else:
+                        st.markdown(f"""
+                            <div class='time-slot-card' style='border-color: #10b981;'>
+                                <span class='status-badge badge-livre'>🟢 Disponível</span>
+                                <h4 style='margin:5px 0; color:#fff;'>{hora}</h4>
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        if st.button("Solicitar Vaga", key=f"av_btn_{hora}", use_container_width=True, type="secondary"):
+                            mostrar_popup_confirmacao(
+                                hora=hora, 
+                                barbeiro=barbeiro_sel, 
+                                servico=servico_sel, 
+                                preco=preco_servico, 
+                                data=data_sel
+                            )
+
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.markdown("<div class='section-barber'>Meus Compromissos & Opção de Cancelamento</div>", unsafe_allow_html=True)
+            df_meus_cards = pd.read_sql_query(text("SELECT id as \"ID\", barbeiro_nome as \"Barbeiro\", data as \"Data\", horario as \"Horário\", servico as \"Serviço\", valor as \"Preço\" FROM agendamentos WHERE cliente_login = :u AND status = 'Agendado'"), engine, params={"u": st.session_state['user']})
+            
+            if df_meus_cards.empty:
+                st.caption("Você não possui horários marcados ativos.")
+            else:
+                st.dataframe(df_meus_cards, use_container_width=True)
+                id_cancelar_cliente = st.number_input("Digite o ID do agendamento que deseja Desmarcar/Cancelar:", min_value=1, step=1, key="c_del_cli")
+                
+                if st.button("🚨 SOLICITAR CANCELAMENTO DO HORÁRIO", type="primary", use_container_width=True):
+                    if id_cancelar_cliente in df_meus_cards['ID'].values:
+                        with engine.begin() as conn:
+                            conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(id_cancelar_cliente)})
+                        st.success("Horário cancelado no sistema!")
+                        st.rerun()
+                    else:
+                        st.error("ID informado inválido ou não pertence aos seus agendamentos.")
+
+        with menu_c[1]:
+            st.markdown("## ✨ Campanhas Especiais e Clubes de Assinatura")
+            p_c1, p_c2, p_c3 = st.columns(3)
+            with p_c1:
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h3>🔥 Terça Maluca</h3><p>Corte Simples com 25% de Desconto direto no balcão para pagamentos em dinheiro ou Pix!</p></div><h2 style='color:#10b981; margin:0;'>R$ 30,00</h2></div>", unsafe_allow_html=True)
+            with p_c2:
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h3>👑 Plano VIP Mensal</h3><p>Cortes Ilimitados + 2 Barbas completas por mês com direito a Chopp livre na cadeira.</p></div><h2 style='color:#10b981; margin:0;'>R$ 149,90 / mes</h2></div>", unsafe_allow_html=True)
+            with p_c3:
+                st.markdown("<div class='product-card'><h3 style='flex-grow:1;'>⚡ Combo Alinhado</h3><p>Corte + Sobrancelha executada na navalha + Lavagem Especial com massagem capilar e Shampoos Premium.</p><h2 style='color:#10b981; margin:0;'>R$ 60,00</h2></div>", unsafe_allow_html=True)
+
+        with menu_c[2]:
+            st.markdown("## 🧴 Vitrine de Produtos Home-Care")
+            pr_c1, pr_c2, pr_c3, pr_c4 = st.columns(4)
+            with pr_c1:
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h4>Elesid Pomada Efeito Matte</h4><p>Fixação Forte de Alta Performance para penteados estruturados (150g)</p></div><h3 style='color:#f59e0b; margin:0;'>R$ 35,00</h3></div>", unsafe_allow_html=True)
+            with pr_c2:
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h4>Minoxidil Kirkland 6%</h4><p>Tratamento Científico e Clínico importado para crescimento de Barba e Cabelo (60ml)</p></div><h3 style='color:#f59e0b; margin:0;'>R$ 89,90</h3></div>", unsafe_allow_html=True)
+            with pr_c3:
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h4>Óleo Hidratante de Barba</h4><p>Maciez Extrema, brilho controlado e perfume com Essência de Cedro Amadeirado</p></div><h3 style='color:#f59e0b; margin:0;'>R$ 42,00</h3></div>", unsafe_allow_html=True)
+            with pr_c4:
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h4>Gel Cola Blindado Extra-Forte</h4><p>Fixação Extrema e duradoura para Penteados Modernos e penteados artísticos (500g)</p></div><h3 style='color:#f59e0b; margin:0;'>R$ 22,00</h3></div>", unsafe_allow_html=True)
 
     # =========================================================
-    # 2. VISÃO DO BARBEIRO: PRODUTIVIDADE, PORTFÓLIO E COMISSÕES
+    # AMBIENTE DO BARBEIRO
     # =========================================================
     elif st.session_state['perfil'] == 'barbeiro':
-        st.markdown(f"## ✂️ Painel de Operações de Cadeira — {st.session_state['nome_usuario']}")
+        menu_b = st.sidebar.radio("Navegação do Negócio", ["📈 BI & Visão Estratégica", "📅 Painel de Controle Operacional"])
         
-        b_tab1, b_tab2 = st.tabs(["📅 Minha Linha de Trabalho", "📈 Minhas Comissões & Metas"])
+        st.sidebar.subheader("Segmentação")
         
-        # Coleta os cortes confirmados do dia para este barbeiro
-        df_cortes_hoje = pd.read_sql_query(
-            text("SELECT a.*, u.nome as cliente_nome, u.preferencias FROM agendamentos a LEFT JOIN usuarios_barber u ON a.cliente_login = u.login WHERE a.barbeiro_nome = :b AND a.data = :d AND a.status = 'Agendado' ORDER BY a.horario ASC"),
-            engine, params={"b": st.session_state['nome_usuario'], "d": str(date.today())}
-        )
-        
-        with b_tab1:
-            st.markdown("### 📅 Cronograma de Atendimentos para o Dia de Hoje")
-            horarios_trabalho = [(datetime.strptime("09:00", "%H:%M") + timedelta(minutes=30*i)).strftime("%H:%M") for i in range(20)]
-            mapa_agenda = df_cortes_hoje.set_index('horario').to_dict(orient='index')
+        if menu_b == "📈 BI & Visão Estratégica":
+            st.markdown("## 📊 Inteligência de Negócio & Insights Gerenciais")
+            st.markdown("<div class='section-barber'>📅 PAINEL DE CONTROLE TÁTICO: FILTROS OPERACIONAIS</div>", unsafe_allow_html=True)
             
-            for h in horarios_trabalho:
-                if h in mapa_agenda:
-                    reg = mapa_agenda[h]
+            col_data_filt, col_prof_filt = st.columns([2, 2])
+            
+            with col_data_filt:
+                periodo_sel = st.date_input(
+                    "Selecione o Intervalo de Análise:",
+                    value=[date(2026, 6, 1), date(2026, 6, 30)],  
+                    key="periodo_bi_principal"
+                )
+                
+            if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2:
+                data_inicio, data_fim = periodo_sel
+            elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1:
+                data_inicio = data_fim = periodo_sel[0]
+            else:
+                data_inicio = data_fim = periodo_sel
+
+            df_barbeiros_lista = pd.read_sql_query("SELECT nome FROM barbeiros", engine)
+            lista_barbeiros_sistema = df_barbeiros_lista['nome'].tolist()
+
+            with col_prof_filt:
+                barbeiros_selecionados = st.segmented_control(
+                    "Filtrar Equipe de Profissionais:",
+                    options=lista_barbeiros_sistema,
+                    default=lista_barbeiros_sistema,
+                    selection_mode="multi",
+                    key="filtro_segmentado_profissionais"
+                )
+                
+            if not barbeiros_selecionados:
+                st.warning("⚠️ Selecione ao menos um profissional nos botões acima para renderizar os dados.")
+            else:
+                df_all_age = pd.read_sql_query(
+                    text("""
+                        SELECT a.*, u.nome as cliente_nome 
+                        FROM agendamentos a 
+                        LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
+                        WHERE a.status = 'Agendado' 
+                        AND a.data BETWEEN :ini AND :fim
+                        AND a.barbeiro_nome IN :barbeiros
+                    """), 
+                    engine, 
+                    params={
+                        "ini": str(data_inicio), 
+                        "fim": str(data_fim), 
+                        "barbeiros": tuple(barbeiros_selecionados)
+                    }
+                )
+                
+                st.markdown(f"**Análise activa:** Monitorando `{', '.join(barbeiros_selecionados)}` de `{data_inicio.strftime('%d/%m/%Y')}` até `{data_fim.strftime('%d/%m/%Y')}`")
+                st.markdown("---")
+                
+                if df_all_age.empty:
+                    st.info("Nenhum histórico operacional encontrado para os parâmetros selecionados.")
+                else:
+                    df_all_age['data_dt'] = pd.to_datetime(df_all_age['data'])
+                    df_all_age['dia_semana'] = df_all_age['data_dt'].dt.strftime('%A')
+                    
+                    traducao_dias = {
+                        'Monday': 'Segunda-Feira', 'Tuesday': 'Terça-Feira', 'Wednesday': 'Quarta-Feira',
+                        'Thursday': 'Quinta-Feira', 'Friday': 'Sexta-Feira', 'Saturday': 'Sábado', 'Sunday': 'Domingo'
+                    }
+                    df_all_age['dia_semana'] = df_all_age['dia_semana'].map(traducao_dias)
+
+                    tot_atendimentos = len(df_all_age)
+                    faturamento_total = df_all_age['valor'].sum()
+                    ticket_medio = df_all_age['valor'].mean() if not df_all_age.empty else 0
+                    
                     st.markdown(f"""
-                        <div class="barber-agenda-row" style="border-left: 6px solid #ef4444; background: #ef444405;">
-                            <div>
-                                <span style="font-size:1.2rem; font-weight:800; color:#ef4444;">⏰ {h}</span>
-                                <span style="margin-left:20px; font-weight:700; color:#fff;">👤 Cliente: {reg['cliente_nome']}</span>
-                                <span style="margin-left:20px; color:#94a3b8; font-size:0.85rem;">✂️ Serviço: {reg['servico']}</span>
-                            </div>
-                            <div style='color:#f59e0b; font-weight:700;'>R$ {reg['valor']:.2f}</div>
+                        <div style="display: flex; justify-content: space-between; gap: 15px; margin-bottom: 25px;">
+                            <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Total de Atendimentos</div><div class="metric-value">{tot_atendimentos}</div></div>
+                            <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Faturamento Bruto</div><div class="metric-value" style="color:#10b981">R$ {faturamento_total:.2f}</div></div>
+                            <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Ticket Médio</div><div class="metric-value" style="color:#3b82f6">R$ {ticket_medio:.2f}</div></div>
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # Funcionalidades extras integradas no card do cliente
-                    with st.expander(f"⚙️ Prontuário & Portfólio de {reg['cliente_nome']}"):
-                        st.caption(f"Preferências registradas do cliente: {reg['preferencias']}")
-                        nova_nota = st.text_input("Atualizar Notas de Preferência do Cliente:", value=str(reg['preferencias'] or ''), key=f"nota_{h}")
-                        if st.button("Salvar Nota do Cliente", key=f"btn_nota_{h}"):
-                            with engine.begin() as conn: conn.execute(text("UPDATE usuarios_barber SET preferencias = :p WHERE login = :u"), {"p": nova_nota, "u": reg['cliente_login']})
-                            st.success("Nota de estilo atualizada!")
+                    st.markdown("<div class='section-barber'>📈 ANÁLISE DE VOLUMETRIA: DIAS OPERACIONAIS MAIS ACIONADOS</div>", unsafe_allow_html=True)
+                    df_dias = df_all_age.groupby('dia_semana').size().reindex(list(traducao_dias.values())).fillna(0).reset_index(name='Atendimentos')
+                    fig_barras = px.bar(df_dias, x='dia_semana', y='Atendimentos', color='Atendimentos', 
+                                        color_continuous_scale='YlOrBr', text_auto=True)
+                    fig_barras.update_layout(
+                        height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                        font={'color':'white', 'size': 13}, xaxis_title="Dia da Semana", yaxis_title="Total de Cortes Marcados"
+                    )
+                    st.plotly_chart(fig_barras, use_container_width=True)
+                    
+                    col_g1, col_g2 = st.columns(2)
+                    with col_g1:
+                        st.markdown("### 🛠️ Mix de Serviços Solicitados")
+                        df_serv = df_all_age.groupby('servico').size().reset_index(name='Qtd')
+                        fig_pizza = px.pie(df_serv, values='Qtd', names='servico', hole=0.45, color_discrete_sequence=px.colors.sequential.YlOrBr_r)
+                        fig_pizza.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color':'white'})
+                        st.plotly_chart(fig_pizza, use_container_width=True)
+                    with col_g2:
+                        st.markdown("### 🏆 Repartição de Market Share Financeiro")
+                        df_rank = df_all_age.groupby('barbeiro_nome').agg({'valor':'sum'}).rename(columns={'valor':'Total (R$)'}).reset_index()
+                        fig_rank = px.bar(df_rank, x='barbeiro_nome', y='Total (R$)', color='Total (R$)', color_continuous_scale='Blugrn')
+                        fig_rank.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color':'white'})
+                        st.plotly_chart(fig_rank, use_container_width=True)
+
+        elif menu_b == "📅 Painel de Controle Operacional":
+            st.markdown("<div class='section-barber'>➕ CRIAR AGENDAMENTO MANUAL (BALCÃO / WHATSAPP)</div>", unsafe_allow_html=True)
+            with st.expander("📝 Abrir Formulário de Agendamento Direct-to-Chair", expanded=False):
+                col_man1, col_man2, col_man3 = st.columns(3)
+                with col_man1:
+                    manual_cliente = st.text_input("Nome do Cliente:", placeholder="Ex: João da Silva").strip()
+                    manual_barbeiro = st.selectbox("Designar para o Barbeiro:", ["Gabriel", "Lucas"], key="sb_man_b")
+                with col_man2:
+                    manual_data = st.date_input("Data do Atendimento:", date.today(), key="dt_man_b")
+                    manual_servico = st.selectbox("Serviço Solicitado:", list(SERVICOS.keys()), key="sv_man_b")
+                
+                df_man_ocupados = pd.read_sql_query(
+                    text("SELECT horario FROM agendamentos WHERE barbeiro_nome = :b AND data = :d AND status = 'Agendado'"),
+                    engine, params={"b": manual_barbeiro, "d": str(manual_data)}
+                )
+                man_ocupados_list = df_man_ocupados['horario'].tolist()
+                
+                horarios_totais_sistema = []
+                b_time_man = datetime.strptime("09:00", "%H:%M")
+                for k in range(20):
+                    horarios_totais_sistema.append((b_time_man + timedelta(minutes=30*k)).strftime("%H:%M"))
+                
+                horarios_livres_man = [h for h in horarios_totais_sistema if h not in man_ocupados_list]
+                
+                with col_man3:
+                    manual_hora = st.selectbox("Horários Disponíveis no Dia:", horarios_livres_man, key="hr_man_b")
+                    manual_preco = SERVICOS[manual_servico]["preco"]
+                    st.markdown(f"💵 **Preço de Balcão:** `R$ {manual_preco:.2f}`")
+                
+                if st.button("🚀 CONFIRMAR AGENDAMENTO MANUAL", type="primary", use_container_width=True):
+                    if not manual_cliente:
+                        st.error("⚠️ Digite o nome do cliente para efetuar a reserva.")
+                    elif not manual_hora:
+                        st.error("⚠️ Não há horários disponíveis para este profissional nesta data.")
+                    else:
+                        with engine.begin() as conn:
+                            conn.execute(text("""
+                                INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor)
+                                VALUES (:u, :b, :d, :h, :s, :v)
+                            """), {
+                                "u": f"manual_{manual_cliente.lower().replace(' ', '_')}", 
+                                "b": manual_barbeiro, 
+                                "d": str(manual_data), 
+                                "h": manual_hora, 
+                                "s": manual_servico, 
+                                "v": manual_preco
+                            })
                         
-                        st.file_uploader("📸 Tirar/Anexar foto do corte para o Portfólio do Cliente", type=["png", "jpg"], key=f"foto_{h}")
-                else:
-                    st.markdown(f"""
-                        <div class="barber-agenda-row" style="border-left: 4px solid #10b981; opacity:0.6;">
-                            <div>
-                                <span style="font-size:1.1rem; font-weight:700; color:#34d399;">⏰ {h}</span>
-                                <span style="margin-left:20px; color:#94a3b8; font-style:italic;">Disponível para agendamento</span>
-                            </div>
-                            <div style='color:#10b981; font-size:0.8rem; text-transform:uppercase;'>Vago</div>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    if st.button("Bloquear este Horário (Almoço/Imprevisto)", key=f"bloq_{h}"):
-                        with engine.begin() as conn: conn.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor) VALUES ('bloqueio_admin', :b, :d, :h, 'Bloqueio de Agenda', 0)"), {"b": st.session_state['nome_usuario'], "d": str(date.today()), "h": h})
+                        with engine.begin() as conn:
+                            conn.execute(text("""
+                                INSERT INTO usuarios_barber (login, senha, nome, perfil, celular)
+                                VALUES (:l, 'manual', :n, 'cliente', '00000000000')
+                                ON CONFLICT (login) DO NOTHING
+                            """), {"l": f"manual_{manual_cliente.lower().replace(' ', '_')}", "n": manual_cliente.title()})
+                            
+                        st.success(f"🎉 Sucesso! {manual_cliente} agendado com {manual_barbeiro} dia {manual_data.strftime('%d/%m')} às {manual_hora}!")
+                        st.balloons()
                         st.rerun()
 
-        with b_tab2:
-            st.markdown("### 📈 Meu Extrato Financeiro & Metas de Cadeira")
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<div class='section-barber'>📅 MINHA AGENDA DIÁRIA (VISÃO VISUAL DO BARBEIRO)</div>", unsafe_allow_html=True)
             
-            # Cálculo de Comissões Realistas baseados no mapeamento do dicionário de serviços
-            valor_faturado = 0.0
-            comissao_acumulada = 0.0
-            for _, r in df_cortes_hoje.iterrows():
-                serv = r['servico']
-                if serv in SERVICOS:
-                    valor_faturado += r['valor']
-                    comissao_acumulada += r['valor'] * SERVICOS[serv]["comissao"]
-                    
-            b_col1, b_col2, b_col3 = st.columns(3)
-            with b_col1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Faturamento Gerado Hoje</div><div class='metric-value'>R$ {valor_faturado:.2f}</div></div>", unsafe_allow_html=True)
-            with b_col2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Minha Comissão Líquida</div><div class='metric-value' style='color:#10b981'>R$ {comissao_acumulada:.2f}</div></div>", unsafe_allow_html=True)
-            with b_col3: 
-                # Progresso de metas interno
-                progresso = min(int((valor_faturado / 300.0) * 100), 100)
-                st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Meta Diária (R$ 300)</div><div class='metric-value' style='color:#3b82f6'>{progresso}%</div></div>", unsafe_allow_html=True)
+            col_b_data, col_b_name = st.columns(2)
+            with col_b_data:
+                data_agenda_diaria = st.date_input("Filtrar Agenda do Dia:", date.today(), key="agenda_dia_b")
+            with col_b_name:
+                barbeiro_agenda_sel = st.selectbox("Visualizar Agenda do Profissional:", ["Gabriel", "Lucas"], key="nome_b_agenda")
+            
+            # --- FIX FIXO: EXECUÇÃO COMPATÍVEL COM PANDAS + SQLALCHEMY ---
+            with engine.connect() as conexao:
+                df_agenda_dia_real = pd.read_sql_query(
+                    text("""
+                        SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, u.nome as cliente_nome, u.preferencias 
+                        FROM agendamentos a 
+                        LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
+                        WHERE a.status = 'Agendado' AND a.barbeiro_nome = :b_nome AND a.data = :d_alvo
+                    """), 
+                    conexao, 
+                    params={"b_nome": barbeiro_agenda_sel, "d_alvo": str(data_agenda_diaria)}
+                )
+            
+            atendimentos_hoje = len(df_agenda_dia_real)
+            st.markdown(f"""
+                <div class="metric-card-barber" style="margin-bottom:20px; padding:15px; border-left: 5px solid #3b82f6;">
+                    <div class="metric-title">Volume de Trabalho para o dia {data_agenda_diaria.strftime('%d/%m/%Y')}</div>
+                    <div class="metric-value" style="color:#3b82f6; font-size: 1.8rem;">{atendimentos_hoje} Atendimentos Confirmados</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            horarios_trabalho = []
+            b_time = datetime.strptime("09:00", "%H:%M")
+            for i in range(20):
+                horarios_trabalho.append((b_time + timedelta(minutes=30*i)).strftime("%H:%M"))
+                
+            df_agenda_dia_real = df_agenda_dia_real.drop_duplicates(subset=['horario'])
+            mapa_agenda_dia = df_agenda_dia_real.set_index('horario').to_dict(orient='index')
+            
+            for h_slot in horarios_trabalho:
+                if h_slot in mapa_agenda_dia:
+                    reg_slot = mapa_agenda_dia[h_slot]
+                    st.markdown(f"""
+                        <div class="barber-agenda-row" style="border-left: 6px solid #ef4444; background: #ef444408;">
+                            <div style="display:flex; gap:25px; align-items:center;">
+                                <span style="font-size:1.3rem; font-weight:800; color:#ef4444;">⏰ {h_slot}</span>
+                                <div>
+                                    <h4 style="margin:0; color:#fff; font-weight:700;">👤 Cliente: {reg_slot['cliente_nome']}</h4>
+                                    <p style="margin:2px 0 0 0; font-size:0.85rem; color:#94a3b8;">🛠️ Serviço: {reg_slot['servico']}</p>
+                                </div>
+                            </div>
+                            <span style="background:#ef444420; color:#f87171; font-weight:800; padding:6px 12px; border-radius:8px; font-size:0.9rem;">
+                                💵 Caixa: R$ {reg_slot['valor']:.2f} (ID #{reg_slot['id']})
+                            </span>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                        <div class="barber-agenda-row" style="border-left: 4px solid #10b981; opacity: 0.65;">
+                            <div style="display:flex; gap:25px; align-items:center;">
+                                <span style="font-size:1.1rem; font-weight:700; color:#34d399;">⏰ {h_slot}</span>
+                                <span style="color:#94a3b8; font-size:0.9rem; font-style:italic;">✨ Horário Vago / Sem Agendamento</span>
+                            </div>
+                            <span style="color:#10b981; font-weight:600; font-size:0.8rem; text-transform:uppercase;">Disponível</span>
+                        </div>
+                    """, unsafe_allow_html=True)
 
-    # =========================================================
-    # 3. VISÃO DO ADMINISTRADOR: SPLIT DE PAGAMENTO, ESTOQUE, CRM
-    # =========================================================
-    elif st.session_state['perfil'] == 'admin':
-        st.markdown("## 👑 Painel Executivo do Proprietário — Barbearia Prosperidade")
-        
-        # Filtro de intervalo principal no topo do corpo para não cortar o calendário
-        st.markdown("<div class='section-barber'>📅 JANELA TEMPORAL DO CONSOLIDADO EXECUTIVO</div>", unsafe_allow_html=True)
-        col_adm_f1, _ = st.columns([2,2])
-        with col_adm_f1:
-            periodo_sel = st.date_input("Escolha o Período de Análise Financeira:", value=[date(2026, 6, 1), date(2026, 6, 30)])
-            
-        if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: data_ini, data_fim = periodo_sel
-        else: data_ini = data_fim = date.today()
-            
-        # Puxa dados brutos do período do banco Neon
-        df_adm_base = pd.read_sql_query(
-            text("SELECT * FROM agendamentos WHERE status = 'Agendado' AND data BETWEEN :i AND :f"),
-            engine, params={"i": str(data_ini), "f": str(data_fim)}
-        )
-        
-        adm_tab1, adm_tab2, adm_tab3 = st.tabs(["💰 Financeiro & Split Automático", "📦 Controle de Estoque", "🎯 CRM: Clientes Sumidos & Feedbacks"])
-        
-        with adm_tab1:
-            st.markdown("### 💵 Faturamento Consolidado & Divisão de Comissões Automatizada")
-            if df_adm_base.empty: st.info("Nenhum faturamento registrado nesse intervalo de datas.")
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.markdown("<div class='section-barber'>📅 SELEÇÃO DEL PERÍODO DA TABELA GERAL DA AGENDA</div>", unsafe_allow_html=True)
+            col_data_ops, _ = st.columns([2, 2])
+            with col_data_ops:
+                periodo_sel = st.date_input(
+                    "Filtrar Tabela Geral por Período:",
+                    value=[date(2026, 6, 1), date(2026, 6, 30)],
+                    key="periodo_ops_principal"
+                )
+                
+            if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2:
+                data_inicio, data_fim = periodo_sel
+            elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1:
+                data_inicio = data_fim = periodo_sel[0]
             else:
-                total_faturado_bruto = df_adm_base['valor'].sum()
-                
-                # Split de pagamento automatizado calculando as taxas de comissão
-                parte_barbeiros = 0.0
-                for _, row in df_adm_base.iterrows():
-                    s = row['servico']
-                    if s in SERVICOS: parte_barbeiros += row['valor'] * SERVICOS[s]['comissao']
-                parte_casa = total_faturado_bruto - parte_barbeiros
-                
-                ad_c1, ad_c2, ad_c3 = st.columns(3)
-                with ad_c1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Faturamento Bruto</div><div class='metric-value'>R$ {total_faturado_bruto:.2f}</div></div>", unsafe_allow_html=True)
-                with ad_c2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Split: Repasse Barbeiros</div><div class='metric-value' style='color:#ef4444'>R$ {parte_barbeiros:.2f}</div></div>", unsafe_allow_html=True)
-                with ad_c3: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Split: Lucro Líquido Casa</div><div class='metric-value' style='color:#10b981'>R$ {parte_casa:.2f}</div></div>", unsafe_allow_html=True)
-                
-                # Gráfico de meios de pagamento
-                st.markdown("#### Faturamento por Meio de Recebimento")
-                df_pag = df_adm_base.groupby('forma_pagamento')['valor'].sum().reset_index()
-                st.plotly_chart(px.bar(df_pag, x='forma_pagamento', y='valor', color='forma_pagamento', color_discrete_sequence=px.colors.sequential.YlOrBr, labels={'valor':'Total (R$)','forma_pagamento':'Meio de Pagamento'}), use_container_width=True)
+                data_inicio = data_fim = periodo_sel
 
-        with adm_tab2:
-            st.markdown("### 📦 Monitoramento de Insumos e Vendas")
-            df_estoque = pd.read_sql_query("SELECT * FROM estoque_produtos", engine)
-            
-            # Alertas automáticos do estoque inteligente
-            for _, r in df_estoque.iterrows():
-                if r['quantidade'] <= r['limite_minimo']:
-                    st.error(f"🚨 **ALERTA DE REPOSIÇÃO:** O produto **{r['nome_produto']}** está crítico no estoque! Quantidade Atual: `{r['quantidade']}` unidades (Mínimo tolerado: {r['limite_minimo']}).")
-            
-            st.markdown("#### Grade de Produtos em Estoque")
-            st.dataframe(df_estoque, use_container_width=True)
-            
-            # Adicionar agendamento manual do barbeiro de balcão (Adicionado no painel para flexibilidade)
-            st.markdown("<div class='section-barber'>➕ AGENDAMENTO DIRETO DE BALCÃO (ADMINISTRADOR)</div>", unsafe_allow_html=True)
-            col_b_man1, col_b_man2 = st.columns(2)
-            with col_b_man1: m_cli = st.text_input("Nome do Cliente de Balcão:")
-            with col_b_man2: m_barb = st.selectbox("Designar Barbeiro:", ["Gabriel", "Lucas"])
-            if st.button("Gravar Horário de Balcão às 12:00 para Hoje"):
-                with engine.begin() as conn: conn.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor) VALUES (:u, :b, :d, '12:00', 'Corte Simples', 40.0)"), {"u": f"balcao_{m_cli.lower()}", "b": m_barb, "d": str(date.today())})
-                st.success("Horário de balcão alocado!")
+            df_all_age_table = pd.read_sql_query(
+                text("""
+                    SELECT a.*, u.nome as cliente_nome 
+                    FROM agendamentos a 
+                    LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
+                    WHERE a.status = 'Agendado' AND a.data BETWEEN :ini AND :fim
+                """), 
+                engine, params={"ini": str(data_inicio), "fim": str(data_fim)}
+            )
 
-        with adm_tab3:
-            st.markdown("### 🎯 CRM Avançado & Sistema de Retenção de Clientes")
+            st.markdown(f"### 📋 Tabela Cadastral Completa — {data_inicio.strftime('%d/%m')} a {data_fim.strftime('%d/%m/%Y')}")
             
-            col_crm1, col_crm2 = st.columns(2)
-            with col_crm1:
-                st.markdown("#### 🏃‍♂️ Clientes Sumidos (Inativos há mais de 45 dias)")
-                st.caption("Esta lista cruza os logins que não possuem movimentações salvas nos últimos 45 dias.")
-                # Dados mockados do CRM para exibição de demonstração executiva
-                df_sumidos = pd.DataFrame({
-                    "Nome do Cliente": ["Danilo Santos", "Alexandre Guerra", "Paulo Higuchi"],
-                    "Última Visita": ["12/04/2026", "20/04/2026", "28/04/2026"],
-                    "WhatsApp": ["19971374936", "19988887777", "19966665555"]
-                })
-                st.table(df_sumidos)
-                if st.button("📢 DISPARAR CUPOM DE RETENÇÃO EM MASSA (WHATSAPP/PUSH)"):
-                    st.toast("Disparos agendados no servidor Prosperidade CRM!", icon="🔥")
-                    
-            with col_crm2:
-                st.markdown("#### ⭐ Ouvidoria & Feedbacks Internos (Privados ao Dono)")
-                st.caption("Filtro de avaliações pós-corte para evitar reclamações públicas no Google.")
+            df_agenda_geral = df_all_age_table[['id', 'cliente_nome', 'barbeiro_nome', 'data', 'horario', 'servico', 'valor']].rename(columns={
+                'id': 'ID', 'cliente_nome': 'Nome do Cliente', 'barbeiro_nome': 'Barbeiro',
+                'data': 'Data', 'horario': 'Horário', 'servico': 'Serviço Solicitado', 'valor': 'Preço (R$)'
+            })
+            
+            if df_agenda_geral.empty:
+                st.info("Nenhum cliente agendado nesta faixa de tempo na tabela.")
+            else:
+                st.dataframe(df_agenda_geral, use_container_width=True)
                 
-                # Simulação de feedbacks internos
-                st.warning("⚠️ **Avaliação Regular (Nota 3/5) - Cliente: Leonardo Arengue**\n\n'O corte ficou muito bom, mas o barbeiro atrasou 15 minutos para começar meu atendimento.'\n\n_Profissional: Lucas | Serviço: Combo Premium_")
-                st.success("⭐ **Avaliação Excelente (Nota 5/5) - Cliente: Bruno Felício**\n\n'Melhor barbearia da região! Atendimento impecável e o Gabriel é brabo no degradê!'")
+                id_cancelar = st.number_input("Informe o ID do agendamento que deseja remover administrativamente:", min_value=1, step=1)
+                if st.button("❌ DESMARCAR AGENDAMENTO AGORA", type="primary", use_container_width=True):
+                    if id_cancelar in df_agenda_geral['ID'].values:
+                        with engine.begin() as conn:
+                            conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(id_cancelar)})
+                        st.success(f"O agendamento ID #{id_cancelar} foi removido e o horário foi liberado com sucesso.")
+                        st.rerun()
+                    else:
+                        st.error("ID não localizado na lista ativa.")
