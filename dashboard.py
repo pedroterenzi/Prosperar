@@ -212,7 +212,7 @@ def injetar_dados_demonstracao():
                     contador += 1
     return contador
 
-# --- ESTILIZAÇÃO CSS PREMIUM (BOTÕES LATERAIS QUADRADOS INTERATIVOS) ---
+# --- ESTILIZAÇÃO CSS PREMIUM (BOTÕES LATERAIS QUADRADOS INTERATIVOS COM TEXTO FIXADO) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -222,31 +222,36 @@ st.markdown("""
     /* --- ENVELOPE DO MENU LATERAL MODERNO E QUADRADO --- */
     [data-testid="stSidebar"] { background-color: #111217; border-right: 1px solid #1e2028; }
     
-    /* Esconde as bolinhas circulares nativas */
+    /* Oculta os spans vazios do Streamlit */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div:first-child { display: none !important; }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { display: none !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label [data-testid="stWidgetLabel"] { display: none !important; }
     
-    /* Configuração do Grid de Botões Quadrados Interativos */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] { 
-        display: flex; flex-direction: column; gap: 8px; width: 100%; 
+        display: flex; flex-direction: column; gap: 10px; width: 100%; 
     }
     
+    /* Configuração do Bloco Quadrado Vazio */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
         background-color: #1e2028 !important; 
         border: 1px solid #2a2d3a !important;
-        padding: 16px 20px !important; 
-        border-radius: 8px !important; /* Cantos quadrados elegantes */
+        padding: 18px 15px !important; 
+        border-radius: 8px !important; 
         color: #94a3b8 !important; 
         cursor: pointer; 
-        font-weight: 600; 
-        font-size: 0.9rem;
+        font-weight: 700; 
+        font-size: 0.95rem;
         transition: all 0.2s ease-in-out; 
         display: flex !important; 
         align-items: center; 
-        justify-content: flex-start; 
+        justify-content: center; 
         width: 100% !important; 
         box-sizing: border-box !important;
     }
+    
+    /* Injeção Dinâmica das Descrições através do Nth-Child (CSS Indexado) */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:nth-child(1)::after { content: "📊 Painel Corporativo ERP"; }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:nth-child(2)::after { content: "📅 Minha Agenda na Cadeira"; }
     
     /* Hover - Passar o mouse */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover { 
@@ -260,11 +265,10 @@ st.markdown("""
         background: #f59e0b !important; 
         color: #0d0e12 !important; 
         border: 1px solid #d97706 !important; 
-        font-weight: 800; 
         box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important;
     }
     
-    /* --- OUTROS COMPONENTES DO ECOSSISTEMA --- */
+    /* Outros Elementos */
     .metric-card-barber {
         background: linear-gradient(135deg, #1e2028 0%, #14151b 100%);
         padding: 22px; border-radius: 16px; border: 1px solid #2a2d3a; text-align: center;
@@ -280,9 +284,9 @@ st.markdown("""
     .section-barber { background: #1e2028; padding: 12px 20px; border-radius: 8px; color: #fff; font-weight: 700; border-left: 5px solid #f59e0b; margin-bottom: 15px; }
     .product-card {
         background: #14151b; border: 1px solid #2a2d3a; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px;
-        min-height: 290px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease-in-out;
+        min-height: 290px; display: flex; flex-direction: column; justify-content: space-between;
     }
-    .barber-card-visual { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px; text-align: center; transition: all 0.2s ease-in-out; }
+    .barber-card-visual { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px; text-align: center; }
     .barber-agenda-row { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
     </style>
     """, unsafe_allow_html=True)
@@ -528,12 +532,11 @@ else:
                         st.success("Obrigado! Sua nota foi arquivada de forma privada no painel do Gabriel.")
 
     # =========================================================
-    # AMBIENTE OPERACIONAL DO BARBEIRO
+    # AMBIENTE OPERACIONAL DO BARBEIRO / ADMIN
     # =========================================================
     elif st.session_state['perfil'] in ('barbeiro', 'admin'):
         modo_visao = "📅 Minha Agenda na Cadeira (Gabriel)"
         if st.session_state['perfil'] == 'admin':
-            # --- [CSS ATIVO APLICADO AQUI] Menu lateral em botões quadrados robustos ---
             modo_visao = st.sidebar.radio("Selecione o Painel Ativo:", ["📊 Painel Corporativo ERP Prosperidade", "📅 Minha Agenda na Cadeira (Gabriel)"])
         
         if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)" or st.session_state['perfil'] == 'barbeiro':
@@ -610,11 +613,23 @@ else:
                 st.caption("Falta pouco para atingir a próxima faixa de comissão extra mensal!")
 
         # =========================================================
-        # INTERFACE CORPORATIVA DO ADMINISTRADOR
+        # INTERFACE CORPORATIVA DO ADMINISTRADOR (DONO GABRIEL)
         # =========================================================
         else:
             adm_menu = st.tabs(["📊 Saúde do Negócio", "💸 Split & Caixa Automatizado", "👥 RH & Performance", "📦 Almoxarifado Inteligente", "➕ Recepção Kanban / Encaixe"])
             
+            col_data_filt, col_prof_filt = st.columns([2, 2])
+            with col_data_filt:
+                periodo_sel = st.date_input("Intervalo de Datas Executivas:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm_final")
+            
+            # --- FIX FIXO: Desestruturação da data corrigida contra NameError ('data_inicio') ---
+            if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: 
+                data_inicio, data_fim = periodo_sel
+            elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1: 
+                data_inicio = data_fim = periodo_sel[0]
+            else: 
+                data_inicio = data_fim = periodo_sel
+
             df_adm_total = pd.read_sql_query(text("SELECT * FROM agendamentos WHERE data BETWEEN :ini AND :fim"), engine, params={"ini": str(data_inicio), "fim": str(data_fim)})
             df_ativos = df_adm_total[df_adm_total['status'] == 'Agendado']
             df_faltas = df_adm_total[df_adm_total['status'] == 'No-Show']
