@@ -16,11 +16,11 @@ CONNECTION_STRING = "postgresql://neondb_owner:npg_FB5WRUfgniD9@ep-calm-grass-ah
 
 # Portfólio de Serviços e Configuração de Split de Comissão
 SERVICOS = {
-    "Corte Simples": {"preco": 40.0, "comissao": 0.50},
-    "Corte + Sobrancelha": {"preco": 55.0, "comissao": 0.50},
-    "Barba Completa": {"preco": 35.0, "comissao": 0.50},
-    "Combo Premium (Corte + Barba + Sobrancelha)": {"preco": 85.0, "comissao": 0.55},
-    "Luzes / Nevou": {"preco": 90.0, "comissao": 0.60}
+    "Corte Simples": {"preco": 40.0, "comissao": 0.50, "tempo": "30 min", "foto": "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400"},
+    "Corte + Sobrancelha": {"preco": 55.0, "comissao": 0.50, "tempo": "45 min", "foto": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400"},
+    "Barba Completa": {"preco": 35.0, "comissao": 0.50, "tempo": "30 min", "foto": "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400"},
+    "Combo Premium (Corte + Barba + Sobrancelha)": {"preco": 85.0, "comissao": 0.55, "tempo": "60 min", "foto": "https://images.unsplash.com/photo-1512864084360-7c0c4d0a0845?w=400"},
+    "Luzes / Nevou": {"preco": 90.0, "comissao": 0.60, "tempo": "90 min", "foto": "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400"}
 }
 
 @st.cache_resource
@@ -31,17 +31,18 @@ def hash_senha(senha):
     return hashlib.sha256(str.encode(senha)).hexdigest()
 
 # =========================================================
-# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO
+# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO DE CHECKOUT
 # =========================================================
-@st.dialog("🛡️ Confirmar seu Agendamento")
+@st.dialog("💈 Confirmar e Escolher Checkout")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
-    st.markdown(f"Você escolheu o horário das **{hora}**.")
+    st.markdown(f"### 📋 Resumo do seu Pedido")
     st.markdown(f"""
-    * **Profissional:** {barbeiro}
-    * **Serviço:** {servico}
-    * **Preço:** <span style='color:#10b981; font-weight:bold;'>R$ {preco:.2f}</span>
-    * **Data:** {data.strftime('%d/%m/%Y')}
+    * **Profissional Escolhido:** {barbeiro}
+    * **Serviço Selecionado:** {servico}
+    * **Data Reserva:** {data.strftime('%d/%m/%Y')}
+    * **Horário de Cadeira:** **{hora}**
     """, unsafe_allow_html=True)
+    st.markdown("---")
     
     if st.session_state["ultimo_horario_salvo"] == hora:
         st.markdown(f"""
@@ -49,30 +50,31 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                 🎉 Agendado com sucesso no sistema para as {hora}!
             </div>
         """, unsafe_allow_html=True)
-        
-        if st.button("Concluir e Fechar", use_container_width=True, type="primary"):
+        if st.button("Concluir e Atualizar Tela", use_container_width=True, type="primary"):
             st.session_state["ultimo_horario_salvo"] = None  
             st.rerun()
-            
     else:
-        st.markdown("Deseja confirmar a gravação do seu compromisso?")
+        st.markdown("#### Como deseja realizar o pagamento?")
+        tipo_pagamento = st.radio("Selecione uma opção:", ["Pagar na Barbearia (Preço Normal)", "Antecipar via Pix (Ganha Pontos em Dobro!)"])
+        
         col_pop1, col_pop2 = st.columns(2)
         with col_pop1:
             if st.button("✅ Confirmar Vaga", type="primary", use_container_width=True):
                 engine = obter_engine()
+                forma_f = "Pix Antecipado" if "Pix" in tipo_pagamento else "Presencial"
+                fator_pontos = 2 if "Pix" in tipo_pagamento else 1
+                
                 with engine.begin() as conn:
                     conn.execute(text("""
-                        INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor)
-                        VALUES (:u, :b, :d, :h, :s, :v)
-                    """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco})
+                        INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, forma_pagamento)
+                        VALUES (:u, :b, :d, :h, :s, :v, :fp)
+                    """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco, "fp": forma_f})
                     
-                    # Concede ponto de fidelidade no Neon
-                    conn.execute(text("UPDATE usuarios_barber SET pontos_fidelidade = pontos_fidelidade + 1 WHERE login = :u"), {"u": st.session_state['user']})
+                    conn.execute(text("UPDATE usuarios_barber SET pontos_fidelidade = pontos_fidelidade + :f WHERE login = :u"), {"f": fator_pontos, "u": st.session_state['user']})
                 
                 st.session_state["ultimo_horario_salvo"] = hora
                 st.balloons()
                 st.rerun()
-                
         with col_pop2:
             if st.button("❌ Cancelar", use_container_width=True):
                 st.session_state["ultimo_horario_salvo"] = None
@@ -80,8 +82,6 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
 
 def init_db():
     engine = obter_engine()
-    
-    # Criação de Tabelas Base
     with engine.begin() as conn:
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS usuarios_barber (
@@ -89,15 +89,12 @@ def init_db():
             )
         """))
     
-    # Injeção Isolada de Novas Colunas
     for coluna, tipo in [("preferencias", "TEXT DEFAULT 'Gosta de café sem açúcar, usa pomada matte'"), 
                          ("pontos_fidelidade", "INTEGER DEFAULT 0"), 
                          ("plano_assinatura", "TEXT DEFAULT 'Nenhum'")]:
         try:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE usuarios_barber ADD COLUMN {coluna} {tipo};"))
-        except:
-            pass
+            with engine.begin() as conn: conn.execute(text(f"ALTER TABLE usuarios_barber ADD COLUMN {coluna} {tipo};"))
+        except: pass
 
     with engine.begin() as conn:
         conn.execute(text("""
@@ -107,14 +104,10 @@ def init_db():
             )
         """))
         
-    for col_ag, tipo_ag in [("forma_pagamento", "TEXT DEFAULT 'Pix'"), 
-                            ("nota_avaliacao", "INTEGER DEFAULT 0"), 
-                            ("feedback_texto", "TEXT")]:
+    for col_ag, tipo_ag in [("forma_pagamento", "TEXT DEFAULT 'Pix'"), ("nota_avaliacao", "INTEGER DEFAULT 0"), ("feedback_texto", "TEXT")]:
         try:
-            with engine.begin() as conn:
-                conn.execute(text(f"ALTER TABLE agendamentos ADD COLUMN {col_ag} {tipo_ag};"))
-        except:
-            pass
+            with engine.begin() as conn: conn.execute(text(f"ALTER TABLE agendamentos ADD COLUMN {col_ag} {tipo_ag};"))
+        except: pass
 
     with engine.begin() as conn:
         conn.execute(text("""
@@ -128,13 +121,6 @@ def init_db():
             )
         """))
         
-        # Carga padrão de produtos
-        if conn.execute(text("SELECT COUNT(*) FROM estoque_produtos")).fetchone()[0] == 0:
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda) VALUES ('Pomada Efeito Matte Elesid', 3, 5, 35.0)"))
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda) VALUES ('Minoxidil Kirkland 6%', 14, 4, 89.90)"))
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda) VALUES ('Cerveja Budweiser Long Neck', 25, 10, 10.0)"))
-
-        # --- PERMISSÃO ATUALIZADA: Gabriel definido diretamente como Administrador Master ---
         conn.execute(text("""
             INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) 
             VALUES ('gabriel', :s, 'Gabriel (Proprietário)', 'admin', '19971374936')
@@ -152,74 +138,44 @@ try:
 except Exception as e:
     st.error(f"⚠️ Erro Crítico na Inicialização do Banco: {e}")
 
-# =========================================================
-# 🧪 FUNÇÃO INJETORA INTELIGENTE (SIMULAÇÃO DE MÉTRICAS)
-# =========================================================
-def injetar_dados_demonstracao():
-    engine = obter_engine()
-    clientes_fake = ['alexandre_guerra', 'leonardo_arengue', 'bruno_felicio', 'danilo_santos', 'luciano_souza', 'paulo_higuchi']
-    barbeiros_fake = ['Gabriel', 'Lucas']
-    servicos_fake = list(SERVICOS.keys())
-    formas_p = ['Pix', 'Cartão de Crédito', 'Dinheiro']
-    feedbacks = ['Excelente atendimento', 'Corte impecável', 'Atrasou 5 minutos', 'Muito profissional', 'Gostei do café']
+# --- ESTILIZAÇÃO CSS PREMIUM ---
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .stApp { background-color: #0d0e12; color: #e2e8f0; }
     
-    hoje = date.today()
+    /* Elementos Visuais das Abas e Cards */
+    .metric-card-barber {
+        background: linear-gradient(135deg, #1e2028 0%, #14151b 100%);
+        padding: 22px; border-radius: 16px; border: 1px solid #2a2d3a; text-align: center;
+    }
+    .metric-title { color: #94a3b8; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+    .metric-value { color: #f59e0b; font-size: 2.2rem; font-weight: 800; margin-top: 5px; }
     
-    with engine.begin() as conn:
-        conn.execute(text("DELETE FROM agendamentos;"))
-        conn.execute(text("DELETE FROM sala_espera;"))
-        
-        for idx, cli in enumerate(clientes_fake):
-            nome_formatado = cli.replace('_', ' ').title()
-            pontos = 8 if idx == 2 else 3
-            plano = 'VIP Executivo' if idx == 0 else 'Nenhum'
-            conn.execute(text("""
-                INSERT INTO usuarios_barber (login, senha, nome, perfil, celular, pontos_fidelidade, plano_assinatura)
-                VALUES (:l, 'sistema', :n, 'cliente', '19999999999', :p, :pl)
-                ON CONFLICT (login) DO NOTHING
-            """), {"l": cli, "n": nome_formatado, "p": pontos, "pl": plano})
-        
-        contador = 0
-        for i in range(-50, 10):  
-            data_alvo = hoje + timedelta(days=i)
-            for j, hora in enumerate(["09:30", "11:00", "14:30", "16:00", "17:30"]):
-                if (i + j) % 2 == 0 or i == 0: 
-                    cliente = clientes_fake[(i + j) % len(clientes_fake)]
-                    barbeiro = barbeiros_fake[(i * j) % len(barbeiros_fake)]
-                    servico = servicos_fake[(j) % len(servicos_fake)]
-                    valor = SERVICOS[servico]["preco"]
-                    fp = formas_p[(i + j) % len(formas_p)]
-                    nota = 5 if (i+j) % 4 != 0 else 3
-                    fb = feedbacks[(i+j) % len(feedbacks)] if nota == 5 else 'O corte foi bom, mas a cadeira atrasou um pouco.'
-                    
-                    conn.execute(text("""
-                        INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status, forma_pagamento, nota_avaliacao, feedback_texto)
-                        VALUES (:u, :b, :d, :h, :s, :v, 'Agendado', :fp, :nt, :fb)
-                    """), {"u": cliente, "b": barbeiro, "d": str(data_alvo), "h": hora, "s": servico, "v": valor, "fp": fp, "nt": nota, "fb": fb})
-                    contador += 1
-    return contador
+    .time-slot-card { background: #1e2028; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid #2a2d3a; margin-bottom: 8px; }
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+    .badge-livre { background: #10b98120; color: #34d399; border: 1px solid #10b981; }
+    .badge-ocupado { background: #ef444420; color: #f87171; border: 1px solid #ef4444; }
+    
+    .section-barber { background: #1e2028; padding: 12px 20px; border-radius: 8px; color: #fff; font-weight: 700; border-left: 5px solid #f59e0b; margin-bottom: 15px; }
+    
+    .product-card {
+        background: #14151b; border: 1px solid #2a2d3a; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px;
+        min-height: 290px; display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .barber-card-visual { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px; text-align: center; }
+    .barber-agenda-row { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- CONTROLE DE ESTADOS ---
-if 'auth' not in st.session_state: st.session_state['auth'] = False
-if 'user' not in st.session_state: st.session_state['user'] = None
-if 'perfil' not in st.session_state: st.session_state['perfil'] = None
-if 'nome_usuario' not in st.session_state: st.session_state['nome_usuario'] = None
-if 'reg_sucesso' not in st.session_state: st.session_state['reg_sucesso'] = 0
-if 'ultimo_horario_salvo' not in st.session_state: st.session_state['ultimo_horario_salvo'] = None
-
-# --- FLUXO DE TELA INICIAL ---
+# =========================================================
+# FLUXO DE TELA INICIAL
+# =========================================================
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBEARIA PROSPERIDADE</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#94a3b8;'>PROSPERIDADE OS — Gestão Operacional, CRM & Finanças Integradas</p>", unsafe_allow_html=True)
     
-    st.sidebar.markdown("### 🧪 Central de Testes")
-    if st.sidebar.button("⚡ Injetar Dados da Barbearia Prosperidade", use_container_width=True):
-        try:
-            dados_gerados = injetar_dados_demonstracao()
-            st.sidebar.success(f"🔥 {dados_gerados} registros operacionais criados!")
-            st.balloons()
-        except Exception as err: st.sidebar.error(f"Erro: {err}")
-            
     portal_cliente, portal_gerencial = st.tabs(["📱 PORTAL DO CLIENTE", "💼 ÁREA DA EQUIPE / DIRETORIA"])
     
     with portal_cliente:
@@ -252,7 +208,7 @@ if not st.session_state['auth']:
     with portal_gerencial:
         l_b = st.text_input("Login Administrativo / Profissional:", key="l_brb").strip().lower()
         s_b = st.text_input("Senha de Acesso:", type="password", key="s_brb")
-        if st.button("🔑 SOLICITAR ENTRADA NO SISTEMA", use_container_width=True):
+        if st.button("🔑 ACESSAR INFRAESTRUTURA INTERNA", use_container_width=True):
             engine = obter_engine()
             df_b = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :l AND senha = :s AND perfil IN ('barbeiro', 'admin')"), engine, params={"l": l_b, "s": hash_senha(s_b)})
             if not df_b.empty:
@@ -271,89 +227,198 @@ else:
     st.markdown("---")
 
     # =========================================================
-    # 1. AMBIENTE DO CLIENTE
+    # 1. AMBIENTE DO CLIENTE (UX TOTALMENTE REDESENHADA)
     # =========================================================
     if st.session_state['perfil'] == 'cliente':
         df_cli = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :u"), engine, params={"u": st.session_state['user']}).iloc[0]
-        c_menu = st.tabs(["📅 Agendamento 3 Passos", "👑 Meu Estilo & Fidelidade", "⏳ Check-in & Espera Virtual", "⭐ Avaliar Atendimento"])
         
+        # --- 1. SAUDAÇÃO SAUDÁVEL DINÂMICA ---
+        agora_brasil = datetime.utcnow() - timedelta(hours=3)
+        hora_int = agora_brasil.hour
+        if hora_int < 12: saudacao = "Bom dia"
+        elif hora_int < 18: saudacao = "Boa tarde"
+        else: saudacao = "Boa noite"
+        
+        st.markdown(f"## 👋 {saudacao}, {st.session_state['nome_usuario'].split()[0]}. Bora dar um tapa no visual?")
+        
+        # --- 2. CARD DE DESTAQUE SUPERIOR (ÚLTIMO AGENDAMENTO ACTIVO) ---
+        df_meus_cards = pd.read_sql_query(text("SELECT id, barbeiro_nome, data, horario, servico, valor FROM agendamentos WHERE cliente_login = :u AND status = 'Agendado' ORDER BY data ASC, horario ASC"), engine, params={"u": st.session_state['user']})
+        
+        if not df_meus_cards.empty:
+            prox = df_meus_cards.iloc[0]
+            st.markdown(f"""
+                <div style="background: linear-gradient(135deg, #1e2028 0%, #2e1a05 100%); padding: 20px; border-radius: 12px; border: 1px solid #f59e0b; margin-bottom: 20px;">
+                    <span style="background: #f59e0b; color: #000; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Próximo Agendamento</span>
+                    <h3 style="margin: 10px 0 5px 0; color: #fff;">{prox['servico']} com {prox['barbeiro_nome']}</h3>
+                    <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">📅 Data: {datetime.strptime(prox['data'], '%Y-%m-%d').strftime('%d/%m/%Y')} às ⏰ {prox['horario']}</p>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            col_gps1, col_gps2, _ = st.columns([1.5, 1.5, 5])
+            with col_gps1: st.markdown('<a href="https://maps.google.com" target="_blank" style="text-decoration:none;"><div style="background-color:#4285F4; padding:10px; color:white; border-radius:8px; text-align:center; font-weight:700; font-size:0.85rem;">🗺️ ABRIR NO GOOGLE MAPS</div></a>', unsafe_allow_html=True)
+            with col_gps2: st.markdown('<a href="https://waze.com" target="_blank" style="text-decoration:none;"><div style="background-color:#33CCFF; padding:10px; color:black; border-radius:8px; text-align:center; font-weight:700; font-size:0.85rem;">🚙 ABRIR NO WAZE</div></a>', unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+
+        c_menu = st.tabs(["📅 Agendamento em 4 Passos", "📸 Ficha de Estilo & Galeria", "🧴 Loja de Cosméticos", "⏳ Espera Virtual & Ouvidoria"])
+        
+        # --- FLUXO DE AGENDAMENTO INTELIGENTE ---
         with c_menu[0]:
-            st.markdown("### 📅 Reserve sua vaga na linha do tempo")
-            col_c1, col_c2, col_c3 = st.columns(3)
-            with col_c1: serv_sel = st.selectbox("1. Escolha o Serviço Real:", list(SERVICOS.keys()))
-            with col_c2: barb_sel = st.selectbox("2. Selecione o Barbeiro:", ["Gabriel", "Lucas"])
-            with col_c3: data_sel = st.date_input("3. Escolha o Dia:", date.today(), min_value=date.today())
+            st.markdown("### 🛠️ Configurar Novo Agendamento")
             
-            horarios_janela = [(datetime.strptime("09:00", "%H:%M") + timedelta(minutes=30*i)).strftime("%H:%M") for i in range(20)]
-            df_oc = pd.read_sql_query(text("SELECT horario FROM agendamentos WHERE barbeiro_nome = :b AND data = :d AND status = 'Agendado'"), engine, params={"b": barb_sel, "d": str(data_sel)})
+            # Passo 1: Menu Visual de Serviços
+            st.markdown("<div class='section-barber'>PASSO 1: SELECIONE O SERVIÇO DESEJADO</div>", unsafe_allow_html=True)
+            serv_cols = st.columns(3)
+            servico_escolhido = None
+            for idx, (nome_s, dados_s) in enumerate(SERVICOS.items()):
+                with serv_cols[idx % 3]:
+                    st.markdown(f"""
+                        <div class='product-card' style='min-height:310px;'>
+                            <img src='{dados_s["foto"]}' style='width:100%; height:130px; object-fit:cover; border-radius:8px; margin-bottom:8px;'/>
+                            <div style='font-weight:700; color:#fff;'>{nome_s}</div>
+                            <div style='color:#94a3b8; font-size:0.8rem;'>⏱️ Duração: {dados_s["tempo"]}</div>
+                            <h3 style='color:#10b981; margin:5px 0;'>R$ {dados_s["preco"]:.2f}</h3>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    if st.button(f"Selecionar {nome_s.split()[0]}", key=f"sel_ser_{idx}", use_container_width=True):
+                        st.session_state["serv_fluxo"] = nome_s
+            
+            serv_fluxo = st.session_state.get("serv_fluxo", "Corte Simples")
+            st.success(f"Serviço Selecionado: **{serv_fluxo}**")
+            
+            # Passo 2: Seleção do Profissional
+            st.markdown("<div class='section-barber'>PASSO 2: ESCOLHA O PROFISSIONAL (BARBEIRO)</div>", unsafe_allow_html=True)
+            col_b1, col_b2 = st.columns(2)
+            with col_b1:
+                st.markdown("""
+                    <div class='barber-card-visual'>
+                        <img src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100' style='border-radius:50%; width:70px; height:70px; object-fit:cover;'/>
+                        <h4 style='margin:5px 0 0 0;'>Gabriel (Proprietário)</h4>
+                        <p style='color:#f59e0b; margin:0;'>⭐ 4.9 (148 avaliações)</p>
+                        <p style='color:#94a3b8; font-size:0.75rem;'>Degradê & Visagismo Executivo</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                if st.button("Escolher Gabriel", use_container_width=True): st.session_state["barb_fluxo"] = "Gabriel"
+            with col_b2:
+                st.markdown("""
+                    <div class='barber-card-visual'>
+                        <img src='https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100' style='border-radius:50%; width:70px; height:70px; object-fit:cover;'/>
+                        <h4 style='margin:5px 0 0 0;'>Lucas Barber</h4>
+                        <p style='color:#f59e0b; margin:0;'>⭐ 4.8 (96 avaliações)</p>
+                        <p style='color:#94a3b8; font-size:0.75rem;'>Mestre das Barbas & Toalha Quente</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                if st.button("Escolher Lucas", use_container_width=True): st.session_state["barb_fluxo"] = "Lucas"
+                
+            barb_fluxo = st.session_state.get("barb_fluxo", "Gabriel")
+            st.success(f"Barbeiro Selecionado: **{barb_fluxo}**")
+            
+            # Passo 3: Grade de Horários Inteligente Dividida por Turnos
+            st.markdown("<div class='section-barber'>PASSO 3: GRADE DE HORÁRIOS DIVIDIDA POR TURNOS</div>", unsafe_allow_html=True)
+            data_sel = st.date_input("Selecione o Dia da Cadeira:", date.today(), min_value=date.today(), key="data_fluxo_cli")
+            
+            df_oc = pd.read_sql_query(text("SELECT horario FROM agendamentos WHERE barbeiro_nome = :b AND data = :d AND status = 'Agendado'"), engine, params={"b": barb_fluxo, "d": str(data_sel)})
             ocupados_list = df_oc['horario'].tolist()
-            
-            agora_br = datetime.utcnow() - timedelta(hours=3)
-            hora_atual_str = agora_br.strftime("%H:%M")
             eh_hoje = (data_sel == date.today())
+            
+            t_manha = ["09:00", "09:30", "11:00", "11:30"]
+            t_tarde = ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "16:00", "16:30", "17:00", "17:30"]
+            t_noite = ["18:00", "18:30", "19:00", "19:30"]
+            
+            for turno_nome, turnos_slots in [("☀️ Turno da Manhã", t_manha), ("🌤️ Turno da Tarde", t_tarde), ("🌙 Turno da Noite", t_noite)]:
+                st.write(f"**{turno_nome}**")
+                t_cols = st.columns(4)
+                for s_idx, h_slot in enumerate(turnos_slots):
+                    with t_cols[s_idx % 4]:
+                        if h_slot in ocupados_list or (eh_hoje and h_slot < hora_atual_str):
+                            st.markdown(f"<div class='time-slot-card' style='border-color:#ef4444; opacity:0.5; padding:6px;'><span style='color:#f87171; font-size:0.7rem;'>🛑 Ocupado</span><h5 style='margin:2px 0;'>{h_slot}</h5></div>", unsafe_allow_html=True)
+                        else:
+                            if st.button(f"🟢 {h_slot}", key=f"slot_flx_{turno_nome}_{h_slot}", use_container_width=True):
+                                mostrar_popup_confirmacao(h_slot, barb_fluxo, serv_fluxo, SERVICOS[serv_fluxo]["preco"], data_sel)
 
-            cols_grade = st.columns(4)
-            for idx, hora in enumerate(horarios_janela):
-                with cols_grade[idx % 4]:
-                    if hora in ocupados_list or (eh_hoje and hora < hora_atual_str):
-                        st.markdown(f"<div class='time-slot-card' style='border-color:#ef4444;'><span class='status-badge badge-ocupado'>🛑 Reservado</span><h4>{hora}</h4></div>", unsafe_allow_html=True)
-                        st.button("Ocupado", key=f"ind_{hora}", disabled=True, use_container_width=True)
-                    else:
-                        st.markdown(f"<div class='time-slot-card' style='border-color:#10b981;'><span class='status-badge badge-livre'>🟢 Livre</span><h4>{hora}</h4></div>", unsafe_allow_html=True)
-                        if st.button("Agendar Vaga", key=f"av_{hora}", use_container_width=True):
-                            mostrar_popup_confirmacao(hora, barb_sel, serv_sel, SERVICOS[serv_sel]["preco"], data_sel)
-
-        with c_menu[1]:
-            st.markdown("### 👑 Meu Perfil de Estilo & Fidelidade")
-            f_col1, f_col2 = st.columns(2)
-            with f_col1:
-                st.markdown(f"""
-                    <div class='metric-card-barber' style='border-left:6px solid #f59e0b;'>
-                        <div class='metric-title'>Meus Pontos Acumulados</div>
-                        <div class='metric-value'>{df_cli['pontos_fidelidade']} / 10</div>
-                        <p style='color:#94a3b8; font-size:0.8rem; margin-top:5px;'>Ganhe 1 ponto por corte. Ao atingir 10 pontos você ganha uma Hidratação Premium de graça!</p>
-                    </div>
-                """, unsafe_allow_html=True)
-            with f_col2:
-                st.markdown(f"""
-                    <div class='metric-card-barber' style='border-left:6px solid #3b82f6;'>
-                        <div class='metric-title'>Plano de Assinatura Ativo</div>
-                        <div class='metric-value' style='font-size:1.6rem; padding-top:12px; color:#3b82f6;'>{df_cli['plano_assinatura']}</div>
-                    </div>
-                """, unsafe_allow_html=True)
-                if df_cli['plano_assinatura'] == "Nenhum":
-                    if st.button("Assinar Plano Prosperidade Ilimitado (R$ 149,90/mês)", use_container_width=True):
-                        with engine.begin() as conn: conn.execute(text("UPDATE usuarios_barber SET plano_assinatura = 'VIP Prosperidade' WHERE login = :u"), {"u": st.session_state['user']})
-                        st.success("Plano ativado! Agora você tem cortes livres.")
+            st.markdown("<br><br>", unsafe_allow_html=True)
+            st.markdown("<div class='section-barber'>❌ GERENCIAR MEUS AGENDAMENTOS ATIVOS</div>", unsafe_allow_html=True)
+            if not df_meus_cards.empty:
+                st.dataframe(df_meus_cards, use_container_width=True)
+                id_cancelar_cliente = st.number_input("Digite o ID do agendamento que deseja desmarcar:", min_value=1, step=1, key="c_del_cli")
+                if st.button("🚨 REMOVER HORÁRIO DA AGENDA", type="primary", use_container_width=True):
+                    if id_cancelar_cliente in df_meus_cards['id'].values:
+                        with engine.begin() as conn: conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(id_cancelar_cliente)})
+                        st.success("Horário desmarcado com sucesso!")
                         st.rerun()
 
-            st.markdown("#### 🗒️ Minha Ficha de Estilo (Visualizado pelo Barbeiro)")
-            st.info(df_cli['preferencias'])
-            st.markdown("#### 📸 Fotos dos meus Cortes Anteriores (Histórico de Cadeira)")
-            st.image(["https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=300", "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=300"], width=150, caption=["Último Corte (Mid Fade)", "Corte Anterior (Cabelo + Barba)"])
-
-        with c_menu[2]:
-            st.markdown("### ⏳ Check-in e Sala de Espera Virtual")
-            st.write("A caminho da barbearia? Faça o check-in e entre na fila virtual para agilizar sua recepção!")
-            if st.button("🚀 FAZER CHECK-IN AGORA"):
-                with engine.begin() as conn: 
-                    conn.execute(text("INSERT INTO sala_espera (cliente_login, horario_checkin) VALUES (:u, :h)"), {"u": st.session_state['user'], "h": (datetime.utcnow()-timedelta(hours=3)).strftime("%H:%M")})
-                st.toast("Check-in computado! Os profissionais foram alertados na bancada.")
+        # --- ÁREA MEU ESTILO ---
+        with c_menu[1]:
+            st.markdown("### 👑 Ficha de Estilo do Cliente & Clube Fidelidade Gamificado")
             
-            st.markdown("#### Tempo de Espera Estimado da Barbearia")
-            st.metric(label="Tempo na Sala de Espera Física para Encaixes", value="12 min", delta="Cadeiras Otimizadas")
+            col_fid1, col_fid2 = st.columns(2)
+            with col_fid1:
+                pontos = int(df_cli['pontos_fidelidade'])
+                st.markdown(f"**Meu Cartão Fidelidade Digital: {pontos} / 10 Cortes**")
+                st.progress(min(pontos / 10.0, 1.0))
+                st.caption(f"Faltam exatamente {max(10 - pontos, 0)} cortes para você destravar sua hidratação premium!")
+            with col_fid2:
+                st.markdown(f"""
+                    <div class='metric-card-barber' style='padding:12px; border-left:5px solid #3b82f6;'>
+                        <div class='metric-title'>Plano VIP Prosperidade</div>
+                        <div class='metric-value' style='font-size:1.6rem; color:#3b82f6; padding-top:5px;'>{df_cli['plano_assinatura']}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+            st.markdown("---")
+            st.markdown("#### 🗒️ Ficha Técnica do meu Cabelo (Notas do Barbeiro)")
+            st.info(f"📋 **Prontuário de Estilo:** {df_cli['preferencias']}")
+            
+            st.markdown("#### 📸 Galeria Antes e Depois (Linha do Tempo Capilar)")
+            img_cols = st.columns(3)
+            with img_cols[0]: st.image("https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=300", caption="Última Visita (Gabriel Barber)")
+            with img_cols[1]: st.image("https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=300", caption="Visita Anterior (Lucas Barber)")
 
+        # --- LOJA DE COSMÉTICOS ---
+        with c_menu[2]:
+            st.markdown("### 🧴 Loja Home-Care da Barbearia Prosperidade")
+            st.caption("Mantenha o penteado impecável em casa. Compre pelo app e retire na sua próxima visita!")
+            
+            prod_cols = st.columns(3)
+            prod_lista = [
+                ("Elesid Pomada Efeito Matte", "R$ 35,00", "https://images.unsplash.com/photo-1608248597481-496100c8c836?w=300"),
+                ("Minoxidil Kirkland 6%", "R$ 89,90", "https://images.unsplash.com/photo-1626015713026-d8309d97732a?w=300"),
+                ("Óleo de Cedro Premium", "R$ 42,00", "https://images.unsplash.com/photo-1617897903246-719242758050?w=300")
+            ]
+            
+            for p_idx, (p_nome, p_preco, p_img) in enumerate(prod_lista):
+                with prod_cols[p_idx % 3]:
+                    st.markdown(f"""
+                        <div class='product-card' style='min-height:280px;'>
+                            <img src='{p_img}' style='width:100%; height:120px; object-fit:cover; border-radius:8px;'/>
+                            <div style='font-weight:700; margin-top:5px; color:#fff;'>{p_nome}</div>
+                            <h4 style='color:#f59e0b; margin:2px 0;'>{p_preco}</h4>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    if st.button("Comprar e Retirar no Balcão", key=f"buy_p_{p_idx}", use_container_width=True):
+                        st.toast(f"Pedido de {p_nome} reservado para seu próximo corte!", icon="🛒")
+
+        # --- SALA DE ESPERA E OUVIDORIA ---
         with c_menu[3]:
-            st.markdown("### ⭐ Avaliação Interna Direta ao Proprietário")
-            with st.form("form_feedback"):
-                nota = st.slider("Nota do Atendimento:", 1, 5, 5)
-                comentario = st.text_area("O que achou do serviço e do atendimento?")
-                if st.form_submit_button("Enviar Avaliação"):
-                    with engine.begin() as conn: conn.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, nota_avaliacao, feedback_texto, status) VALUES (:u, 'Ouvidoria', :d, '00:00', 'Feedback Direto', 0, :n, :f, 'Feedback')"), {"u": st.session_state['user'], "d": str(date.today()), "n": nota, "f": comentario})
-                    st.success("Obrigado pelo feedback! Ele foi enviado diretamente à administração.")
+            st.markdown("### ⏳ Check-in e Ouvidoria Privada")
+            col_w1, col_w2 = st.columns(2)
+            with col_w1:
+                st.markdown("#### Sala de Espera Virtual")
+                if st.button("🚀 FAZER CHECK-IN (AVISAR QUE CHEGUEI)", use_container_width=True):
+                    with engine.begin() as conn:
+                        conn.execute(text("INSERT INTO sala_espera (cliente_login, horario_checkin) VALUES (:u, :h)"), {"u": st.session_state['user'], "h": agora_brasil.strftime("%H:%M")})
+                    st.success("Check-in realizado! Sua presença foi marcada no monitor da bancada.")
+            with col_w2:
+                st.markdown("#### Ouvidoria Direta com o Proprietário Gabriel")
+                with st.form("ouvidoria_form"):
+                    nota_av = st.slider("Avalie nosso atendimento:", 1, 5, 5)
+                    text_av = st.text_area("Críticas, elogios ou notas sobre o atraso das cadeiras:")
+                    if st.form_submit_button("Enviar Feedback Seguro"):
+                        with engine.begin() as conn:
+                            conn.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, nota_avaliacao, feedback_texto, status) VALUES (:u, 'Ouvidoria', :d, '00:00', 'Feedback Privado', 0, :n, :f, 'Feedback')"), {"u": st.session_state['user'], "d": str(date.today()), "n": nota_av, "f": text_av})
+                        st.success("Obrigado! Sua nota foi arquivada de forma privada no painel do Gabriel.")
 
     # =========================================================
-    # 2. AMBIENTE DO BARBEIRO (LUCAS OU GABRIEL OPERANDO CADEIRA)
+    # 2. AMBIENTE DO BARBEIRO (LUCAS OPERANDO)
     # =========================================================
     elif st.session_state['perfil'] == 'barbeiro':
         b_menu = st.tabs(["📅 Agenda de Bancada", "📊 Minhas Comissões & Metas"])
@@ -373,7 +438,7 @@ else:
                 if h in mapa_agenda:
                     reg = mapa_agenda[h]
                     st.markdown(f"""
-                        <div class="barber-agenda-row" style="border-left: 6px solid #ef4444; background: #ef444408;">
+                        <div class="barber-agenda-row" style="border-left: 6px solid #ef4444; background: #ef444405;">
                             <div>
                                 <span style="font-size:1.3rem; font-weight:800; color:#ef4444;">⏰ {h}</span>
                                 <span style="margin-left:20px; font-weight:700; color:#fff;">👤 Cliente: {reg['cliente_nome']}</span>
@@ -382,18 +447,12 @@ else:
                             <div style='color:#f59e0b; font-weight:700;'>R$ {reg['valor']:.2f}</div>
                         </div>
                     """, unsafe_allow_html=True)
-                    with st.expander(f"⚙️ Prontuário de {reg['cliente_nome']}"):
-                        st.write(f"**Preferências de Cadeira:** {reg['preferencias']}")
-                        st.file_uploader("📸 Adicionar Foto ao Portfólio / Estilo do Cliente", type=['png','jpg'], key=f"f_{h}")
                 else:
                     st.markdown(f"""
                         <div class="barber-agenda-row" style="border-left: 4px solid #10b981; opacity:0.7;">
                             <div><span style="font-size:1.1rem; font-weight:700; color:#34d399;">⏰ {h}</span><span style="margin-left:20px; color:#94a3b8; font-style:italic;">Disponível</span></div>
                         </div>
                     """, unsafe_allow_html=True)
-                    if st.button("Bloquear Horário", key=f"bloq_{h}"):
-                        with engine.begin() as conn: conn.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor) VALUES ('bloqueio_manual', :b, :d, :h, 'Bloqueio', 0)"), {"b": st.session_state['nome_usuario'], "d": str(date.today()), "h": h})
-                        st.rerun()
 
         with b_menu[1]:
             st.markdown("### 📊 Painel de Comissões & Metas do Profissional")
@@ -406,13 +465,10 @@ else:
             with mc3: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Meta Diária (R$ 300)</div><div class='metric-value' style='color:#3b82f6;'>{min(int((fat_bruto/300)*100), 100)}%</div></div>", unsafe_allow_html=True)
 
     # =========================================================
-    # 3. AMBIENTE ADMINISTRATIVO MASTER (GERENCIAL DO DONO GABRIEL)
+    # 3. AMBIENTE ADMINISTRATIVO MASTER (PROPRIETÁRIO GABRIEL)
     # =========================================================
     elif st.session_state['perfil'] == 'admin':
-        st.markdown("### 🛠️ Infraestrutura de Lançamento e Controle Gerencial")
-        
-        # O Gabriel pode alternar entre a visão de Gestão do Negócio e a sua própria Agenda de Cortes
-        modo_visao = st.sidebar.radio("Selecione o Painel Ativo:", ["📊 Visão Proprietário (Admin)", "📅 Minha Agenda na Cadeira (Gabriel)"])
+        modo_visao = st.sidebar.radio("Selecione o Painel Ativo:", ["📊 Painel Corporativo (Faturamento/CRM)", "📅 Minha Agenda na Cadeira (Gabriel)"])
         
         if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)":
             st.markdown("### 📅 Minha Grade Pessoal de Atendimentos — Gabriel")
@@ -447,7 +503,7 @@ else:
             adm_menu = st.tabs(["💰 Split & Finanças", "📦 Controle de Estoque Inteligente", "🎯 CRM: Retenção & Avaliações", "➕ Agendamento Manual"])
             
             st.markdown("<div class='section-barber'>📅 JANELA TEMPORAL DE ANÁLISE CONSOLIDADA DO DONO</div>", unsafe_allow_html=True)
-            periodo_sel = st.date_input("Intervalo de Dates:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm")
+            periodo_sel = st.date_input("Intervalo de Datas:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm")
             if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: d_i, d_f = periodo_sel
             else: d_i = d_f = date.today()
 
@@ -483,7 +539,6 @@ else:
                 with col_crm1:
                     st.markdown("#### 🏃‍♂️ Clientes Ausentes (+45 dias)")
                     st.table(pd.DataFrame({"Cliente": ["Danilo Santos", "Alexandre Guerra"], "Última Visita": ["12/04/2026", "24/04/2026"], "WhatsApp": ["(19) 97137-4936", "(19) 98888-2233"]}))
-                    if st.button("Disparar Cupons de Retenção em Massa"): st.toast("Campanha enviada via Push!")
                 with col_crm2:
                     st.markdown("#### ⭐ Feedbacks e Avaliações Privadas")
                     df_fb = pd.read_sql_query("SELECT cliente_login, nota_avaliacao, feedback_texto FROM agendamentos WHERE nota_avaliacao > 0", engine)
