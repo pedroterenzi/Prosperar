@@ -33,13 +33,21 @@ def hash_senha(senha):
 def init_db():
     engine = obter_engine()
     with engine.begin() as conn:
-        # Tabela de Usuários Estendida
+        # Tabela de Usuários Estrutural
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS usuarios_barber (
-                id SERIAL PRIMARY KEY, login TEXT UNIQUE, senha TEXT, nome TEXT, perfil TEXT, celular TEXT,
-                preferencias TEXT DEFAULT 'Nenhuma nota informada', pontos_fidelidade INTEGER DEFAULT 0, plano_assinatura TEXT DEFAULT 'Nenhum'
+                id SERIAL PRIMARY KEY, login TEXT UNIQUE, senha TEXT, nome TEXT, perfil TEXT, celular TEXT
             )
         """))
+        
+        # --- BLINDAGEM ANTI-KEYERROR: Garante as colunas novas em bancos antigos ---
+        try: conn.execute(text("ALTER TABLE usuarios_barber ADD COLUMN preferencias TEXT DEFAULT 'Nenhuma nota informada';"))
+        except: pass
+        try: conn.execute(text("ALTER TABLE usuarios_barber ADD COLUMN pontos_fidelidade INTEGER DEFAULT 0;"))
+        except: pass
+        try: conn.execute(text("ALTER TABLE usuarios_barber ADD COLUMN plano_assinatura TEXT DEFAULT 'Nenhum';"))
+        except: pass
+
         # Tabela de Agendamentos com Formas de Pagamento e Avaliação
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS agendamentos (
@@ -48,6 +56,7 @@ def init_db():
                 forma_pagamento TEXT DEFAULT 'Pix', nota_avaliacao INTEGER DEFAULT 0, feedback_texto TEXT
             )
         """))
+        
         # Tabela de Estoque
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS estoque_produtos (
@@ -67,6 +76,9 @@ def init_db():
         if res_u == 0:
             conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) VALUES ('gabriel', :s, 'Gabriel', 'barbeiro', '19971374936')"), {"s": hash_senha("123456")})
             conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) VALUES ('lucas', :s, 'Lucas', 'barbeiro', '19999999999')"), {"s": hash_senha("123456")})
+            
+        res_a = conn.execute(text("SELECT COUNT(*) FROM usuarios_barber WHERE perfil = 'admin'")).fetchone()[0]
+        if res_a == 0:
             conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) VALUES ('admin', :s, 'Dono Prosperidade', 'admin', '19971374936')"), {"s": hash_senha("admin123")})
 
 try:
@@ -231,6 +243,9 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                         INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor)
                         VALUES (:u, :b, :d, :h, :s, :v)
                     """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco})
+                    
+                    # Concede ponto de fidelidade no Neon
+                    conn.execute(text("UPDATE usuarios_barber SET pontos_fidelidade = pontos_fidelidade + 1 WHERE login = :u"), {"u": st.session_state['user']})
                 
                 st.session_state["ultimo_horario_salvo"] = hora
                 st.balloons()
@@ -245,8 +260,8 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
 # FLUXO DE AUTENTICAÇÃO
 # =========================================================
 if not st.session_state['auth']:
-    st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBERFLOW OS</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; color:#94a3b8;'>Gestão Inteligente & Agendamento de Alta Performance</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBEARIA PROSPERIDADE</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; color:#94a3b8;'>PROSPERIDADE OS — Gestão Inteligente & Agendamento de Alta Performance</p>", unsafe_allow_html=True)
     
     st.sidebar.markdown("### 🧪 Central de Testes")
     if st.sidebar.button("⚡ Injetar Dados de Demonstração", use_container_width=True):
@@ -299,16 +314,16 @@ if not st.session_state['auth']:
                 else: st.warning("Por favor, preencha todos os campos do formulário.")
 
     with portal_barbeiro:
-        st.markdown("<div class='section-barber'>Painel de Autenticação do Profissional</div>", unsafe_allow_html=True)
+        st.markdown("<div class='section-barber'>Painel de Autenticação do Profissional / Admin</div>", unsafe_allow_html=True)
         log_b = st.text_input("Login Administrativo", key="log_b").strip().lower()
         senha_b = st.text_input("Senha Corporativa", type="password", key="senha_b")
         if st.button("🔑 ACESSAR PAINEL GERENCIAL", use_container_width=True):
             engine = obter_engine()
-            df_b = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :l AND senha = :s AND perfil = 'barbeiro'"), engine, params={"l": log_b, "s": hash_senha(senha_b)})
+            df_b = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :l AND senha = :s AND perfil IN ('barbeiro', 'admin')"), engine, params={"l": log_b, "s": hash_senha(senha_b)})
             if not df_b.empty:
                 st.session_state['auth'] = True
                 st.session_state['user'] = df_b.iloc[0]['login']
-                st.session_state['perfil'] = 'barbeiro'
+                st.session_state['perfil'] = df_b.iloc[0]['perfil']
                 st.session_state['nome_usuario'] = df_b.iloc[0]['nome']
                 st.rerun()
             else: st.error("Credenciais administrativas inválidas.")
@@ -321,7 +336,7 @@ else:
     
     col_h1, col_h2 = st.columns([4, 1])
     with col_h1:
-        st.markdown(f"### 💈 **{st.session_state['nome_usuario']}** <span style='color:#f59e0b'>[{st.session_state['perfil'].upper()}]</span>", unsafe_allow_html=True)
+        st.markdown(f"### 💈 **{st.session_state['nome_usuario']}** @ Barbearia Prosperidade <span style='color:#f59e0b'>[{st.session_state['perfil'].upper()}]</span>", unsafe_allow_html=True)
     with col_h2:
         if st.button("Encerra Sessão", use_container_width=True):
             st.session_state['auth'] = False
@@ -335,6 +350,9 @@ else:
     if st.session_state['perfil'] == 'cliente':
         menu_c = st.tabs(["📅 Agendamento de Horários", "✨ Promoções & Combos", "🧴 Vitrine de Produtos"])
         
+        # Garante a coleta limpa dos dados de fidelidade pós-alteração de colunas
+        df_cli_data = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :u"), engine, params={"u": st.session_state['user']}).iloc[0]
+
         with menu_c[0]:
             st.markdown("## 📅 Agende seu Horário na Linha do Tempo")
             
@@ -427,7 +445,29 @@ else:
                 st.markdown("<div class='product-card'><h3 style='flex-grow:1;'>⚡ Combo Alinhado</h3><p>Corte + Sobrancelha executada na navalha + Lavagem Especial com massagem capilar e Shampoos Premium.</p><h2 style='color:#10b981; margin:0;'>R$ 60,00</h2></div>", unsafe_allow_html=True)
 
         with menu_c[2]:
-            st.markdown("## 🧴 Vitrine de Produtos Home-Care")
+            st.markdown("## 🧴 Vitrine de Produtos Home-Care & Clube Fidelidade")
+            
+            # --- SEÇÃO DO CLUBE DE FIDELIDADE (RESOLVIDO O KEYERROR) ---
+            col_fid1, col_fid2 = st.columns(2)
+            with col_fid1:
+                pontos_atuais = df_cli_data['pontos_fidelidade'] if 'pontos_fidelidade' in df_cli_data else 0
+                st.markdown(f"""
+                    <div class='metric-card-barber' style='min-height:140px; border-left:6px solid #f59e0b;'>
+                        <div class='metric-title'>Meus Pontos Acumulados</div>
+                        <div class='metric-value'>{pontos_atuais} / 10</div>
+                        <p style='color:#94a3b8; font-size:0.75rem; margin-top:5px;'>Ganhe 1 ponto por atendimento. Complete 10 e ganhe uma hidratação!</p>
+                    </div>
+                """, unsafe_allow_html=True)
+            with col_fid2:
+                plano_clube = df_cli_data['plano_assinatura'] if 'plano_assinatura' in df_cli_data else 'Nenhum'
+                st.markdown(f"""
+                    <div class='metric-card-barber' style='min-height:140px; border-left:6px solid #3b82f6;'>
+                        <div class='metric-title'>Meu Plano de Assinatura</div>
+                        <div class='metric-value' style='color:#3b82f6; font-size:1.5rem; font-weight:800; padding-top:10px;'>{plano_clube}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+            st.markdown("<br>", unsafe_allow_html=True)
             pr_c1, pr_c2, pr_c3, pr_c4 = st.columns(4)
             with pr_c1:
                 st.markdown("<div class='product-card'><div style='flex-grow:1;'><h4>Elesid Pomada Efeito Matte</h4><p>Fixação Forte de Alta Performance para penteados estruturados (150g)</p></div><h3 style='color:#f59e0b; margin:0;'>R$ 35,00</h3></div>", unsafe_allow_html=True)
@@ -498,7 +538,7 @@ else:
                     }
                 )
                 
-                st.markdown(f"**Análise activa:** Monitorando `{', '.join(barbeiros_selecionados)}` de `{data_inicio.strftime('%d/%m/%Y')}` até `{data_fim.strftime('%d/%m/%Y')}`")
+                st.markdown(f"**Análise ativa:** Monitorando `{', '.join(barbeiros_selecionados)}` de `{data_inicio.strftime('%d/%m/%Y')}` até `{data_fim.strftime('%d/%m/%Y')}`")
                 st.markdown("---")
                 
                 if df_all_age.empty:
@@ -617,7 +657,6 @@ else:
             with col_b_name:
                 barbeiro_agenda_sel = st.selectbox("Visualizar Agenda do Profissional:", ["Gabriel", "Lucas"], key="nome_b_agenda")
             
-            # --- FIX FIXO: EXECUÇÃO COMPATÍVEL COM PANDAS + SQLALCHEMY ---
             with engine.connect() as conexao:
                 df_agenda_dia_real = pd.read_sql_query(
                     text("""
@@ -722,3 +761,65 @@ else:
                         st.rerun()
                     else:
                         st.error("ID não localizado na lista ativa.")
+                        
+    # =========================================================
+    # AMBIENTE ADMINISTRATIVO MASTER (ADMIN)
+    # =========================================================
+    elif st.session_state['perfil'] == 'admin':
+        st.markdown("## 👑 Painel Executivo do Proprietário")
+        menu_adm = st.sidebar.radio("Navegação Adm", ["💰 Financeiro & Split Automático", "📦 Controle de Estoque"])
+        
+        st.markdown("<div class='section-barber'>📅 PAINEL DE CONTROLE TÁTICO: FILTROS OPERACIONAIS</div>", unsafe_allow_html=True)
+        periodo_sel = st.date_input("Selecione o Intervalo de Análise:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="periodo_bi_admin")
+        
+        if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2:
+            data_inicio, data_fim = periodo_sel
+        elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1:
+            data_inicio = data_fim = periodo_sel[0]
+        else:
+            data_inicio = data_fim = periodo_sel
+
+        df_all_age = pd.read_sql_query(
+            text("""
+                SELECT a.*, u.nome as cliente_nome 
+                FROM agendamentos a 
+                LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
+                WHERE a.status = 'Agendado' AND a.data BETWEEN :ini AND :fim
+            """), engine, params={"ini": str(data_inicio), "fim": str(data_fim)}
+        )
+        
+        if menu_adm == "💰 Financeiro & Split Automático":
+            if df_all_age.empty:
+                st.info("Nenhum histórico operacional encontrado para os parâmetros selecionados.")
+            else:
+                tot_atendimentos = len(df_all_age)
+                faturamento_total = df_all_age['valor'].sum()
+                
+                # Split automático de comissão direto no BI da Casa
+                parte_barbeiros = 0.0
+                for _, r in df_all_age.iterrows():
+                    s = r['servico']
+                    if s in SERVICOS: parte_barbeiros += r['valor'] * SERVICOS[s]['comissao']
+                parte_casa = faturamento_total - parte_barbeiros
+                
+                st.markdown(f"""
+                    <div style="display: flex; justify-content: space-between; gap: 15px; margin-bottom: 25px;">
+                        <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Faturamento Bruto</div><div class="metric-value">R$ {faturamento_total:.2f}</div></div>
+                        <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Split: Repasse Equipe</div><div class="metric-value" style="color:#ef4444">R$ {parte_barbeiros:.2f}</div></div>
+                        <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Lucro Líquido Casa</div><div class="metric-value" style="color:#10b981">R$ {parte_casa:.2f}</div></div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown("#### Faturamento por Meio de Recebimento")
+                df_pag = df_all_age.groupby('forma_pagamento')['valor'].sum().reset_index()
+                st.plotly_chart(px.bar(df_pag, x='forma_pagamento', y='valor', color='forma_pagamento', color_discrete_sequence=px.colors.sequential.YlOrBr), use_container_width=True)
+                
+        elif menu_adm == "📦 Controle de Estoque":
+            st.markdown("### 📦 Monitoramento de Insumos e Vendas")
+            df_estoque = pd.read_sql_query("SELECT * FROM estoque_produtos", engine)
+            
+            for _, r in df_estoque.iterrows():
+                if r['quantidade'] <= r['limite_minimo']:
+                    st.error(f"🚨 **ALERTA DE REPOSIÇÃO:** O produto **{r['nome_produto']}** está crítico no estoque! Quantidade: `{r['quantidade']}` (Mínimo: {r['limite_minimo']}).")
+            
+            st.dataframe(df_estoque, use_container_width=True)
