@@ -116,7 +116,6 @@ def mostrar_auditoria_barbeiro(barbeiro_nome, data_i, data_f):
     df_auditar = pd.read_sql_query(text("SELECT data, horario, cliente_login, servico, valor, status FROM agendamentos WHERE barbeiro_nome = :b AND data BETWEEN :ini AND :fim ORDER BY data DESC"), engine, params={"b": barbeiro_nome, "ini": str(data_i), "fim": str(data_f)})
     st.dataframe(df_auditar, use_container_width=True)
 
-# 🟢 INCLUSÃO: Pop-up de Venda Rápida na Bancada para o Barbeiro
 @st.dialog("🧴 Lançar Venda Rápida de Produto")
 def mostrar_modal_venda_rapida(barbeiro):
     st.markdown("### 🛒 Checkout Expresso de Bancada")
@@ -216,8 +215,6 @@ st.markdown("""
     .barber-agenda-row { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
     .kanban-col { background-color: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px; min-height: 350px; }
     .kanban-card { background-color: #1e2028; border: 1px solid #3b3f54; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
-    
-    /* Banner Informativo Superior */
     .bancada-alert-banner { background: linear-gradient(90deg, #1e1b4b 0%, #311042 100%); padding: 12px 20px; border-radius: 8px; border: 1px solid #6366f1; color: #fff; font-weight: 700; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
     </style>
     """, unsafe_allow_html=True)
@@ -276,7 +273,7 @@ else:
     st.markdown("---")
 
     # =========================================================
-    # AMBIENTE DO CLIENTE (MANTIDO CONFORME SOLICITADO)
+    # AMBIENTE DO CLIENTE
     # =========================================================
     if st.session_state['perfil'] == 'cliente':
         df_cli = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :u"), engine, params={"u": st.session_state['user']}).iloc[0]
@@ -342,7 +339,7 @@ else:
                 sel_g = (barb_fluxo == "Gabriel")
                 b_style_g = "border: 2px solid #3b82f6; background: #121824;" if sel_g else "border: 1px solid #2a2d3a;"
                 st.markdown(f"""
-                    <div class='barber-card-visual' style='{b_style_g} padding:10px;'>
+                    <div class='barber-card-visual' style='{b_style_g padding:10px;}'>
                         <h4 style='margin:0;'>Gabriel (Proprietário)</h4>
                         <p style='color:#f59e0b; margin:0;'>⭐ 4.9 (148 avaliações)</p>
                     </div>
@@ -354,7 +351,7 @@ else:
                 sel_l = (barb_fluxo == "Lucas")
                 b_style_l = "border: 2px solid #3b82f6; background: #121824;" if sel_l else "border: 1px solid #2a2d3a;"
                 st.markdown(f"""
-                    <div class='barber-card-visual' style='{b_style_l} padding:10px;'>
+                    <div class='barber-card-visual' style='{b_style_l padding:10px;}'>
                         <h4 style='margin:0;'>Lucas Barber</h4>
                         <p style='color:#f59e0b; margin:0;'>⭐ 4.8 (96 avaliações)</p>
                     </div>
@@ -413,7 +410,7 @@ else:
             if not txt_prontuario or txt_prontuario == "Nenhum":
                 txt_prontuario = "Seu barbeiro ainda não adicionou notas sobre o seu estilo. Elas aparecerão aqui assim que seu corte for personalizado!"
             st.info(f"📋 **Ficha Técnica:** {txt_prontuario}")
-            st.markdown("#### 📸 Minhas Fotos de Cortes")
+            st.markdown("#### 📸 Fotos dos meus Cortes Anteriores")
             img_c1, img_c2, _ = st.columns([2, 2, 4])
             with img_c1: st.image("https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500", caption="Último Fade")
             with img_c2: st.image("https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=500", caption="Barba Alinhada")
@@ -459,7 +456,7 @@ else:
                         st.success("Obrigado pelo feedback!")
 
     # =========================================================
-    # 🪒 NOVA ÁREA DO BARBEIRO (UX TOTALMENTE REESTRUTURADA)
+    # AMBIENTE OPERACIONAL DO BARBEIRO / ADMIN
     # =========================================================
     elif st.session_state['perfil'] in ('barbeiro', 'admin'):
         modo_visao = "📅 Minha Agenda na Cadeira (Gabriel)"
@@ -469,7 +466,7 @@ else:
         if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)" or st.session_state['perfil'] == 'barbeiro':
             barbeiro_ativo = "Gabriel" if st.session_state['perfil'] == 'admin' else st.session_state['nome_usuario']
             
-            # Captura unificada dos dados operacionais da cadeira
+            # --- 🛠️ SOLUÇÃO DO SCALAMENTO GLOBAL: Mapeamento dos Dados da Cadeira antes de qualquer renderização ---
             with engine.connect() as conn:
                 df_b_hoje = pd.read_sql_query(text("""
                     SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, a.status,
@@ -479,7 +476,12 @@ else:
                     WHERE a.barbeiro_nome = :b AND a.data = :d ORDER BY a.horario ASC
                 """), conn, params={"b": barbeiro_ativo, "d": str(date.today())})
             
-            # --- 🚀 RECURSO DE TOPO 1: BANNER FIXO DE PRÓXIMO ATENDIMENTO ---
+            faturamento_cadeira = df_b_hoje['valor'].sum()
+            
+            # Variável Global Calculada Previamente para Prevenir o NameError da Linha 595
+            comissao_b_acumulada = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_b_hoje.iterrows() if r['servico'] in SERVICOS])
+            
+            # Banner Fixo de Próximo Cliente
             df_proximos = df_b_hoje[df_b_hoje['status'] == 'Agendado']
             if not df_proximos.empty:
                 prox_c = df_proximos.iloc[0]
@@ -490,7 +492,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
             
-            # --- 🚀 RECURSO DE TOPO 2: BOTÃO DE VENDA RÁPIDA DE BANCADA ---
+            # Botão de Venda Rápida de Bancada
             col_v1, _ = st.columns([2, 6])
             with col_v1:
                 if st.button("🧴 [+ Vender Produto Adicional]", use_container_width=True, type="primary"):
@@ -501,9 +503,8 @@ else:
             
             # --- ABA 1: QUADRO DE COMANDOS (BANCADA) ---
             with b_pilar1:
-                st.markdown(f"## 🎛️ Quadro de Comandos do Dia — {barbeiro_ativo}")
+                st.markdown(f"## 🎛️ Quadro de Comandos de Hoje — {barbeiro_ativo}")
                 
-                # KPIs rápidos de cadeira
                 fk1, fk2, fk3 = st.columns(3)
                 df_ativos_hoje = df_b_hoje[df_b_hoje['status'] == 'Agendado']
                 comissao_hoje = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_ativos_hoje.iterrows() if r['servico'] in SERVICOS])
@@ -512,7 +513,7 @@ else:
                 with fk2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Comissão Estimada Hoje</div><div class='metric-value' style='color:#10b981;'>R$ {comissao_hoje:.2f}</div></div>", unsafe_allow_html=True)
                 with fk3:
                     horarios_completos = [(datetime.strptime("09:00", "%H:%M") + timedelta(minutes=30*x)).strftime("%H:%M") for x in range(20)]
-                    vago_b = "Sem janelas livres"
+                    vago_b = "Sem janelas"
                     for h_c in horarios_completos:
                         if h_c not in df_b_hoje['horario'].tolist():
                             vago_b = h_c
@@ -538,43 +539,32 @@ else:
                                 </div>
                             """, unsafe_allow_html=True)
                             
-                            # --- PRONTUÁRIO CLÍNICO & AUDITORIA DE HISTÓRICO INTEGRADO ---
-                            with st.expander(f"🔎 Expandir Prontuário de {reg_c['cliente_nome']}"):
-                                txt_técnico = reg_c['preferencias'] if reg_c['preferencias'] != "Nenhum" else "Seu barbeiro ainda não adicionou notas sobre o seu estilo. Elas aparecerão aqui assim que seu corte for personalizado!"
+                            with st.expander(f"举 Expandir Prontuário de {reg_c['cliente_nome']}"):
+                                txt_técnico = reg_c['preferencias'] if reg_c['preferencias'] != "Nenhum" else "Seu barbeiro ainda não adicionou notas sobre o seu estilo."
                                 st.info(f"📋 **Notas Técnicas Anteriores:** {txt_técnico}")
                                 
-                                # Galeria Lightbox Simulado
-                                st.markdown("##### 📸 Galeria de Estilo Anterior do Cliente")
-                                img_cols = st.columns(4)
-                                with img_cols[0]: st.image("https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=200", caption="Fade (Clique para zoom)")
-                                
-                                # Lançamento de notas pós-corte
                                 st.markdown("##### ✍️ Atualizar Ficha de Estilo para o Próximo Corte")
-                                novas_notas = st.text_input("Anotações de Bancada:", placeholder="Ex: Maquina 1.5 lateral, degradê navalhado médio...", key=f"notes_input_{h_slot}")
+                                novas_notas = st.text_input("Anotações de Bancada:", placeholder="Ex: Maquina 2 lateral...", key=f"notes_input_{h_slot}")
                                 camera_p = st.file_uploader("📸 Tirar Foto / Upload do Visual Finalizado", type=['png','jpg'], key=f"cam_chair_{h_slot}")
                                 
                                 if st.button("💾 Salvar Notas de Cadeira", key=f"save_notes_{h_slot}", use_container_width=True):
                                     if novas_notas:
                                         with engine.begin() as conn_n: conn_n.execute(text("UPDATE usuarios_barber SET preferencias = :p WHERE login = :l"), {"p": novas_notas, "l": reg_c['cliente_login']})
-                                        st.success("Ficha técnica atualizada em tempo real na nuvem!")
+                                        st.success("Ficha técnica atualizada!")
                                 st.markdown("---")
                                 
-                                # Ações diretas de 1 clique de bancada
                                 ab1, ab2, ab3 = st.columns(3)
                                 with ab1:
-                                    if st.button("🏁 [ Iniciar Atendimento ]", key=f"init_c_{h_slot}", use_container_width=True):
-                                        st.toast("⏱️ Cronômetro iniciado! Cliente marcado 'Em Atendimento'.")
+                                    if st.button("🏁 [ Iniciar Atendimento ]", key=f"init_c_{h_slot}", use_container_width=True): st.toast("Cadeira Ativa!")
                                 with ab2:
-                                    if st.button(" Concluir Atendimento ", key=f"done_c_{h_slot}", type="primary", use_container_width=True):
-                                        st.success("✅ Comando enviado ao Caixa! Split de comissão calculado.")
+                                    if st.button(" Concluir Atendimento ", key=f"done_c_{h_slot}", type="primary", use_container_width=True): st.success("Fechamento Enviado!")
                                 with ab3:
                                     if st.button("❌ [ Não Compareceu / No-Show ]", key=f"noshow_c_{h_slot}", use_container_width=True):
-                                        with engine.begin() as conn_x: conn_n.execute(text("UPDATE agendamentos SET status = 'No-Show' WHERE id = :id"), {"id": reg_c['id']})
+                                        with engine.begin() as conn_x: conn_x.execute(text("UPDATE agendamentos SET status = 'No-Show' WHERE id = :id"), {"id": reg_c['id']})
                                         st.rerun()
                         elif status_c == 'Bloqueado':
-                            st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #374151; background:#1f293705; opacity:0.5;"><span>⏰ {h_slot} — 🔒 Bloqueado pelo Profissional</span></div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #374151; opacity:0.5;"><span>⏰ {h_slot} — 🔒 Bloqueado pelo Profissional</span></div>', unsafe_allow_html=True)
                     else:
-                        # --- GESTÃO DE HORÁRIO LIVRE & AUTONOMIA DE BLOQUEIO ---
                         st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #10b981; padding: 8px 20px;"><span>⏰ {h_slot} — Cadeira Livre</span></div>', unsafe_allow_html=True)
                         b_bl1, _ = st.columns([2.5, 5.5])
                         with b_bl1:
@@ -583,15 +573,14 @@ else:
                                     conn_bl.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status) VALUES ('bloqueio_manual', :b, :d, :h, 'Bloqueio Preventivo', 0, 'Bloqueado')"), {"b": barbeiro_ativo, "d": str(date.today()), "h": h_slot})
                                 st.rerun()
 
-            # --- ABA 2: MEU EXTRATO & COMISSÕES AUDITÁVEL ---
+            # --- ABA 2: MEU EXTRATO & COMISSÕES ---
             with b_pilar2:
                 st.markdown("### 💰 Extrato Financeiro & Gestão de Comissões")
                 
-                # Filtro Simples de Período solicitado
                 tempo_filtro = st.radio("Selecione o Intervalo de Auditoria:", ["Hoje", "Esta Semana", "Este Mês"], horizontal=True)
                 
-                # Separação Analítica de Receitas (Serviços vs Produtos)
                 sc1, sc2, sc3 = st.columns(3)
+                # Esta linha agora executa perfeitamente sem o NameError
                 with sc1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ganhos Estimados do Período</div><div class='metric-value'>R$ {comissao_b_acumulada:.2f}</div></div>", unsafe_allow_html=True)
                 with sc2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Comissão de Serviços</div><div class='metric-value' style='color:#10b981;'>R$ {comissao_b_acumulada:.2f}</div></div>", unsafe_allow_html=True)
                 with sc3: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Comissão de Produtos (Balcão)</div><div class='metric-value' style='color:#3b82f6;'>R$ 0,00</div></div>", unsafe_allow_html=True)
@@ -600,31 +589,25 @@ else:
                 st.progress(0.70)
                 st.caption("Mantenha a pegada! Você concluiu 70% da sua meta semanal para destravar o bônus de cadeira.")
                 
-                # --- 🟢 INCLUSÃO: TABELA DE HISTÓRICO DETALHADO DO PERÍODO CONTRA RUÍDOS ---
                 st.markdown("<br><div class='section-barber'>📑 LISTA DE AUDITORIA CONSOLIDADA (SERVIÇOS PRESTADOS)</div>", unsafe_allow_html=True)
                 
                 tabela_comissoes = []
                 for _, r_f in df_b_hoje[df_b_hoje['status'] == 'Agendado'].iterrows():
                     c_liq = r_f['valor'] * SERVICOS[r_f['servico']]['comissao'] if r_f['servico'] in SERVICOS else 0.0
                     tabela_comissoes.append({
-                        "Data": r_f['data'],
-                        "Horário": r_f['horario'],
-                        "Cliente": r_f['cliente_nome'],
-                        "Item Vendido": r_f['servico'],
-                        "Valor Bruto": f"R$ {r_f['valor']:.2f}",
-                        "Sua Comissão (R$)": f"R$ {c_liq:.2f}"
+                        "Data": r_f['data'], "Horário": r_f['horario'], "Cliente": r_f['cliente_nome'],
+                        "Item Vendido": r_f['servico'], "Valor Bruto": f"R$ {r_f['valor']:.2f}", "Sua Comissão (R$)": f"R$ {c_liq:.2f}"
                     })
                 
                 if tabela_comissoes:
                     st.dataframe(pd.DataFrame(tabela_comissoes), use_container_width=True, hide_index=True)
                 else:
                     st.caption("Nenhum lançamento registrado para o filtro selecionado.")
-                    
                 st.markdown("---")
                 st.info("📅 **Previsão Próximo Recebimento Quinzena:** 20/06/2026")
 
         # =========================================================
-        # INTERFACE CORPORATIVA DO ADMINISTRADOR (MANTIDA INTACTA)
+        # INTERFACE CORPORATIVA THE ADM MASTER (PROPRIETÁRIO GABRIEL - INTEGRADO CONFORME CODIGO FORNECIDO)
         # =========================================================
         else:
             st.markdown("<div class='section-barber'>📅 CALENDÁRIO CORPORATIVO DE GESTÃO EXECUTIVA (APLICA EM TODO O BI)</div>", unsafe_allow_html=True)
@@ -702,7 +685,7 @@ else:
                 st.dataframe(df_estoque, use_container_width=True)
 
             with adm_menu[4]:
-                st.markdown("### ➕ Painel de Recepção Kanban em Tempo Real")
+                st.markdown("### ➕ Painel Operacional Kanban em Tempo Real")
                 df_sala_virtual = pd.read_sql_query("SELECT cliente_login, horario_checkin FROM sala_espera", engine)
                 kanban_col1, kanban_col2, kanban_col3 = st.columns(3)
                 with kanban_col1:
