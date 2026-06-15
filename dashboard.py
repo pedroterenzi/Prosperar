@@ -31,7 +31,7 @@ def hash_senha(senha):
     return hashlib.sha256(str.encode(senha)).hexdigest()
 
 # =========================================================
-# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO (MOVIDO PARA O TOPO)
+# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO
 # =========================================================
 @st.dialog("🛡️ Confirmar seu Agendamento")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
@@ -78,7 +78,6 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                 st.session_state["ultimo_horario_salvo"] = None
                 st.rerun()
 
-# Otimização estrutural: Executa cada comando de banco em blocos Try/Except isolados
 def init_db():
     engine = obter_engine()
     
@@ -90,7 +89,7 @@ def init_db():
             )
         """))
     
-    # Injeção Isolada de Novas Colunas (Evita InFailedSqlTransaction)
+    # Injeção Isolada de Novas Colunas
     for coluna, tipo in [("preferencias", "TEXT DEFAULT 'Gosta de café sem açúcar, usa pomada matte'"), 
                          ("pontos_fidelidade", "INTEGER DEFAULT 0"), 
                          ("plano_assinatura", "TEXT DEFAULT 'Nenhum'")]:
@@ -135,11 +134,18 @@ def init_db():
             conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda) VALUES ('Minoxidil Kirkland 6%', 14, 4, 89.90)"))
             conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda) VALUES ('Cerveja Budweiser Long Neck', 25, 10, 10.0)"))
 
-        # Cadastro padrão de contas administrativas
-        if conn.execute(text("SELECT COUNT(*) FROM usuarios_barber WHERE perfil IN ('barbeiro', 'admin')")).fetchone()[0] == 0:
-            conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) VALUES ('gabriel', :s, 'Gabriel', 'barbeiro', '19971374936')"), {"s": hash_senha("123456")})
-            conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) VALUES ('lucas', :s, 'Lucas', 'barbeiro', '19999999999')"), {"s": hash_senha("123456")})
-            conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) VALUES ('admin', :s, 'Dono Prosperidade', 'admin', '19971374936')"), {"s": hash_senha("admin123")})
+        # --- PERMISSÃO ATUALIZADA: Gabriel definido diretamente como Administrador Master ---
+        conn.execute(text("""
+            INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) 
+            VALUES ('gabriel', :s, 'Gabriel (Proprietário)', 'admin', '19971374936')
+            ON CONFLICT (login) DO UPDATE SET perfil = 'admin'
+        """), {"s": hash_senha("123456")})
+        
+        conn.execute(text("""
+            INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) 
+            VALUES ('lucas', :s, 'Lucas Barber', 'barbeiro', '19999999999')
+            ON CONFLICT (login) DO NOTHING
+        """), {"s": hash_senha("123456")})
 
 try:
     init_db()
@@ -201,9 +207,7 @@ if 'nome_usuario' not in st.session_state: st.session_state['nome_usuario'] = No
 if 'reg_sucesso' not in st.session_state: st.session_state['reg_sucesso'] = 0
 if 'ultimo_horario_salvo' not in st.session_state: st.session_state['ultimo_horario_salvo'] = None
 
-# =========================================================
-# FLUXO DE TELA INICIAL
-# =========================================================
+# --- FLUXO DE TELA INICIAL ---
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBEARIA PROSPERIDADE</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#94a3b8;'>PROSPERIDADE OS — Gestão Operacional, CRM & Finanças Integradas</p>", unsafe_allow_html=True)
@@ -216,9 +220,9 @@ if not st.session_state['auth']:
             st.balloons()
         except Exception as err: st.sidebar.error(f"Erro: {err}")
             
-    p_cli, p_barb = st.tabs(["📱 PORTAL DO CLIENTE", "💼 ÁREA DO PROFISSIONAL / ADMIN"])
+    portal_cliente, portal_gerencial = st.tabs(["📱 PORTAL DO CLIENTE", "💼 ÁREA DA EQUIPE / DIRETORIA"])
     
-    with p_cli:
+    with portal_cliente:
         ab_l, ab_c = st.tabs(["🔐 Entrar", "📝 Criar Nova Conta"])
         with ab_l:
             l_c = st.text_input("Seu Usuário:", key="l_cli").strip().lower()
@@ -245,10 +249,10 @@ if not st.session_state['auth']:
                         st.success("Conta criada! Vá na aba 'Entrar'.")
                     except: st.error("Usuário já em uso.")
 
-    with p_barb:
-        l_b = st.text_input("Login Profissional:", key="l_brb").strip().lower()
-        s_b = st.text_input("Senha Corporativa:", type="password", key="s_brb")
-        if st.button("🔑 ACESSAR INFRAESTRUTURA INTERNA", use_container_width=True):
+    with portal_gerencial:
+        l_b = st.text_input("Login Administrativo / Profissional:", key="l_brb").strip().lower()
+        s_b = st.text_input("Senha de Acesso:", type="password", key="s_brb")
+        if st.button("🔑 SOLICITAR ENTRADA NO SISTEMA", use_container_width=True):
             engine = obter_engine()
             df_b = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :l AND senha = :s AND perfil IN ('barbeiro', 'admin')"), engine, params={"l": l_b, "s": hash_senha(s_b)})
             if not df_b.empty:
@@ -267,7 +271,7 @@ else:
     st.markdown("---")
 
     # =========================================================
-    # 1. AMBIENTE DO CLIENTE: EXPERIÊNCIA DE CLUBE & ESPERA
+    # 1. AMBIENTE DO CLIENTE
     # =========================================================
     if st.session_state['perfil'] == 'cliente':
         df_cli = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :u"), engine, params={"u": st.session_state['user']}).iloc[0]
@@ -330,7 +334,7 @@ else:
 
         with c_menu[2]:
             st.markdown("### ⏳ Check-in e Sala de Espera Virtual")
-            st.write("A caminho da barbearia? Faça o check-in e entre na fila virtual para agilizar seu recepção!")
+            st.write("A caminho da barbearia? Faça o check-in e entre na fila virtual para agilizar sua recepção!")
             if st.button("🚀 FAZER CHECK-IN AGORA"):
                 with engine.begin() as conn: 
                     conn.execute(text("INSERT INTO sala_espera (cliente_login, horario_checkin) VALUES (:u, :h)"), {"u": st.session_state['user'], "h": (datetime.utcnow()-timedelta(hours=3)).strftime("%H:%M")})
@@ -340,7 +344,7 @@ else:
             st.metric(label="Tempo na Sala de Espera Física para Encaixes", value="12 min", delta="Cadeiras Otimizadas")
 
         with c_menu[3]:
-            st.markdown("### ### ⭐ Avaliação Interna Direta ao Proprietário")
+            st.markdown("### ⭐ Avaliação Interna Direta ao Proprietário")
             with st.form("form_feedback"):
                 nota = st.slider("Nota do Atendimento:", 1, 5, 5)
                 comentario = st.text_area("O que achou do serviço e do atendimento?")
@@ -349,7 +353,7 @@ else:
                     st.success("Obrigado pelo feedback! Ele foi enviado diretamente à administração.")
 
     # =========================================================
-    # 2. AMBIENTE DO BARBEIRO: PRODUTIVIDADE, METAS E COMISSÃO
+    # 2. AMBIENTE DO BARBEIRO (LUCAS OU GABRIEL OPERANDO CADEIRA)
     # =========================================================
     elif st.session_state['perfil'] == 'barbeiro':
         b_menu = st.tabs(["📅 Agenda de Bancada", "📊 Minhas Comissões & Metas"])
@@ -369,7 +373,7 @@ else:
                 if h in mapa_agenda:
                     reg = mapa_agenda[h]
                     st.markdown(f"""
-                        <div class="barber-agenda-row" style="border-left: 6px solid #ef4444; background: #ef444405;">
+                        <div class="barber-agenda-row" style="border-left: 6px solid #ef4444; background: #ef444408;">
                             <div>
                                 <span style="font-size:1.3rem; font-weight:800; color:#ef4444;">⏰ {h}</span>
                                 <span style="margin-left:20px; font-weight:700; color:#fff;">👤 Cliente: {reg['cliente_nome']}</span>
@@ -402,50 +406,112 @@ else:
             with mc3: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Meta Diária (R$ 300)</div><div class='metric-value' style='color:#3b82f6;'>{min(int((fat_bruto/300)*100), 100)}%</div></div>", unsafe_allow_html=True)
 
     # =========================================================
-    # 3. ÁREA DO ADMINISTRADOR: SPLIT, CRM, ESTOQUE E RETENÇÃO
+    # 3. AMBIENTE ADMINISTRATIVO MASTER (GERENCIAL DO DONO GABRIEL)
     # =========================================================
     elif st.session_state['perfil'] == 'admin':
-        adm_menu = st.tabs(["💰 Split & Finanças", "📦 Controle de Estoque Inteligente", "🎯 CRM: Retenção & Avaliações"])
+        st.markdown("### 🛠️ Infraestrutura de Lançamento e Controle Gerencial")
         
-        st.markdown("<div class='section-barber'>📅 JANELA TEMPORAL DE ANÁLISE CONSOLIDADA DO DONO</div>", unsafe_allow_html=True)
-        periodo_sel = st.date_input("Intervalo de Datas:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm")
-        if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: d_i, d_f = periodo_sel
-        else: d_i = d_f = date.today()
+        # O Gabriel pode alternar entre a visão de Gestão do Negócio e a sua própria Agenda de Cortes
+        modo_visao = st.sidebar.radio("Selecione o Painel Ativo:", ["📊 Visão Proprietário (Admin)", "📅 Minha Agenda na Cadeira (Gabriel)"])
+        
+        if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)":
+            st.markdown("### 📅 Minha Grade Pessoal de Atendimentos — Gabriel")
+            with engine.connect() as conn:
+                df_cortes_gab = pd.read_sql_query(text("SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, u.nome as cliente_nome, u.preferencias FROM agendamentos a LEFT JOIN usuarios_barber u ON a.cliente_login = u.login WHERE a.status = 'Agendado' AND a.barbeiro_nome = 'Gabriel' AND a.data = :d_alvo"), conn, params={"d_alvo": str(date.today())})
+            
+            horarios_trabalho = [(datetime.strptime("09:00", "%H:%M") + timedelta(minutes=30*i)).strftime("%H:%M") for i in range(20)]
+            df_cortes_gab = df_cortes_gab.drop_duplicates(subset=['horario'])
+            mapa_agenda_gab = df_cortes_gab.set_index('horario').to_dict(orient='index')
+            
+            for h in horarios_trabalho:
+                if h in mapa_agenda_gab:
+                    reg = mapa_agenda_gab[h]
+                    st.markdown(f"""
+                        <div class="barber-agenda-row" style="border-left: 6px solid #ef4444; background: #ef444408;">
+                            <div>
+                                <span style="font-size:1.3rem; font-weight:800; color:#ef4444;">⏰ {h}</span>
+                                <span style="margin-left:20px; font-weight:700; color:#fff;">👤 Cliente: {reg['cliente_nome']}</span>
+                                <span style="margin-left:20px; color:#94a3b8; font-size:0.85rem;"> 🛠️ {reg['servico']}</span>
+                            </div>
+                            <div style='color:#f59e0b; font-weight:700;'>R$ {reg['valor']:.2f}</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"""
+                        <div class="barber-agenda-row" style="border-left: 4px solid #10b981; opacity:0.7;">
+                            <div><span style="font-size:1.1rem; font-weight:700; color:#34d399;">⏰ {h}</span><span style="margin-left:20px; color:#94a3b8; font-style:italic;">Disponível</span></div>
+                        </div>
+                    """, unsafe_allow_html=True)
+        
+        else:
+            adm_menu = st.tabs(["💰 Split & Finanças", "📦 Controle de Estoque Inteligente", "🎯 CRM: Retenção & Avaliações", "➕ Agendamento Manual"])
+            
+            st.markdown("<div class='section-barber'>📅 JANELA TEMPORAL DE ANÁLISE CONSOLIDADA DO DONO</div>", unsafe_allow_html=True)
+            periodo_sel = st.date_input("Intervalo de Dates:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm")
+            if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: d_i, d_f = periodo_sel
+            else: d_i = d_f = date.today()
 
-        df_adm = pd.read_sql_query(text("SELECT * FROM agendamentos WHERE status = 'Agendado' AND data BETWEEN :ini AND :fim"), engine, params={"ini": str(d_i), "fim": str(d_f)})
+            df_adm = pd.read_sql_query(text("SELECT * FROM agendamentos WHERE status = 'Agendado' AND data BETWEEN :ini AND :fim"), engine, params={"ini": str(d_i), "fim": str(d_f)})
 
-        with adm_menu[0]:
-            st.markdown("### 💰 Receita & Split de Pagamento Automático")
-            if df_adm.empty: st.info("Nenhuma movimentação no período.")
-            else:
-                bruto = df_adm['valor'].sum()
-                repasse_b = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_adm.iterrows() if r['servico'] in SERVICOS])
-                lucro_casa = bruto - repasse_b
+            with adm_menu[0]:
+                st.markdown("### 💰 Receita & Split de Pagamento Automático")
+                if df_adm.empty: st.info("Nenhuma movimentação no período.")
+                else:
+                    bruto = df_adm['valor'].sum()
+                    repasse_b = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_adm.iterrows() if r['servico'] in SERVICOS])
+                    lucro_casa = bruto - repasse_b
+                    
+                    ac1, ac2, ac3 = st.columns(3)
+                    with ac1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Faturamento Bruto</div><div class='metric-value'>R$ {bruto:.2f}</div></div>", unsafe_allow_html=True)
+                    with ac2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Repasse Equipe</div><div class='metric-value' style='color:#ef4444;'>R$ {repasse_b:.2f}</div></div>", unsafe_allow_html=True)
+                    with ac3: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Lucro Líquido Casa</div><div class='metric-value' style='color:#10b981;'>R$ {lucro_casa:.2f}</div></div>", unsafe_allow_html=True)
+                    
+                    df_meios = df_adm.groupby('forma_pagamento')['valor'].sum().reset_index()
+                    st.plotly_chart(px.bar(df_meios, x='forma_pagamento', y='valor', color='forma_pagamento', title="Faturamento por Meios de Pagamento"), use_container_width=True)
+
+            with adm_menu[1]:
+                st.markdown("### 📦 Controle de Estoque Inteligente")
+                df_estoque = pd.read_sql_query("SELECT * FROM estoque_produtos", engine)
+                for _, r in df_estoque.iterrows():
+                    if r['quantidade'] <= r['limite_minimo']:
+                        st.error(f"🚨 **ALERTA DE REPOSIÇÃO:** {r['nome_produto']} atingiu o limite mínimo crítico! Qtd: `{r['quantidade']}` (Mínimo: {r['limite_minimo']})")
+                st.dataframe(df_estoque, use_container_width=True)
+
+            with adm_menu[2]:
+                st.markdown("### 🎯 CRM: Clientes Sumidos & Sistema de Avaliações")
+                col_crm1, col_crm2 = st.columns(2)
+                with col_crm1:
+                    st.markdown("#### 🏃‍♂️ Clientes Ausentes (+45 dias)")
+                    st.table(pd.DataFrame({"Cliente": ["Danilo Santos", "Alexandre Guerra"], "Última Visita": ["12/04/2026", "24/04/2026"], "WhatsApp": ["(19) 97137-4936", "(19) 98888-2233"]}))
+                    if st.button("Disparar Cupons de Retenção em Massa"): st.toast("Campanha enviada via Push!")
+                with col_crm2:
+                    st.markdown("#### ⭐ Feedbacks e Avaliações Privadas")
+                    df_fb = pd.read_sql_query("SELECT cliente_login, nota_avaliacao, feedback_texto FROM agendamentos WHERE nota_avaliacao > 0", engine)
+                    st.dataframe(df_fb, use_container_width=True)
+
+            with adm_menu[3]:
+                st.markdown("### ➕ Agendamento Direto de Balcão (Lançamento Rápido)")
+                col_b_man1, col_b_man2, col_b_man3 = st.columns(3)
+                with col_b_man1: 
+                    m_cli = st.text_input("Nome do Cliente de Balcão:")
+                    m_barb = st.selectbox("Designar Barbeiro:", ["Gabriel", "Lucas"], key="m_brb_adm")
+                with col_b_man2:
+                    m_data = st.date_input("Data do Corte:", date.today(), key="m_dt_adm")
+                    m_serv = st.selectbox("Serviço Escolhido:", list(SERVICOS.keys()), key="m_sv_adm")
                 
-                ac1, ac2, ac3 = st.columns(3)
-                with ac1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Faturamento Bruto</div><div class='metric-value'>R$ {bruto:.2f}</div></div>", unsafe_allow_html=True)
-                with ac2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Repasse Barbeiros</div><div class='metric-value' style='color:#ef4444;'>R$ {repasse_b:.2f}</div></div>", unsafe_allow_html=True)
-                with ac3: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Lucro Líquido Casa</div><div class='metric-value' style='color:#10b981;'>R$ {lucro_casa:.2f}</div></div>", unsafe_allow_html=True)
+                df_man_oc = pd.read_sql_query(text("SELECT horario FROM agendamentos WHERE barbeiro_nome = :b AND data = :d AND status = 'Agendado'"), engine, params={"b": m_barb, "d": str(m_data)})
+                man_ocupados = df_man_oc['horario'].tolist()
+                horarios_gerais = [(datetime.strptime("09:00", "%H:%M") + timedelta(minutes=30*k)).strftime("%H:%M") for k in range(20)]
+                horarios_livres = [h for h in horarios_gerais if h not in man_ocupados]
                 
-                df_meios = df_adm.groupby('forma_pagamento')['valor'].sum().reset_index()
-                st.plotly_chart(px.bar(df_meios, x='forma_pagamento', y='valor', color='forma_pagamento', title="Faturamento por Meios de Pagamento"), use_container_width=True)
-
-        with adm_menu[1]:
-            st.markdown("### 📦 Controle de Estoque Inteligente")
-            df_estoque = pd.read_sql_query("SELECT * FROM estoque_produtos", engine)
-            for _, r in df_estoque.iterrows():
-                if r['quantidade'] <= r['limite_minimo']:
-                    st.error(f"🚨 **ALERTA DE REPOSIÇÃO:** {r['nome_produto']} atingiu o limite mínimo crítico! Qtd: `{r['quantidade']}` (Mínimo: {r['limite_minimo']})")
-            st.dataframe(df_estoque, use_container_width=True)
-
-        with adm_menu[2]:
-            st.markdown("### 🎯 CRM: Clientes Sumidos & Sistema de Avaliações")
-            col_crm1, col_crm2 = st.columns(2)
-            with col_crm1:
-                st.markdown("#### 🏃‍♂️ Clientes Ausentes (+45 dias)")
-                st.table(pd.DataFrame({"Cliente": ["Danilo Santos", "Alexandre Guerra"], "Última Visita": ["12/04/2026", "24/04/2026"], "WhatsApp": ["(19) 97137-4936", "(19) 98888-2233"]}))
-                if st.button("Disparar Cupons de Retenção em Massa"): st.toast("Campanha enviada via Push!")
-            with col_crm2:
-                st.markdown("#### ⭐ Feedbacks e Avaliações Privadas")
-                df_fb = pd.read_sql_query("SELECT cliente_login, nota_avaliacao, feedback_texto FROM agendamentos WHERE nota_avaliacao > 0", engine)
-                st.dataframe(df_fb, use_container_width=True)
+                with col_b_man3:
+                    m_hora = st.selectbox("Horários Livres:", horarios_livres, key="m_hr_adm")
+                    m_preco = SERVICOS[m_serv]["preco"]
+                    st.markdown(f"Valor: `R$ {m_preco:.2f}`")
+                
+                if st.button("🚀 Efetuar Agendamento Manual de Balcão", use_container_width=True, type="primary"):
+                    if m_cli and m_hora:
+                        with engine.begin() as conn:
+                            conn.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor) VALUES (:u, :b, :d, :h, :s, :v)"), {"u": f"manual_{m_cli.lower().replace(' ', '_')}", "b": m_barb, "d": str(m_data), "h": m_hora, "s": m_serv, "v": m_preco})
+                        st.success("Horário agendado com sucesso no balcão!")
+                        st.rerun()
