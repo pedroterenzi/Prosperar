@@ -1,6 +1,5 @@
 streamlit
 pandas
 plotly
-openpyxl
-matplotlib
-fpdf
+sqlalchemy
+psycopg2-binary
