@@ -5,7 +5,6 @@ import plotly.express as px
 import hashlib
 from datetime import datetime, timedelta, date
 from sqlalchemy import create_engine, text
-import urllib.parse
 
 # 1. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(layout="wide", page_title="BarberFlow OS", page_icon="💈")
@@ -14,7 +13,6 @@ st.set_page_config(layout="wide", page_title="BarberFlow OS", page_icon="💈")
 # BANCO DE DADOS NA NUVEM (POSTGRESQL - NEON.TECH)
 # =========================================================
 CONNECTION_STRING = "postgresql://neondb_owner:npg_FB5WRUfgniD9@ep-calm-grass-ah0b366i.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
-WHATSAPP_NOTIFICA = "5519971374936" 
 
 # =========================================================
 # DICIONÁRIOS E PORTFÓLIO DE SERVIÇOS
@@ -189,7 +187,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # =========================================================
-# 🛡️ POP-UP DIALOG SEQUENCIAL COM INTERFACE DO WHATSAPP
+# 🛡️ POP-UP DIALOG (ESTÁGIO ÚNICO - RETIRADO WHATSAPP)
 # =========================================================
 @st.dialog("🛡️ Confirmar seu Agendamento")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
@@ -202,25 +200,13 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
     """, unsafe_allow_html=True)
     
     if st.session_state["ultimo_horario_salvo"] == hora:
-        msg_wpp = f"💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\n\n📅 *Data:* {data.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora}\n👤 *Barbeiro:* {barbeiro}\n🛠️ *Serviço:* {servico}\n💵 *Valor:* R$ {preco:.2f}"
-        url_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_wpp)}"
-        
         st.markdown(f"""
             <div style="background-color:#10b98115; border:1px solid #10b981; color:#34d399; padding:15px; border-radius:10px; font-weight:bold; text-align:center; margin-top:15px; margin-bottom:15px;">
                 🎉 Agendado com sucesso no sistema para as {hora}!
             </div>
         """, unsafe_allow_html=True)
         
-        st.markdown(f"""
-            <a href="{url_wpp}" target="_blank" style="text-decoration:none;">
-                <div style="background-color:#25d366; color:white; padding:16px; text-align:center; border-radius:12px; font-weight:bold; box-shadow: 0 4px 12px rgba(37,211,102,0.3); font-size:1.05rem;">
-                    💬 NOTIFICAR NO WHATSAPP
-                </div>
-            </a>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("Concluir e Sair", use_container_width=True):
+        if st.button("Concluir e Fechar", use_container_width=True, type="primary"):
             st.session_state["ultimo_horario_salvo"] = None  
             st.rerun()
             
@@ -246,7 +232,7 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                 st.rerun()
 
 # =========================================================
-# FLUXO DE AUTENTICAÇÃO SEPARADO (CLIENTE VS BARBEIRO)
+# FLUXO DE AUTENTICAÇÃO
 # =========================================================
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBERFLOW OS</h1>", unsafe_allow_html=True)
@@ -368,11 +354,15 @@ else:
             
             st.markdown("<div class='section-barber'>Horários Disponíveis</div>", unsafe_allow_html=True)
             
+            agora = datetime.now()
+            hora_atual_str = agora.strftime("%H:%M")
+            eh_hoje = (data_sel == date.today())
+
             cols_grade = st.columns(4)
             for idx, hora in enumerate(horarios_janela):
                 col_slot = cols_grade[idx % 4]
                 with col_slot:
-                    if hora in ocupados_list:
+                    if hora in ocupados_list or (eh_hoje and hora < hora_atual_str):
                         st.markdown(f"""
                             <div class='time-slot-card' style='border-color: #ef4444;'>
                                 <span class='status-badge badge-ocupado'>🛑 Ocupado</span>
@@ -409,16 +399,9 @@ else:
                 
                 if st.button("🚨 SOLICITAR CANCELAMENTO DO HORÁRIO", type="primary", use_container_width=True):
                     if id_cancelar_cliente in df_meus_cards['ID'].values:
-                        linha_c = df_meus_cards[df_meus_cards['ID'] == id_cancelar_cliente].iloc[0]
-                        
                         with engine.begin() as conn:
                             conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(id_cancelar_cliente)})
-                            
-                        msg_cancel_wpp = f"⚠️ *ALERTA DE CANCELAMENTO DE CLIENTE* ⚠️\n\nO cliente *{st.session_state['nome_usuario']}* cancelou um horário:\n\n📅 *Data:* {linha_c['Data']}\n⏰ *Horário:* {linha_c['Horário']}\n👤 *Barbeiro:* {linha_c['Barbeiro']}\n❌ *Serviço Removido:* {linha_c['Serviço']}"
-                        url_cancel_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_cancel_wpp)}"
-                        
                         st.success("Horário cancelado no sistema!")
-                        st.markdown(f'<a href="{url_cancel_wpp}" target="_blank" style="text-decoration:none;"><div style="background-color:#ef4444; color:white; padding:15px; text-align:center; border-radius:10px; font-weight:bold; margin-top:10px;">💬 NOTIFICAR CANCELAMENTO AO BARBEIRO NO WHATSAPP</div></a>', unsafe_allow_html=True)
                         st.rerun()
                     else:
                         st.error("ID informado inválido ou não pertence aos seus agendamentos.")
@@ -557,7 +540,75 @@ else:
                         st.plotly_chart(fig_rank, use_container_width=True)
 
         elif menu_b == "📅 Painel de Controle Operacional":
-            st.markdown("<div class='section-barber'>📅 MINHA AGENDA DIÁRIA (VISÃO VISUAL DO BARBEIRO)</div>", unsafe_allow_html=True)
+            
+            # =========================================================
+            # ✨ NOVA FUNÇÃO: LANÇAMENTO MANUAL DE HORÁRIOS PELO BARBEIRO
+            # =========================================================
+            st.markdown("<div class='section-barber'>➕ CRIAR AGENDAMENTO MANUAL (BALCÃO / WHATSAPP)</div>", unsafe_allow_html=True)
+            with st.expander("📝 Abrir Formulário de Agendamento Direto", expanded=False):
+                col_man1, col_man2, col_man3 = st.columns(3)
+                with col_man1:
+                    manual_cliente = st.text_input("Nome do Cliente:", placeholder="Ex: João da Silva").strip()
+                    manual_barbeiro = st.selectbox("Designar para o Barbeiro:", ["Gabriel", "Lucas"], key="sb_man_b")
+                with col_man2:
+                    manual_data = st.date_input("Data do Atendimento:", date.today(), key="dt_man_b")
+                    manual_servico = st.selectbox("Serviço Solicitado:", list(SERVICOS.keys()), key="sv_man_b")
+                
+                # Resgata horários ocupados para o profissional no dia para filtrar os botões livres
+                df_man_ocupados = pd.read_sql_query(
+                    text("SELECT horario FROM agendamentos WHERE barbeiro_nome = :b AND data = :d AND status = 'Agendado'"),
+                    engine, params={"b": manual_barbeiro, "d": str(manual_data)}
+                )
+                man_ocupados_list = df_man_ocupados['horario'].tolist()
+                
+                # Monta lista de slots horários das 09h às 19h
+                horarios_totais_sistema = []
+                b_time_man = datetime.strptime("09:00", "%H:%M")
+                for k in range(20):
+                    horarios_totais_sistema.append((b_time_man + timedelta(minutes=30*k)).strftime("%H:%M"))
+                
+                # Cria uma lista apenas com os horários que estão realmente vagos para evitar conflito
+                horarios_livres_man = [h for h in horarios_totais_sistema if h not in man_ocupados_list]
+                
+                with col_man3:
+                    manual_hora = st.selectbox("Horários Disponíveis no Dia:", horarios_livres_man, key="hr_man_b")
+                    manual_preco = SERVICOS[manual_servico]["preco"]
+                    st.markdown(f"💵 **Preço de Balcão:** `R$ {manual_preco:.2f}`")
+                
+                if st.button("🚀 CONFIRMAR AGENDAMENTO MANUAL", type="primary", use_container_width=True):
+                    if not manual_cliente:
+                        st.error("⚠️ Digite o nome do cliente para efetuar a reserva.")
+                    elif not manual_hora:
+                        st.error("⚠️ Não há horários disponíveis para este profissional nesta data.")
+                    else:
+                        with engine.begin() as conn:
+                            # Salva o agendamento direto. O campo 'cliente_login' recebe o nome digitado precedido por 'manual_'
+                            conn.execute(text("""
+                                INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor)
+                                VALUES (:u, :b, :d, :h, :s, :v)
+                            """), {
+                                "u": f"manual_{manual_cliente.lower().replace(' ', '_')}", 
+                                "b": manual_barbeiro, 
+                                "d": str(manual_data), 
+                                "h": manual_hora, 
+                                "s": manual_servico, 
+                                "v": manual_preco
+                            })
+                        
+                        # Injeta o nome na tabela de usuários para que o INNER JOIN da listagem diária funcione perfeitamente
+                        with engine.begin() as conn:
+                            conn.execute(text("""
+                                INSERT INTO usuarios_barber (login, senha, nome, perfil, celular)
+                                VALUES (:l, 'manual', :n, 'cliente', '00000000000')
+                                ON CONFLICT (login) DO NOTHING
+                            """), {"l": f"manual_{manual_cliente.lower().replace(' ', '_')}", "n": manual_cliente.title()})
+                            
+                        st.success(f"🎉 Sucesso! {manual_cliente} agendado com {manual_barbeiro} dia {manual_data.strftime('%d/%m')} às {manual_hora}!")
+                        st.balloons()
+                        st.rerun()
+
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("<div class='section-barber'> Rhine 📅 MINHA AGENDA DIÁRIA (VISÃO VISUAL DO BARBEIRO)</div>", unsafe_allow_html=True)
             
             col_b_data, col_b_name = st.columns(2)
             with col_b_data:
@@ -587,7 +638,6 @@ else:
             for i in range(20):
                 horarios_trabalho.append((b_time + timedelta(minutes=30*i)).strftime("%H:%M"))
                 
-            # --- BLINDAGEM DE LOGICA: DROP_DUPLICATES PREVINE O ERRO DE INDICE REPETIDO DO CAIXA ---
             df_agenda_dia_real = df_agenda_dia_real.drop_duplicates(subset=['horario'])
             mapa_agenda_dia = df_agenda_dia_real.set_index('horario').to_dict(orient='index')
             
