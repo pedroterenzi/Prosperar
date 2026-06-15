@@ -143,9 +143,9 @@ def init_db():
         # Carga padrão de produtos uso interno vs venda
         if conn.execute(text("SELECT COUNT(*) FROM estoque_produtos")).fetchone()[0] == 0:
             conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Pomada Efeito Matte Elesid', 3, 5, 35.0, 'Venda')"))
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Minoxidil Kirkland 6%', 14, 4, 89.90, 'Venda')"))
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Gola Higiênica Rolo', 2, 5, 0.0, 'Uso Interno')"))
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Shampoo Lavatório 5L', 1, 2, 0.0, 'Uso Interno')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantity, limite_minimo, preco_venda, tipo_estoque) VALUES ('Minoxidil Kirkland 6%', 14, 4, 89.90, 'Venda')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantity, limite_minimo, preco_venda, tipo_estoque) VALUES ('Gola Higiênica Rolo', 2, 5, 0.0, 'Uso Interno')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantity, limite_minimo, preco_venda, tipo_estoque) VALUES ('Shampoo Lavatório 5L', 1, 2, 0.0, 'Uso Interno')"))
 
         # Cadastro padrão de contas administrativas
         conn.execute(text("""
@@ -190,7 +190,7 @@ def injetar_dados_demonstracao():
                 INSERT INTO usuarios_barber (login, senha, nome, perfil, celular, pontos_fidelidade, plano_assinatura)
                 VALUES (:l, 'sistema', :n, 'cliente', '19999999999', :p, :pl)
                 ON CONFLICT (login) DO NOTHING
-            """), {"l": cli, "n": nome_formatado, "p": pontos, "pl": plano})
+            """), {"l": cli, "n": name_formatado, "p": pontos, "pl": plano})
         
         contador = 0
         for i in range(-50, 10):  
@@ -212,7 +212,7 @@ def injetar_dados_demonstracao():
                     contador += 1
     return contador
 
-# --- ESTILIZAÇÃO CSS PREMIUM ---
+# --- ESTILIZAÇÃO CSS PREMIUM (BOTÕES LATERAIS QUADRADOS INTERATIVOS COM TEXTO FIXADO) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -221,6 +221,7 @@ st.markdown("""
     
     /* --- ENVELOPE DO MENU LATERAL MODERNO E QUADRADO --- */
     [data-testid="stSidebar"] { background-color: #111217; border-right: 1px solid #1e2028; }
+    
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div:first-child { display: none !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { display: none !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label [data-testid="stWidgetLabel"] { display: none !important; }
@@ -232,36 +233,47 @@ st.markdown("""
         border-radius: 8px !important; color: #94a3b8 !important; cursor: pointer; font-weight: 700; font-size: 0.95rem;
         transition: all 0.2s ease-in-out; display: flex !important; align-items: center; justify-content: center; width: 100% !important; box-sizing: border-box !important;
     }
+    
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:nth-child(1)::after { content: "📊 Painel Corporativo ERP"; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:nth-child(2)::after { content: "📅 Minha Agenda na Cadeira"; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover { background-color: #262933 !important; border-color: #f59e0b !important; color: #ffffff !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] { background: #f59e0b !important; color: #0d0e12 !important; border: 1px solid #d97706 !important; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important; }
     
-    /* --- CORREÇÃO DE ALINHAMENTO DO IMAGE_84BC22.PNG --- */
-    .time-slot-card-premium {
-        background: #14151b;
-        border: 1px solid #2a2d3a;
-        border-radius: 12px;
-        padding: 15px;
-        text-align: center;
-        height: 100px; /* Garante tamanho idêntico em todas as colunas */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        box-sizing: border-box;
-        margin-bottom: 10px;
+    /* --- HARMONIZAÇÃO PREMIUM DA GRADE DE HORÁRIOS (SOLUÇÃO FIXA PARA O IMAGE_84B4DA.PNG) --- */
+    div[data-testid="stHorizontalBlock"] .stButton > button {
+        height: 100px !important;
+        border-radius: 12px !important;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        font-size: 1.4rem !important;
+        font-weight: 800 !important;
+        letter-spacing: 1px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        box-sizing: border-box !important;
+        transition: all 0.2s ease-in-out !important;
     }
     
-    /* Customização dos botões invisíveis nativos do Streamlit para agirem como o card inteiro */
-    div.stButton > button.slot-banco-click {
-        background-color: transparent !important;
-        border: none !important;
-        color: transparent !important;
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 100px;
-        z-index: 10;
-        cursor: pointer;
+    /* Estilização para o Botão em estado LIVRE (Verde Premium Clicável) */
+    div[data-testid="stHorizontalBlock"] .button-grade-livre > div.stButton > button {
+        background-color: #14151b !important;
+        border: 2px solid #10b981 !important;
+        color: #ffffff !important;
+    }
+    div[data-testid="stHorizontalBlock"] .button-grade-livre > div.stButton > button:hover {
+        background-color: #10b98120 !important;
+        border-color: #34d399 !important;
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.2) !important;
+    }
+    
+    /* Estilização para o Botão em estado RESERVADO (Vermelho Bloqueado) */
+    div[data-testid="stHorizontalBlock"] .button-grade-ocupada > div.stButton > button {
+        background-color: #1e1215 !important;
+        border: 1px solid #ef444450 !important;
+        color: #94a3b8 !important;
+        opacity: 0.55 !important;
+        cursor: not-allowed !important;
     }
     
     .metric-card-barber { background: linear-gradient(135deg, #1e2028 0%, #14151b 100%); padding: 22px; border-radius: 16px; border: 1px solid #2a2d3a; text-align: center; }
@@ -430,30 +442,25 @@ else:
             t_tarde = ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "16:00", "16:30", "17:00", "17:30"]
             t_noite = ["18:00", "18:30", "19:00", "19:30"]
             
-            # --- CORREÇÃO CIRÚRGICA DE ALINHAMENTO DA GRADE (image_84bc22.png) ---
+            # --- RENDERIZAÇÃO MILIMÉTRICA SÉRIA (RESOLVIDO O PROBLEMA DO IMAGE_84B4DA.PNG) ---
             for turno_nome, turnos_slots in [("☀️ Turno da Manhã", t_manha), ("🌤️ Turno da Tarde", t_tarde), ("🌙 Turno da Noite", t_noite)]:
                 st.write(f"**{turno_nome}**")
                 t_cols = st.columns(4)
                 for s_idx, h_slot in enumerate(turnos_slots):
                     with t_cols[s_idx % 4]:
                         if h_slot in ocupados_list or (eh_hoje and h_slot < hora_atual_str):
-                            # Card Reservado - Ocupa exatamente 100px de altura
-                            st.markdown(f"""
-                                <div class='time-slot-card-premium' style='border-color:#ef4444; opacity:0.55;'>
-                                    <span style='color:#f87171; font-size:0.75rem; font-weight:700;'>🔴 RESERVADO</span>
-                                    <h3 style='margin:5px 0 0 0; font-weight:800; letter-spacing:1px; color:#94a3b8;'>{h_slot}</h3>
-                                </div>
-                            """, unsafe_allow_html=True)
+                            # Container Nativo Ocupado (Desabilitado)
+                            st.container(border=False)
+                            st.markdown("<div class='button-grade-ocupada'>", unsafe_allow_html=True)
+                            st.button(f"🔴 {h_slot}", key=f"slot_occ_{turno_nome}_{h_slot}", disabled=True, use_container_width=True)
+                            st.markdown("</div>", unsafe_allow_html=True)
                         else:
-                            # Card Livre Integrado - O botão preenche e ativa o card transparente de 100px
-                            st.markdown(f"""
-                                <div class='time-slot-card-premium' style='border-color:#10b981; position:relative;'>
-                                    <span style='color:#34d399; font-size:0.75rem; font-weight:700;'>🟢 LIVRE</span>
-                                    <h3 style='margin:5px 0 0 0; font-weight:800; letter-spacing:1px; color:#fff;'>{h_slot}</h3>
-                                </div>
-                            """, unsafe_allow_html=True)
-                            if st.button("", key=f"slot_flx_{turno_nome}_{h_slot}", use_container_width=True):
+                            # Container Nativo Livre (Ativo)
+                            st.container(border=False)
+                            st.markdown("<div class='button-grade-livre'>", unsafe_allow_html=True)
+                            if st.button(f"🟢 {h_slot}", key=f"slot_lvr_{turno_nome}_{h_slot}", use_container_width=True):
                                 mostrar_popup_confirmacao(h_slot, barb_fluxo, serv_fluxo, SERVICOS[serv_fluxo]["preco"], data_sel)
+                            st.markdown("</div>", unsafe_allow_html=True)
 
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.markdown("<div class='section-barber'>X GERENCIAR MEUS AGENDAMENTOS ATIVOS</div>", unsafe_allow_html=True)
