@@ -7,14 +7,14 @@ from datetime import datetime, timedelta, date
 from sqlalchemy import create_engine, text
 import urllib.parse
 
-# 1. CONFIGURAÇÃO DA PÁGINA
+# 1. CONFIGURAÇÃO DA PÁGINA (Experiência Mobile-First e Dark)
 st.set_page_config(layout="wide", page_title="BarberFlow OS", page_icon="💈")
 
 # =========================================================
 # BANCO DE DADOS NA NUVEM (POSTGRESQL - NEON.TECH)
 # =========================================================
 CONNECTION_STRING = "postgresql://neondb_owner:npg_FB5WRUfgniD9@ep-calm-grass-ah0b366i.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
-WHATSAPP_NOTIFICA = "5519971374936" 
+WHATSAPP_NOTIFICA = "5519971374936"  # Destinatário oficial das notificações
 
 @st.cache_resource
 def obter_engine():
@@ -26,16 +26,19 @@ def hash_senha(senha):
 def init_db():
     engine = obter_engine()
     with engine.begin() as conn:
+        # Tabela de Usuários Unificada (Clientes e Barbeiros)
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS usuarios_barber (
                 id SERIAL PRIMARY KEY, login TEXT UNIQUE, senha TEXT, nome TEXT, perfil TEXT, celular TEXT
             )
         """))
+        # Tabela de Barbeiros Cadastrados
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS barbeiros (
                 id SERIAL PRIMARY KEY, nome TEXT UNIQUE, especialidade TEXT
             )
         """))
+        # Tabela Central de Agendamentos
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS agendamentos (
                 id SERIAL PRIMARY KEY, cliente_login TEXT, barbeiro_nome TEXT,
@@ -43,10 +46,13 @@ def init_db():
             )
         """))
         
+        # Carga Inicial de Dados (Se o banco estiver vazio)
         res = conn.execute(text("SELECT COUNT(*) FROM barbeiros")).fetchone()[0]
         if res == 0:
             conn.execute(text("INSERT INTO barbeiros (nome, especialidade) VALUES ('Gabriel', 'Especialista em Degradê & Visagismo')"))
             conn.execute(text("INSERT INTO barbeiros (nome, especialidade) VALUES ('Lucas', 'Mestre das Barbas & Toalha Quente')"))
+            
+            # Usuário do Barbeiro Gabriel para Acesso Administrativo
             conn.execute(text("""
                 INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) 
                 VALUES ('gabriel', :senha, 'Gabriel Barber', 'barbeiro', '19971374936')
@@ -58,7 +64,7 @@ except Exception as e:
     st.error(f"⚠️ Erro de Banco de Dados: {e}")
 
 # =========================================================
-# 🧪 FUNÇÃO INJETORA PARA DEMONSTRAÇÃO (REMOVER DEPOIS)
+# 🧪 FUNÇÃO INJETORA PARA DEMONSTRAÇÃO
 # =========================================================
 def injetar_dados_demonstracao():
     engine = obter_engine()
@@ -71,13 +77,11 @@ def injetar_dados_demonstracao():
         "Combo Premium (Corte + Barba + Sobrancelha)": 85.0, "Luzes / Nevou": 90.0
     }
     
-    hoje = date.today() # 15/06/2026
+    hoje = date.today()
     
     with engine.begin() as conn:
-        # Limpa o banco para não duplicar dados desordenados
         conn.execute(text("DELETE FROM agendamentos;"))
         
-        # Garante que os usuários fakes existam para o INNER JOIN de nome do cliente funcionar
         for cli in clientes_fake:
             nome_formatado = cli.replace('_', ' ').title()
             conn.execute(text("""
@@ -87,12 +91,9 @@ def injetar_dados_demonstracao():
             """), {"l": cli, "n": nome_formatado})
         
         contador = 0
-        # Distribui agendamentos entre os dias anteriores e posteriores a hoje
-        for i in range(-7, 7):  
+        for i in range(-7, 15):  
             data_alvo = hoje + timedelta(days=i)
-            
             for j, hora in enumerate(["09:30", "11:00", "14:30", "16:00", "17:30"]):
-                # Lógica para balancear os dias e deixar os gráficos dinâmicos
                 if (i + j) % 2 == 0 or i == 0: 
                     cliente = clientes_fake[(i + j) % len(clientes_fake)]
                     barbeiro = barbeiros_fake[(i * j) % len(barbeiros_fake)]
@@ -106,7 +107,7 @@ def injetar_dados_demonstracao():
                     contador += 1
     return contador
 
-# --- CONTROLE DE ESTADOS ---
+# --- CONTROLE DE ESTADOS DO STREAMLIT ---
 if 'auth' not in st.session_state: st.session_state['auth'] = False
 if 'user' not in st.session_state: st.session_state['user'] = None
 if 'perfil' not in st.session_state: st.session_state['perfil'] = None
@@ -114,12 +115,14 @@ if 'nome_usuario' not in st.session_state: st.session_state['nome_usuario'] = No
 if 'reg_sucesso' not in st.session_state: st.session_state['reg_sucesso'] = 0
 if 'horario_confirmando' not in st.session_state: st.session_state['horario_confirmando'] = None
 
-# --- ESTILIZAÇÃO CSS PREMIUM ---
+# --- ESTILIZAÇÃO CSS PREMIUM (Visual Moderno Cyber-Barber) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     * { font-family: 'Plus Jakarta Sans', sans-serif; }
     .stApp { background-color: #0d0e12; color: #e2e8f0; }
+    
+    div[data-baseweb="popover"] { z-index: 999999 !important; }
     
     .metric-card-barber {
         background: linear-gradient(135deg, #1e2028 0%, #14151b 100%);
@@ -160,15 +163,13 @@ SERVICOS = {
 }
 
 # =========================================================
-# FLUXO DE AUTENTICAÇÃO
+# FLUXO DE AUTENTICAÇÃO SEPARADO (CLIENTE VS BARBEIRO)
 # =========================================================
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBERFLOW OS</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#94a3b8;'>Gestão Inteligente & Agendamento de Alta Performance</p>", unsafe_allow_html=True)
     
-    # --- BARRA LATERAL COM O INJETOR DE DEMONSTRAÇÃO ---
     st.sidebar.markdown("### 🧪 Central de Testes")
-    st.sidebar.caption("Clique abaixo para preencher o banco Neon com dados fictícios para a sua apresentação.")
     if st.sidebar.button("⚡ Injetar Dados de Demonstração", use_container_width=True):
         try:
             dados_gerados = injetar_dados_demonstracao()
@@ -209,7 +210,7 @@ if not st.session_state['auth']:
                     engine = obter_engine()
                     try:
                         with engine.begin() as conn:
-                            conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) VALUES (:l, :s, :n, 'cliente', :c)"),
+                            conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, cellular) VALUES (:l, :s, :n, 'cliente', :c)"),
                                          {"l": cad_log_c, "s": hash_senha(cad_senha_c), "n": cad_nome_c, "c": cad_cel_c})
                         st.session_state['reg_sucesso'] += 1
                         st.success("🎉 Conta criada com sucesso! Acesse a aba 'Entrar' para fazer o seu agendamento.")
@@ -273,7 +274,7 @@ else:
             preco_servico = SERVICOS[servico_sel]["preco"]
             st.markdown(f"💵 **Investimento do Serviço:** <span style='color:#10b981; font-size:1.2rem; font-weight:800;'>R$ {preco_servico:.2f}</span>", unsafe_allow_html=True)
             
-            # --- MODAL DE CONFIRMAÇÃO SEGURO ---
+            # --- TRAVA DE SEGURANÇA E CONFIRMAÇÃO ---
             if st.session_state['horario_confirmando'] is not None:
                 hora_conf = st.session_state['horario_confirmando']
                 st.markdown("---")
@@ -290,7 +291,7 @@ else:
                                     VALUES (:u, :b, :d, :h, :s, :v)
                                 """), {"u": st.session_state['user'], "b": barbeiro_sel, "d": str(data_sel), "h": hora_conf, "s": servico_sel, "v": preco_servico})
                             
-                            msg_wpp = f"💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\n\n📅 *Data:* {data_sel.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora_conf}\n👤 *Barbeiro:* {barbeiro_sel}\n🛠️ *Serviço:* {servico_sel}\n💵 *Valor:* R$ {preco_servico:.2f}"
+                            msg_wpp = f"f'💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\\n\\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\\n\\n📅 *Data:* {data_sel.strftime('%d/%m/%Y')}\\n⏰ *Horário:* {hora_conf}\\n👤 *Barbeiro:* {barbeiro_sel}\\n🛠️ *Serviço:* {servico_sel}\\n💵 *Valor:* R$ {preco_servico:.2f}'"
                             url_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_wpp)}"
                             
                             st.session_state['horario_confirmando'] = None
@@ -304,7 +305,7 @@ else:
                             st.rerun()
                 st.markdown("---")
 
-            # Geração da janela de horários (Grade Limpa baseada na "image_9f15c4.png")
+            # Geração da janela de horários (Grade Limpa)
             horarios_janela = []
             base_time = datetime.strptime("09:00", "%H:%M")
             for i in range(20):
@@ -340,7 +341,7 @@ else:
                             st.session_state['horario_confirmando'] = hora
                             st.rerun()
 
-            # --- SEÇÃO DE CANCELAMENTO PELO CLIENTE ---
+            # --- GESTÃO DE MEUS COMPROMISSOS COM BOTÃO DE CANCELAR ---
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.markdown("<div class='section-barber'>Meus Compromissos & Opção de Cancelamento</div>", unsafe_allow_html=True)
             df_meus_cards = pd.read_sql_query(text("SELECT id as \"ID\", barbeiro_nome as \"Barbeiro\", data as \"Data\", horario as \"Horário\", servico as \"Serviço\", valor as \"Preço\" FROM agendamentos WHERE cliente_login = :u AND status = 'Agendado'"), engine, params={"u": st.session_state['user']})
@@ -373,7 +374,7 @@ else:
             with p_c1:
                 st.markdown("<div class='product-card'><h3 style='color:#f59e0b;'>🔥 Terça Maluca</h3><p>Corte Simples com 25% de Desconto direto no balcão!</p><h2 style='color:#10b981;'>R$ 30,00</h2></div>", unsafe_allow_html=True)
             with p_c2:
-                st.markdown("<div class='product-card'><h3 style='color:#f59e0b;'>👑 Plano VIP Mensal</h3><p>Cortes Ilimitados + 2 Barbas por mês com direito a Chopp livre.</p><h2 style='color:#10b981;'>R$ 149,90 / mês</h2></div>", unsafe_allow_html=True)
+                st.markdown("<div class='product-card'><h3 style='color:#f59e0b;'>👑 Plano VIP Mensal</h3><p>Cortes Ilimitados + 2 Barbas por mês com direito a Chopp livre.</p><h2 style='color:#10b981;'>R$ 149,90 / mes</h2></div>", unsafe_allow_html=True)
             with p_c3:
                 st.markdown("<div class='product-card'><h3 style='color:#f59e0b;'>⚡ Combo Alinhado</h3><p>Corte + Sobrancelha + Lavagem Especial com Shampoos Premium.</p><h2 style='color:#10b981;'>R$ 60,00</h2></div>", unsafe_allow_html=True)
 
@@ -389,41 +390,47 @@ else:
             with pr_c4:
                 st.markdown("<div class='product-card'><h4>Gel Cola Blindado Extra-Forte</h4><p>Fixação Extrema para Penteados Modernos (500g)</p><h3 style='color:#f59e0b;'>R$ 22,00</h3></div>", unsafe_allow_html=True)
 
-# =========================================================
+    # =========================================================
     # AMBIENTE DO BARBEIRO
     # =========================================================
     elif st.session_state['perfil'] == 'barbeiro':
         menu_b = st.sidebar.radio("Navegação do Negócio", ["📊 BI & Visão Estratégica", "📅 Painel de Controle Operacional"])
         
-        # --- NOVO FILTRO DE PERÍODO CORRIGIDO ---
-        st.sidebar.subheader("📅 Janela Temporal de Análise")
-        periodo_sel = st.sidebar.date_input(
-            "Selecione o Período:",
-            value=[date(2026, 6, 1), date(2026, 6, 30)], # Inicia mostrando o mês cheio
-            key="periodo_bi"
-        )
-        
-        # Garante as variáveis de início e fim baseadas na seleção do calendário
-        if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2:
-            data_inicio, data_fim = periodo_sel
-        elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1:
-            data_inicio = data_fim = periodo_sel[0]
-        else:
-            data_inicio = data_fim = periodo_sel
-        
-        # Executa a query filtrando tudo o que estiver ENTRE a data inicial e final selecionada
-        df_all_age = pd.read_sql_query(
-            text("""
-                SELECT a.*, u.nome as cliente_nome 
-                FROM agendamentos a 
-                LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
-                WHERE a.status = 'Agendado' AND a.data BETWEEN :ini AND :fim
-            """), 
-            engine, params={"ini": str(data_inicio), "fim": str(data_fim)}
-        )
+        st.sidebar.subheader("Segmentação")
         
         if menu_b == "📊 BI & Visão Estratégica":
-            st.markdown(f"## 📊 Inteligência de Negócio — Período: {data_inicio.strftime('%d/%m/%Y')} até {data_fim.strftime('%d/%m/%Y')}")
+            st.markdown("## 📊 Inteligência de Negócio & Insights Gerenciais")
+            
+            # --- FILTRO MOVIDO E CORRIGIDO PARA O CORPO PRINCIPAL ---
+            st.markdown("<div class='section-barber'>📅 FILTRO DE JANELA TEMPORAL DO CONSOLIDADO</div>", unsafe_allow_html=True)
+            
+            col_data_filt, _ = st.columns([2, 2])
+            with col_data_filt:
+                periodo_sel = st.date_input(
+                    "Selecione o Intervalo de Análise:",
+                    value=[date(2026, 6, 1), date(2026, 6, 30)],  # Junho de 2026 cheio
+                    key="periodo_bi_principal"
+                )
+            
+            if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2:
+                data_inicio, data_fim = periodo_sel
+            elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1:
+                data_inicio = data_fim = periodo_sel[0]
+            else:
+                data_inicio = data_fim = periodo_sel
+                
+            st.markdown(f"**Análise ativa:** Gerenciando dados de `{data_inicio.strftime('%d/%m/%Y')}` até `{data_fim.strftime('%d/%m/%Y')}`")
+            st.markdown("---")
+
+            df_all_age = pd.read_sql_query(
+                text("""
+                    SELECT a.*, u.nome as cliente_nome 
+                    FROM agendamentos a 
+                    LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
+                    WHERE a.status = 'Agendado' AND a.data BETWEEN :ini AND :fim
+                """), 
+                engine, params={"ini": str(data_inicio), "fim": str(data_fim)}
+            )
             
             if df_all_age.empty:
                 st.warning("⚠️ Nenhum histórico operacional encontrado na janela temporal selecionada.")
@@ -437,30 +444,30 @@ else:
                 }
                 df_all_age['dia_semana'] = df_all_age['dia_semana'].map(traducao_dias)
 
-                st.sidebar.subheader("Segmentação")
                 f_barber = st.sidebar.multiselect("Filtrar por Profissionais:", df_all_age['barbeiro_nome'].unique(), default=df_all_age['barbeiro_nome'].unique())
                 df_filtered = df_all_age[df_all_age['barbeiro_nome'].isin(f_barber)]
 
-                tot_clientes = df_filtered['cliente_login'].nunique()
+                # --- CORREÇÃO DA MÉTRICA DE ATENDIMENTOS ---
+                tot_atendimentos = len(df_filtered)
                 faturamento_total = df_filtered['valor'].sum()
                 ticket_medio = df_filtered['valor'].mean() if not df_filtered.empty else 0
                 
                 st.markdown(f"""
                     <div style="display: flex; justify-content: space-between; gap: 15px; margin-bottom: 25px;">
-                        <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Clientes Únicos</div><div class="metric-value">{tot_clientes}</div></div>
+                        <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Total de Atendimentos</div><div class="metric-value">{tot_atendimentos}</div></div>
                         <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Faturamento Bruto</div><div class="metric-value" style="color:#10b981">R$ {faturamento_total:.2f}</div></div>
                         <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Ticket Médio</div><div class="metric-value" style="color:#3b82f6">R$ {ticket_medio:.2f}</div></div>
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # --- GRÁFICO DIÁRIO GRANDÃO E ESTRATÉGICO ---
+                # --- GRÁFICO DIÁRIO EXPANDIDO E EM DESTAQUE ---
                 st.markdown("<div class='section-barber'>📈 ANÁLISE DE VOLUMETRIA: DIAS OPERACIONAIS MAIS ACIONADOS</div>", unsafe_allow_html=True)
                 df_dias = df_filtered.groupby('dia_semana').size().reindex(list(traducao_dias.values())).fillna(0).reset_index(name='Atendimentos')
                 fig_barras = px.bar(df_dias, x='dia_semana', y='Atendimentos', color='Atendimentos', 
                                     color_continuous_scale='YlOrBr', text_auto=True)
                 fig_barras.update_layout(
-                    height=500, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                    font={'color':'white', 'size': 14}, xaxis_title="Dia da Semana", yaxis_title="Total de Cortes Marcados"
+                    height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                    font={'color':'white', 'size': 13}, xaxis_title="Dia da Semana", yaxis_title="Total de Cortes Marcados"
                 )
                 st.plotly_chart(fig_barras, use_container_width=True)
                 
@@ -479,10 +486,34 @@ else:
                     st.plotly_chart(fig_rank, use_container_width=True)
 
         elif menu_b == "📅 Painel de Controle Operacional":
+            st.markdown("<div class='section-barber'>📅 SELEÇÃO DO PERÍODO DA AGENDA OPERACIONAL</div>", unsafe_allow_html=True)
+            col_data_ops, _ = st.columns([2, 2])
+            with col_data_ops:
+                periodo_sel = st.date_input(
+                    "Filtrar Agenda por Período:",
+                    value=[date(2026, 6, 1), date(2026, 6, 30)],
+                    key="periodo_ops_principal"
+                )
+                
+            if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2:
+                data_inicio, data_fim = periodo_sel
+            elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1:
+                data_inicio = data_fim = periodo_sel[0]
+            else:
+                data_inicio = data_fim = periodo_sel
+
+            df_all_age = pd.read_sql_query(
+                text("""
+                    SELECT a.*, u.nome as cliente_nome 
+                    FROM agendamentos a 
+                    LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
+                    WHERE a.status = 'Agendado' AND a.data BETWEEN :ini AND :fim
+                """), 
+                engine, params={"ini": str(data_inicio), "fim": str(data_fim)}
+            )
+
             st.markdown(f"## 📋 Prontuário Geral — Agenda de {data_inicio.strftime('%d/%m')} a {data_fim.strftime('%d/%m/%Y')}")
-            st.caption("Visão detalhada da agenda para acompanhamento em tempo real de clientes confirmados.")
-            
-            st.markdown("<div class='section-barber'>Horários Alocados na Janela Selecionada</div>", unsafe_allow_html=True)
+            st.caption("Visão detalhada da agenda contendo Nome do Cliente e o Tipo de Serviço Real prestado.")
             
             df_agenda_geral = df_all_age[['id', 'cliente_nome', 'barbeiro_nome', 'data', 'horario', 'servico', 'valor']].rename(columns={
                 'id': 'ID', 'cliente_nome': 'Nome do Cliente', 'barbeiro_nome': 'Barbeiro',
