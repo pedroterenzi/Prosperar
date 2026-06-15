@@ -212,13 +212,59 @@ def injetar_dados_demonstracao():
                     contador += 1
     return contador
 
-# --- ESTILIZAÇÃO CSS PREMIUM ---
+# --- ESTILIZAÇÃO CSS PREMIUM (BOTÕES LATERAIS QUADRADOS INTERATIVOS) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     * { font-family: 'Plus Jakarta Sans', sans-serif; }
     .stApp { background-color: #0d0e12; color: #e2e8f0; }
     
+    /* --- ENVELOPE DO MENU LATERAL MODERNO E QUADRADO --- */
+    [data-testid="stSidebar"] { background-color: #111217; border-right: 1px solid #1e2028; }
+    
+    /* Esconde as bolinhas circulares nativas */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div:first-child { display: none !important; }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label [data-testid="stWidgetLabel"] { display: none !important; }
+    
+    /* Configuração do Grid de Botões Quadrados Interativos */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] { 
+        display: flex; flex-direction: column; gap: 8px; width: 100%; 
+    }
+    
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
+        background-color: #1e2028 !important; 
+        border: 1px solid #2a2d3a !important;
+        padding: 16px 20px !important; 
+        border-radius: 8px !important; /* Cantos quadrados elegantes */
+        color: #94a3b8 !important; 
+        cursor: pointer; 
+        font-weight: 600; 
+        font-size: 0.9rem;
+        transition: all 0.2s ease-in-out; 
+        display: flex !important; 
+        align-items: center; 
+        justify-content: flex-start; 
+        width: 100% !important; 
+        box-sizing: border-box !important;
+    }
+    
+    /* Hover - Passar o mouse */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover { 
+        background-color: #262933 !important; 
+        border-color: #f59e0b !important; 
+        color: #ffffff !important;
+    }
+    
+    /* Estado Ativo / Selecionado (Destaque Premium Prosperidade) */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] {
+        background: #f59e0b !important; 
+        color: #0d0e12 !important; 
+        border: 1px solid #d97706 !important; 
+        font-weight: 800; 
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important;
+    }
+    
+    /* --- OUTROS COMPONENTES DO ECOSSISTEMA --- */
     .metric-card-barber {
         background: linear-gradient(135deg, #1e2028 0%, #14151b 100%);
         padding: 22px; border-radius: 16px; border: 1px solid #2a2d3a; text-align: center;
@@ -241,9 +287,6 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# =========================================================
-# MONITORAMENTO DE ACESSO CENTRALIZADO
-# =========================================================
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBEARIA PROSPERIDADE</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#94a3b8;'>PROSPERIDADE OS — Gestão Operacional, CRM & Finanças Integradas</p>", unsafe_allow_html=True)
@@ -463,7 +506,7 @@ else:
                         </div>
                     """, unsafe_allow_html=True)
                     if st.button("Comprar e Retirar no Balcão", key=f"buy_p_{p_idx}", use_container_width=True):
-                        st.toast(f"Pedido de {p_nome} reserved para seu próximo corte!", icon="🛒")
+                        st.toast(f"Pedido de {p_nome} reservado para seu próximo corte!", icon="🛒")
 
         with c_menu[3]:
             st.markdown("### ⏳ Check-in e Ouvidoria Privada")
@@ -490,6 +533,7 @@ else:
     elif st.session_state['perfil'] in ('barbeiro', 'admin'):
         modo_visao = "📅 Minha Agenda na Cadeira (Gabriel)"
         if st.session_state['perfil'] == 'admin':
+            # --- [CSS ATIVO APLICADO AQUI] Menu lateral em botões quadrados robustos ---
             modo_visao = st.sidebar.radio("Selecione o Painel Ativo:", ["📊 Painel Corporativo ERP Prosperidade", "📅 Minha Agenda na Cadeira (Gabriel)"])
         
         if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)" or st.session_state['perfil'] == 'barbeiro':
@@ -566,18 +610,11 @@ else:
                 st.caption("Falta pouco para atingir a próxima faixa de comissão extra mensal!")
 
         # =========================================================
-        # 3. INTERFACE EXECUTIVE ERP DO PROPRIETÁRIO (GABRIEL DONO)
+        # INTERFACE CORPORATIVA DO ADMINISTRADOR
         # =========================================================
         else:
             adm_menu = st.tabs(["📊 Saúde do Negócio", "💸 Split & Caixa Automatizado", "👥 RH & Performance", "📦 Almoxarifado Inteligente", "➕ Recepção Kanban / Encaixe"])
             
-            col_data_filt, col_prof_filt = st.columns([2, 2])
-            with col_data_filt:
-                periodo_sel = st.date_input("Intervalo de Datas Executivas:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm_final")
-            
-            if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: data_inicio, data_fim = periodo_sel
-            else: data_inicio = data_fim = date.today()
-
             df_adm_total = pd.read_sql_query(text("SELECT * FROM agendamentos WHERE data BETWEEN :ini AND :fim"), engine, params={"ini": str(data_inicio), "fim": str(data_fim)})
             df_ativos = df_adm_total[df_adm_total['status'] == 'Agendado']
             df_faltas = df_adm_total[df_adm_total['status'] == 'No-Show']
