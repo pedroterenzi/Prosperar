@@ -181,19 +181,15 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-SERVICOS = {
-    "Corte Simples": {"preco": 40.0, "tempo": 30},
-    "Corte + Sobrancelha": {"preco": 55.0, "tempo": 30},
-    "Barba Completa": {"preco": 35.0, "tempo": 30},
-    "Combo Premium (Corte + Barba + Sobrancelha)": {"preco": 85.0, "tempo": 30},
-    "Luzes / Nevou": {"preco": 90.0, "tempo": 30}
-}
-
 # =========================================================
-# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO DE HORÁRIO (CENTRALIZADO)
+# 🛡️ POP-UP DIALOG CORRIGIDO (MUTAÇÃO DE BOTÕES PARA O WHATSAPP)
 # =========================================================
 @st.dialog("🛡️ Confirmar seu Agendamento")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
+    # Inicializa uma chave temporária para rastrear se esse pop-up específico já salvou
+    if "sucesso_popup" not in st.session_state:
+        st.session_state["sucesso_popup"] = False
+
     st.markdown(f"Você escolheu o horário das **{hora}**.")
     st.markdown(f"""
     * **Profissional:** {barbeiro}
@@ -201,30 +197,52 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
     * **Preço:** <span style='color:#10b981; font-weight:bold;'>R$ {preco:.2f}</span>
     * **Data:** {data.strftime('%d/%m/%Y')}
     """, unsafe_allow_html=True)
-    st.markdown("Deseja confirmar a gravação do seu compromisso?")
     
-    col_pop1, col_pop2 = st.columns(2)
-    with col_pop1:
-        if st.button("✅ Confirmar Vaga", type="primary", use_container_width=True):
-            engine = obter_engine()
-            with engine.begin() as conn:
-                conn.execute(text("""
-                    INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor)
-                    VALUES (:u, :b, :d, :h, :s, :v)
-                """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco})
-            
-            # Formatação do link direto do WhatsApp corporativo
-            msg_wpp = f"💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\n\n📅 *Data:* {data.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora}\n👤 *Barbeiro:* {barbeiro}\n🛠️ *Serviço:* {servico}\n💵 *Valor:* R$ {preco:.2f}"
-            url_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_wpp)}"
-            
-            st.success(f"🎉 Agendado com sucesso para as {hora}!")
-            st.markdown(f'<a href="{url_wpp}" target="_blank" style="text-decoration:none;"><div style="background-color:#25d366; color:white; padding:12px; text-align:center; border-radius:8px; font-weight:bold; margin-top:8px;">💬 NOTIFICAR NO WHATSAPP</div></a>', unsafe_allow_html=True)
-            st.balloons()
-            st.toast("Horário agendado com sucesso!")
-            
-    with col_pop2:
-        if st.button("❌ Cancelar", use_container_width=True):
+    # Se o agendamento já foi feito, esconde as ações e mostra apenas o sucesso + WhatsApp
+    if st.session_state["sucesso_popup"]:
+        msg_wpp = f"💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\n\n📅 *Data:* {data.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora}\n👤 *Barbeiro:* {barbeiro}\n🛠️ *Serviço:* {servico}\n💵 *Valor:* R$ {preco:.2f}"
+        url_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_wpp)}"
+        
+        st.markdown("""
+            <div style="background-color:#10b98115; border:1px solid #10b981; color:#34d399; padding:15px; border-radius:10px; font-weight:bold; text-align:center; margin-bottom:15px;">
+                🎉 Agendado com sucesso no sistema para as {hora}!
+            </div>
+        """.format(hora=hora), unsafe_allow_html=True)
+        
+        st.markdown(f"""
+            <a href="{url_wpp}" target="_blank" style="text-decoration:none;">
+                <div style="background-color:#25d366; color:white; padding:15px; text-align:center; border-radius:10px; font-weight:bold; box-shadow: 0 4px 12px rgba(37,211,102,0.25);">
+                    💬 NOTIFICAR NO WHATSAPP
+                </div>
+            </a>
+        """, unsafe_allow_html=True)
+        
+        if st.button("Fechar Janela", use_container_width=True):
+            del st.session_state["sucesso_popup"]
             st.rerun()
+            
+    else:
+        st.markdown("Deseja confirmar a gravação do seu compromisso?")
+        col_pop1, col_pop2 = st.columns(2)
+        with col_pop1:
+            if st.button("✅ Confirmar Vaga", type="primary", use_container_width=True):
+                engine = obter_engine()
+                with engine.begin() as conn:
+                    conn.execute(text("""
+                        INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor)
+                        VALUES (:u, :b, :d, :h, :s, :v)
+                    """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco})
+                
+                # Modifica o estado do pop-up para renderizar apenas a tela final de sucesso
+                st.session_state["sucesso_popup"] = True
+                st.balloons()
+                st.rerun()
+                
+        with col_pop2:
+            if st.button("❌ Cancelar", use_container_width=True):
+                if "sucesso_popup" in st.session_state:
+                    del st.session_state["sucesso_popup"]
+                st.rerun()
 
 # =========================================================
 # FLUXO DE AUTENTICAÇÃO
@@ -337,7 +355,6 @@ else:
             preco_servico = SERVICOS[servico_sel]["preco"]
             st.markdown(f"💵 **Investimento do Serviço:** <span style='color:#10b981; font-size:1.2rem; font-weight:800;'>R$ {preco_servico:.2f}</span>", unsafe_allow_html=True)
 
-            # Estrutura a lista de slots horários das 09h às 19h
             horarios_janela = []
             base_time = datetime.strptime("09:00", "%H:%M")
             for i in range(20):
@@ -370,7 +387,6 @@ else:
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # --- DISPARO DA JANELA POP-UP CENTRALIZADA VIA DIALOG ---
                         if st.button("Solicitar Vaga", key=f"av_btn_{hora}", use_container_width=True, type="secondary"):
                             mostrar_popup_confirmacao(
                                 hora=hora, 
@@ -433,6 +449,8 @@ else:
     # =========================================================
     elif st.session_state['perfil'] == 'barbeiro':
         menu_b = st.sidebar.radio("Navegação do Negócio", ["📈 BI & Visão Estratégica", "📅 Painel de Controle Operacional"])
+        
+        st.sidebar.subheader("Segmentação")
         
         if menu_b == "📈 BI & Visão Estratégica":
             st.markdown("## 📊 Inteligência de Negócio & Insights Gerenciais")
