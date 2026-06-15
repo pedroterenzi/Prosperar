@@ -79,7 +79,7 @@ def injetar_dados_demonstracao():
         for cli in clientes_fake:
             nome_formatado = cli.replace('_', ' ').title()
             conn.execute(text("""
-                INSERT INTO usuarios_barber (login, senha, nome, perfil, celular)
+                INSERT INTO usuarios_barber (login, senha, nome, perfil, cellular)
                 VALUES (:l, 'sistema', :n, 'cliente', '19999999999')
                 ON CONFLICT (login) DO NOTHING
             """), {"l": cli, "n": nome_formatado})
@@ -109,7 +109,7 @@ if 'nome_usuario' not in st.session_state: st.session_state['nome_usuario'] = No
 if 'reg_sucesso' not in st.session_state: st.session_state['reg_sucesso'] = 0
 if 'horario_confirmando' not in st.session_state: st.session_state['horario_confirmando'] = None
 
-# --- ESTILIZAÇÃO CSS PREMIUM ---
+# --- ESTILIZAÇÃO CSS PREMIUM (ATUALIZADA) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -118,6 +118,40 @@ st.markdown("""
     
     div[data-baseweb="popover"] { z-index: 999999 !important; }
     
+    /* --- CUSTOMIZAÇÃO PREMIUM DA BARRA LATERAL (image_943ba8.png) --- */
+    [data-testid="stSidebar"] { background-color: #111217; border-right: 1px solid #1e2028; }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+    
+    /* Esconde as bolinhas feias do radio button original */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p img { display:none !important; }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label [data-testid="stWidgetLabel"] { display: none !important; }
+    
+    /* Transforma cada item do radio em um card clicável moderno */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
+        background-color: #1e2028 !important; border: 1px solid #2a2d3a !important;
+        padding: 14px 18px !important; border-radius: 12px !important; margin-bottom: 2px !important; 
+        color: #94a3b8 !important; cursor: pointer; font-weight: 600; font-size: 0.9rem;
+        transition: all 0.25s ease-in-out; display: flex !important; align-items: center; 
+        justify-content: flex-start; width: 100% !important; box-sizing: border-box !important;
+    }
+    
+    /* Remover os círculos nativos do Streamlit via CSS seletor estrutural */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child { display: none !important; }
+    
+    /* Efeito de passar o mouse por cima (Hover) */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover { 
+        background-color: #262933 !important; border-color: #404557 !important; 
+        color: #ffffff !important; transform: translateX(3px); 
+    }
+    
+    /* Estado Ativo / Selecionado (Efeito Neon Gold/Amber) */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; 
+        color: #ffffff !important; border: 1px solid #b45309 !important; font-weight: 700; 
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25) !important;
+    }
+    
+    /* --- COMPONENTES DO CORPO DO DASHBOARD --- */
     .metric-card-barber {
         background: linear-gradient(135deg, #1e2028 0%, #14151b 100%);
         padding: 22px; border-radius: 16px; border: 1px solid #2a2d3a;
@@ -146,21 +180,12 @@ st.markdown("""
         border-radius: 12px; text-align: center; margin-bottom: 15px;
     }
     
-    /* Estilo da agenda interna do barbeiro */
     .barber-agenda-row {
         background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px;
         padding: 15px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
     }
     </style>
     """, unsafe_allow_html=True)
-
-SERVICOS = {
-    "Corte Simples": {"preco": 40.0, "tempo": 30},
-    "Corte + Sobrancelha": {"preco": 55.0, "tempo": 30},
-    "Barba Completa": {"preco": 35.0, "tempo": 30},
-    "Combo Premium (Corte + Barba + Sobrancelha)": {"preco": 85.0, "tempo": 30},
-    "Luzes / Nevou": {"preco": 90.0, "tempo": 30}
-}
 
 # =========================================================
 # FLUXO DE AUTENTICAÇÃO
@@ -210,7 +235,7 @@ if not st.session_state['auth']:
                     engine = obter_engine()
                     try:
                         with engine.begin() as conn:
-                            conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, cellular) VALUES (:l, :s, :n, 'cliente', :c)"),
+                            conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) VALUES (:l, :s, :n, 'cliente', :c)"),
                                          {"l": cad_log_c, "s": hash_senha(cad_senha_c), "n": cad_nome_c, "c": cad_cel_c})
                         st.session_state['reg_sucesso'] += 1
                         st.success("🎉 Conta criada com sucesso! Acesse a aba 'Entrar' para fazer o seu agendamento.")
@@ -391,11 +416,11 @@ else:
     # AMBIENTE DO BARBEIRO
     # =========================================================
     elif st.session_state['perfil'] == 'barbeiro':
-        menu_b = st.sidebar.radio("Navegação do Negócio", ["📊 BI & Visão Estratégica", "📅 Painel de Controle Operacional"])
         
-        st.sidebar.subheader("Segmentação")
+        # --- MENU LATERAL PREMIUM TRANSFORMADO VIA CSS ---
+        menu_b = st.sidebar.radio("Navegação do Negócio", ["📈 BI & Visão Estratégica", "📅 Painel de Controle Operacional"])
         
-        if menu_b == "📊 BI & Visão Estratégica":
+        if menu_b == "📈 BI & Visão Estratégica":
             st.markdown("## 📊 Inteligência de Negócio & Insights Gerenciais")
             
             st.markdown("<div class='section-barber'>📅 FILTRO DE JANELA TEMPORAL DO CONSOLIDADO</div>", unsafe_allow_html=True)
@@ -481,17 +506,14 @@ else:
 
         elif menu_b == "📅 Painel de Controle Operacional":
             
-            # --- NOVA SEÇÃO: CRONOGRAMA DA AGENDA DIÁRIA DO BARBEIRO ---
             st.markdown("<div class='section-barber'>📅 MINHA AGENDA DIÁRIA (VISÃO VISUAL DO BARBEIRO)</div>", unsafe_allow_html=True)
             
             col_b_data, col_b_name = st.columns(2)
             with col_b_data:
                 data_agenda_diaria = st.date_input("Filtrar Agenda do Dia:", date.today(), key="agenda_dia_b")
             with col_b_name:
-                # O barbeiro consegue escolher de quem quer ver a agenda
                 barbeiro_agenda_sel = st.selectbox("Visualizar Agenda do Profissional:", ["Gabriel", "Lucas"], key="nome_b_agenda")
             
-            # Puxa os dados específicos do dia e profissional do Neon
             df_agenda_dia_real = pd.read_sql_query(
                 text("""
                     SELECT a.*, u.nome as cliente_nome 
@@ -501,7 +523,6 @@ else:
                 """), engine, params={"b_nome": barbeiro_agenda_sel, "d_alvo": str(data_agenda_diaria)}
             )
             
-            # Métrica de cabeçalho da agenda diária
             atendimentos_hoje = len(df_agenda_dia_real)
             st.markdown(f"""
                 <div class="metric-card-barber" style="margin-bottom:20px; padding:15px; border-left: 5px solid #3b82f6;">
@@ -510,18 +531,15 @@ else:
                 </div>
             """, unsafe_allow_html=True)
             
-            # Estrutura a lista de slots horários das 09h às 19h
             horarios_trabalho = []
             b_time = datetime.strptime("09:00", "%H:%M")
             for i in range(20):
                 horarios_trabalho.append((b_time + timedelta(minutes=30*i)).strftime("%H:%M"))
                 
-            # Mapeia os dados encontrados para dentro da linha do tempo visual
             mapa_agenda_dia = df_agenda_dia_real.set_index('horario').to_dict(orient='index')
             
             for h_slot in horarios_trabalho:
                 if h_slot in mapa_agenda_dia:
-                    # Slot Ocupado com dados ricos do cliente
                     reg_slot = mapa_agenda_dia[h_slot]
                     st.markdown(f"""
                         <div class="barber-agenda-row" style="border-left: 6px solid #ef4444; background: #ef444408;">
@@ -538,7 +556,6 @@ else:
                         </div>
                     """, unsafe_allow_html=True)
                 else:
-                    # Slot Livre
                     st.markdown(f"""
                         <div class="barber-agenda-row" style="border-left: 4px solid #10b981; opacity: 0.65;">
                             <div style="display:flex; gap:25px; align-items:center;">
@@ -549,9 +566,8 @@ else:
                         </div>
                     """, unsafe_allow_html=True)
 
-            # --- SEÇÃO DE MANUTENÇÃO / REMOÇÃO POR ID ---
             st.markdown("<br><br>", unsafe_allow_html=True)
-            st.markdown("<div class='section-barber'>📅 SELEÇÃO DO PERÍODO DA TABELA GERAL DA AGENDA</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-barber'>📅 SELEÇÃO DEL PERÍODO DA TABELA GERAL DA AGENDA</div>", unsafe_allow_html=True)
             col_data_ops, _ = st.columns([2, 2])
             with col_data_ops:
                 periodo_sel = st.date_input(
