@@ -16,6 +16,17 @@ st.set_page_config(layout="wide", page_title="BarberFlow OS", page_icon="💈")
 CONNECTION_STRING = "postgresql://neondb_owner:npg_FB5WRUfgniD9@ep-calm-grass-ah0b366i.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 WHATSAPP_NOTIFICA = "5519971374936" 
 
+# =========================================================
+# DICIONÁRIOS E PORTFÓLIO DE SERVIÇOS (MOVIDO PARA O TOPO)
+# =========================================================
+SERVICOS = {
+    "Corte Simples": {"preco": 40.0, "tempo": 30},
+    "Corte + Sobrancelha": {"preco": 55.0, "tempo": 30},
+    "Barba Completa": {"preco": 35.0, "tempo": 30},
+    "Combo Premium (Corte + Barba + Sobrancelha)": {"preco": 85.0, "tempo": 30},
+    "Luzes / Nevou": {"preco": 90.0, "tempo": 30}
+}
+
 @st.cache_resource
 def obter_engine():
     return create_engine(CONNECTION_STRING, pool_pre_ping=True)
@@ -64,12 +75,7 @@ def injetar_dados_demonstracao():
     engine = obter_engine()
     clientes_fake = ['alexandre_guerra', 'leonardo_arengue', 'bruno_felicio', 'danilo_santos', 'luciano_souza', 'paulo_higuchi']
     barbeiros_fake = ['Gabriel', 'Lucas']
-    servicos_fake = ["Corte Simples", "Corte + Sobrancelha", "Barba Completa", "Combo Premium (Corte + Barba + Sobrancelha)", "Luzes / Nevou"]
-    
-    precos_mapping = {
-        "Corte Simples": 40.0, "Corte + Sobrancelha": 55.0, "Barba Completa": 35.0,
-        "Combo Premium (Corte + Barba + Sobrancelha)": 85.0, "Luzes / Nevou": 90.0
-    }
+    servicos_fake = list(SERVICOS.keys())
     
     hoje = date.today()
     
@@ -92,7 +98,7 @@ def injetar_dados_demonstracao():
                     cliente = clientes_fake[(i + j) % len(clientes_fake)]
                     barbeiro = barbeiros_fake[(i * j) % len(barbeiros_fake)]
                     servico = servicos_fake[(j) % len(servicos_fake)]
-                    valor = precos_mapping[servico]
+                    valor = SERVICOS[servico]["preco"]
                     
                     conn.execute(text("""
                         INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status)
@@ -182,11 +188,10 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # =========================================================
-# 🛡️ POP-UP DIALOG CORRIGIDO (MUTAÇÃO DE BOTÕES PARA O WHATSAPP)
+# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO DE HORÁRIO
 # =========================================================
 @st.dialog("🛡️ Confirmar seu Agendamento")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
-    # Inicializa uma chave temporária para rastrear se esse pop-up específico já salvou
     if "sucesso_popup" not in st.session_state:
         st.session_state["sucesso_popup"] = False
 
@@ -198,16 +203,15 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
     * **Data:** {data.strftime('%d/%m/%Y')}
     """, unsafe_allow_html=True)
     
-    # Se o agendamento já foi feito, esconde as ações e mostra apenas o sucesso + WhatsApp
     if st.session_state["sucesso_popup"]:
         msg_wpp = f"💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\n\n📅 *Data:* {data.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora}\n👤 *Barbeiro:* {barbeiro}\n🛠️ *Serviço:* {servico}\n💵 *Valor:* R$ {preco:.2f}"
         url_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_wpp)}"
         
-        st.markdown("""
+        st.markdown(f"""
             <div style="background-color:#10b98115; border:1px solid #10b981; color:#34d399; padding:15px; border-radius:10px; font-weight:bold; text-align:center; margin-bottom:15px;">
                 🎉 Agendado com sucesso no sistema para as {hora}!
             </div>
-        """.format(hora=hora), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
         
         st.markdown(f"""
             <a href="{url_wpp}" target="_blank" style="text-decoration:none;">
@@ -233,7 +237,6 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                         VALUES (:u, :b, :d, :h, :s, :v)
                     """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco})
                 
-                # Modifica o estado do pop-up para renderizar apenas a tela final de sucesso
                 st.session_state["sucesso_popup"] = True
                 st.balloons()
                 st.rerun()
@@ -245,7 +248,7 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                 st.rerun()
 
 # =========================================================
-# FLUXO DE AUTENTICAÇÃO
+# FLUXO DE ENTRADA / LOGIN
 # =========================================================
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBERFLOW OS</h1>", unsafe_allow_html=True)
@@ -449,8 +452,6 @@ else:
     # =========================================================
     elif st.session_state['perfil'] == 'barbeiro':
         menu_b = st.sidebar.radio("Navegação do Negócio", ["📈 BI & Visão Estratégica", "📅 Painel de Controle Operacional"])
-        
-        st.sidebar.subheader("Segmentação")
         
         if menu_b == "📈 BI & Visão Estratégica":
             st.markdown("## 📊 Inteligência de Negócio & Insights Gerenciais")
