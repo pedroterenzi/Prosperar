@@ -136,16 +136,16 @@ def init_db():
         """))
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS estoque_produtos (
-                id SERIAL PRIMARY KEY, nome_produto TEXT UNIQUE, quantity INTEGER, limite_minimo INTEGER, preco_venda REAL, tipo_estoque TEXT DEFAULT 'Venda'
+                id SERIAL PRIMARY KEY, nome_produto TEXT UNIQUE, quantidade INTEGER, limite_minimo INTEGER, preco_venda REAL, tipo_estoque TEXT DEFAULT 'Venda'
             )
         """))
         
         # Carga padrão de produtos uso interno vs venda
         if conn.execute(text("SELECT COUNT(*) FROM estoque_produtos")).fetchone()[0] == 0:
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantity, limite_minimo, preco_venda, tipo_estoque) VALUES ('Pomada Efeito Matte Elesid', 3, 5, 35.0, 'Venda')"))
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantity, limite_minimo, preco_venda, tipo_estoque) VALUES ('Minoxidil Kirkland 6%', 14, 4, 89.90, 'Venda')"))
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantity, limite_minimo, preco_venda, tipo_estoque) VALUES ('Gola Higiênica Rolo', 2, 5, 0.0, 'Uso Interno')"))
-            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantity, limite_minimo, preco_venda, tipo_estoque) VALUES ('Shampoo Lavatório 5L', 1, 2, 0.0, 'Uso Interno')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Pomada Efeito Matte Elesid', 3, 5, 35.0, 'Venda')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Minoxidil Kirkland 6%', 14, 4, 89.90, 'Venda')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Gola Higiênica Rolo', 2, 5, 0.0, 'Uso Interno')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Shampoo Lavatório 5L', 1, 2, 0.0, 'Uso Interno')"))
 
         # Cadastro padrão de contas administrativas
         conn.execute(text("""
@@ -190,7 +190,7 @@ def injetar_dados_demonstracao():
                 INSERT INTO usuarios_barber (login, senha, nome, perfil, celular, pontos_fidelidade, plano_assinatura)
                 VALUES (:l, 'sistema', :n, 'cliente', '19999999999', :p, :pl)
                 ON CONFLICT (login) DO NOTHING
-            """), {"l": cli, "n": nome_formatado, "p": pontos, "pl": plano})
+            """), {"l": cli, "n": name_formatado, "p": pontos, "pl": plano})
         
         contador = 0
         for i in range(-50, 10):  
@@ -613,16 +613,15 @@ else:
                 st.caption("Falta pouco para atingir a próxima faixa de comissão extra mensal!")
 
         # =========================================================
-        # INTERFACE CORPORATIVA DO ADMINISTRADOR (DONO GABRIEL)
+        # 3. INTERFACE EXECUTIVE ERP DO PROPRIETÁRIO (GABRIEL DONO)
         # =========================================================
         else:
             adm_menu = st.tabs(["📊 Saúde do Negócio", "💸 Split & Caixa Automatizado", "👥 RH & Performance", "📦 Almoxarifado Inteligente", "➕ Recepção Kanban / Encaixe"])
             
-            col_data_filt, col_prof_filt = st.columns([2, 2])
-            with col_data_filt:
-                periodo_sel = st.date_input("Intervalo de Datas Executivas:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm_final")
+            st.markdown("<div class='section-barber'>📅 CALENDÁRIO CORPORATIVO DE GESTÃO EXECUTIVA</div>", unsafe_allow_html=True)
+            periodo_sel = st.date_input("Intervalo de Datas Executivas:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm_final")
             
-            # --- FIX FIXO: Desestruturação da data corrigida contra NameError ('data_inicio') ---
+            # --- BLINDAGEM CONTRA NAMEERROR ---
             if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: 
                 data_inicio, data_fim = periodo_sel
             elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1: 
@@ -690,12 +689,14 @@ else:
                     st.dataframe(df_performance, use_container_width=True)
                 else: st.caption("Sem dados de produção.")
 
+            # --- PILAR DO ALMOXARIFADO: RESOLVIDO O GATILHO DO KEYERROR ---
             with adm_menu[3]:
                 st.markdown("### 📦 Backoffice de Almoxarifado Inteligente")
                 df_estoque = pd.read_sql_query("SELECT * FROM estoque_produtos", engine)
                 for _, r in df_estoque.iterrows():
-                    if r['quantity'] <= r['limite_minimo']:
-                        st.error(f"🚨 **ALERTA DE ESTOQUE CRÍTICO:** O produto {r['nome_produto']} possui apenas `{r['quantity']}` unidades.")
+                    # Alterado estritamente para buscar 'quantidade' mapeada em PT-BR no Neon
+                    if r['quantidade'] <= r['limite_minimo']:
+                        st.error(f"🚨 **ALERTA DE ESTOQUE CRÍTICO:** O produto {r['nome_produto']} possui apenas `{r['quantidade']}` unidades.")
                 st.dataframe(df_estoque, use_container_width=True)
 
             with adm_menu[4]:
