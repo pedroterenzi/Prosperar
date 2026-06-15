@@ -57,6 +57,55 @@ try:
 except Exception as e:
     st.error(f"⚠️ Erro de Banco de Dados: {e}")
 
+# =========================================================
+# 🧪 FUNÇÃO INJETORA PARA DEMONSTRAÇÃO (REMOVER DEPOIS)
+# =========================================================
+def injetar_dados_demonstracao():
+    engine = obter_engine()
+    clientes_fake = ['alexandre_guerra', 'leonardo_arengue', 'bruno_felicio', 'danilo_santos', 'luciano_souza', 'paulo_higuchi']
+    barbeiros_fake = ['Gabriel', 'Lucas']
+    servicos_fake = ["Corte Simples", "Corte + Sobrancelha", "Barba Completa", "Combo Premium (Corte + Barba + Sobrancelha)", "Luzes / Nevou"]
+    
+    precos_mapping = {
+        "Corte Simples": 40.0, "Corte + Sobrancelha": 55.0, "Barba Completa": 35.0,
+        "Combo Premium (Corte + Barba + Sobrancelha)": 85.0, "Luzes / Nevou": 90.0
+    }
+    
+    hoje = date.today() # 15/06/2026
+    
+    with engine.begin() as conn:
+        # Limpa o banco para não duplicar dados desordenados
+        conn.execute(text("DELETE FROM agendamentos;"))
+        
+        # Garante que os usuários fakes existam para o INNER JOIN de nome do cliente funcionar
+        for cli in clientes_fake:
+            nome_formatado = cli.replace('_', ' ').title()
+            conn.execute(text("""
+                INSERT INTO usuarios_barber (login, senha, nome, perfil, celular)
+                VALUES (:l, 'sistema', :n, 'cliente', '19999999999')
+                ON CONFLICT (login) DO NOTHING
+            """), {"l": cli, "n": nome_formatado})
+        
+        contador = 0
+        # Distribui agendamentos entre os dias anteriores e posteriores a hoje
+        for i in range(-7, 7):  
+            data_alvo = hoje + timedelta(days=i)
+            
+            for j, hora in enumerate(["09:30", "11:00", "14:30", "16:00", "17:30"]):
+                # Lógica para balancear os dias e deixar os gráficos dinâmicos
+                if (i + j) % 2 == 0 or i == 0: 
+                    cliente = clientes_fake[(i + j) % len(clientes_fake)]
+                    barbeiro = barbeiros_fake[(i * j) % len(barbeiros_fake)]
+                    servico = servicos_fake[(j) % len(servicos_fake)]
+                    valor = precos_mapping[servico]
+                    
+                    conn.execute(text("""
+                        INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status)
+                        VALUES (:u, :b, :d, :h, :s, :v, 'Agendado')
+                    """), {"u": cliente, "b": barbeiro, "d": str(data_alvo), "h": hora, "s": servico, "v": valor})
+                    contador += 1
+    return contador
+
 # --- CONTROLE DE ESTADOS ---
 if 'auth' not in st.session_state: st.session_state['auth'] = False
 if 'user' not in st.session_state: st.session_state['user'] = None
@@ -117,6 +166,17 @@ if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBERFLOW OS</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#94a3b8;'>Gestão Inteligente & Agendamento de Alta Performance</p>", unsafe_allow_html=True)
     
+    # --- BARRA LATERAL COM O INJETOR DE DEMONSTRAÇÃO ---
+    st.sidebar.markdown("### 🧪 Central de Testes")
+    st.sidebar.caption("Clique abaixo para preencher o banco Neon com dados fictícios para a sua apresentação.")
+    if st.sidebar.button("⚡ Injetar Dados de Demonstração", use_container_width=True):
+        try:
+            dados_gerados = injetar_dados_demonstracao()
+            st.sidebar.success(f"🔥 {dados_gerados} agendamentos gerados!")
+            st.balloons()
+        except Exception as error_db:
+            st.sidebar.error(f"Falha na injeção: {error_db}")
+            
     portal_cliente, portal_barbeiro = st.tabs(["📱 PORTAL DO CLIENTE", "💼 ÁREA DO PROFISSIONAL"])
     
     with portal_cliente:
@@ -138,8 +198,6 @@ if not st.session_state['auth']:
                 
         with aba_cad_c:
             st.markdown("<div class='section-barber'>Cadastro Rápido de Novo Cliente</div>", unsafe_allow_html=True)
-            
-            # Chave de reprocessamento dinâmico para limpar os inputs após submissão bem-sucedida
             v_reg = st.session_state['reg_sucesso']
             cad_nome_c = st.text_input("Nome Completo", key=f"c_nome_{v_reg}")
             cad_log_c = st.text_input("Escolha seu Nome de Usuário", key=f"c_log_{v_reg}").strip().lower()
@@ -151,12 +209,12 @@ if not st.session_state['auth']:
                     engine = obter_engine()
                     try:
                         with engine.begin() as conn:
-                            conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, cellular) VALUES (:l, :s, :n, 'cliente', :c)"),
+                            conn.execute(text("INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) VALUES (:l, :s, :n, 'cliente', :c)"),
                                          {"l": cad_log_c, "s": hash_senha(cad_senha_c), "n": cad_nome_c, "c": cad_cel_c})
                         st.session_state['reg_sucesso'] += 1
                         st.success("🎉 Conta criada com sucesso! Acesse a aba 'Entrar' para fazer o seu agendamento.")
                         st.rerun()
-                    except Exception as e: 
+                    except Exception: 
                         st.error("Este nome de usuário já está sendo utilizado.")
                 else: st.warning("Por favor, preencha todos os campos do formulário.")
 
@@ -185,7 +243,7 @@ else:
     with col_h1:
         st.markdown(f"### 💈 **{st.session_state['nome_usuario']}** <span style='color:#f59e0b'>[{st.session_state['perfil'].upper()}]</span>", unsafe_allow_html=True)
     with col_h2:
-        if st.button(" 🚪 Encerrar Sessão", use_container_width=True):
+        if st.button("🚪 Encerrar Sessão", use_container_width=True):
             st.session_state['auth'] = False
             st.session_state['horario_confirmando'] = None
             st.rerun()
@@ -215,7 +273,7 @@ else:
             preco_servico = SERVICOS[servico_sel]["preco"]
             st.markdown(f"💵 **Investimento do Serviço:** <span style='color:#10b981; font-size:1.2rem; font-weight:800;'>R$ {preco_servico:.2f}</span>", unsafe_allow_html=True)
             
-            # --- BLOCÃO DE CONFIRMAÇÃO SEGURO (TRAVA DE SEGURANÇA) ---
+            # --- MODAL DE CONFIRMAÇÃO SEGURO ---
             if st.session_state['horario_confirmando'] is not None:
                 hora_conf = st.session_state['horario_confirmando']
                 st.markdown("---")
@@ -232,7 +290,7 @@ else:
                                     VALUES (:u, :b, :d, :h, :s, :v)
                                 """), {"u": st.session_state['user'], "b": barbeiro_sel, "d": str(data_sel), "h": hora_conf, "s": servico_sel, "v": preco_servico})
                             
-                            msg_wpp = f"f'💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\\n\\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\\n\\n📅 *Data:* {data_sel.strftime('%d/%m/%Y')}\\n⏰ *Horário:* {hora_conf}\\n👤 *Barbeiro:* {barbeiro_sel}\\n🛠️ *Serviço:* {servico_sel}\\n💵 *Valor:* R$ {preco_servico:.2f}'"
+                            msg_wpp = f"💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\n\n📅 *Data:* {data_sel.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora_conf}\n👤 *Barbeiro:* {barbeiro_sel}\n🛠️ *Serviço:* {servico_sel}\n💵 *Valor:* R$ {preco_servico:.2f}"
                             url_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_wpp)}"
                             
                             st.session_state['horario_confirmando'] = None
@@ -246,7 +304,7 @@ else:
                             st.rerun()
                 st.markdown("---")
 
-            # Geração da janela de horários (Grade Limpa e Alinhada)
+            # Geração da janela de horários (Grade Limpa baseada na "image_9f15c4.png")
             horarios_janela = []
             base_time = datetime.strptime("09:00", "%H:%M")
             for i in range(20):
@@ -300,7 +358,6 @@ else:
                         with engine.begin() as conn:
                             conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(id_cancelar_cliente)})
                             
-                        # Link de Notificação de Cancelamento via WhatsApp
                         msg_cancel_wpp = f"⚠️ *ALERTA DE CANCELAMENTO DE CLIENTE* ⚠️\n\nO cliente *{st.session_state['nome_usuario']}* cancelou um horário:\n\n📅 *Data:* {linha_c['Data']}\n⏰ *Horário:* {linha_c['Horário']}\n👤 *Barbeiro:* {linha_c['Barbeiro']}\n❌ *Serviço Removido:* {linha_c['Serviço']}"
                         url_cancel_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_cancel_wpp)}"
                         
@@ -338,13 +395,17 @@ else:
     elif st.session_state['perfil'] == 'barbeiro':
         menu_b = st.sidebar.radio("Navegação do Negócio", ["📊 BI & Visão Estratégica", "📅 Painel de Controle Operacional"])
         
-        # --- FILTRO TEMPORAL GLOBAL ---
-        st.sidebar.subheader("📅 Filtro de Janela Temporal")
-        data_inicio = st.sidebar.date_input("De:", date.today() - timedelta(days=30))
-        data_fim = st.sidebar.date_input("Até:", date.today() + timedelta(days=30))
+        st.sidebar.subheader("📅 Janela Temporal")
+        data_inicio = st.sidebar.date_input("De:", date.today() - timedelta(days=7))
+        data_fim = st.sidebar.date_input("Até:", date.today() + timedelta(days=15))
         
         df_all_age = pd.read_sql_query(
-            text("SELECT a.*, u.nome as cliente_nome FROM agendamentos a LEFT JOIN usuarios_barber u ON a.cliente_login = u.login WHERE a.status = 'Agendado' AND a.data BETWEEN :ini AND :fim"), 
+            text("""
+                SELECT a.*, u.nome as cliente_nome 
+                FROM agendamentos a 
+                LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
+                WHERE a.status = 'Agendado' AND a.data BETWEEN :ini AND :fim
+            """), 
             engine, params={"ini": str(data_inicio), "fim": str(data_fim)}
         )
         
@@ -379,7 +440,7 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # --- GRÁFICO DA SEMANA EXPANDIDO: MÁXIMA VISIBILIDADE ESTRATÉGICA ---
+                # --- GRÁFICO DIÁRIO GRANDÃO E ESTRATÉGICO ---
                 st.markdown("<div class='section-barber'>📈 ANÁLISE DE VOLUMETRIA: DIAS OPERACIONAIS MAIS ACIONADOS</div>", unsafe_allow_html=True)
                 df_dias = df_filtered.groupby('dia_semana').size().reindex(list(traducao_dias.values())).fillna(0).reset_index(name='Atendimentos')
                 fig_barras = px.bar(df_dias, x='dia_semana', y='Atendimentos', color='Atendimentos', 
@@ -410,7 +471,6 @@ else:
             
             st.markdown("<div class='section-barber'>Horários Alocados na Janela Selecionada</div>", unsafe_allow_html=True)
             
-            # Exibição rica contendo Nome do Cliente e o Tipo de Serviço Real
             df_agenda_geral = df_all_age[['id', 'cliente_nome', 'barbeiro_nome', 'data', 'horario', 'servico', 'valor']].rename(columns={
                 'id': 'ID', 'cliente_nome': 'Nome do Cliente', 'barbeiro_nome': 'Barbeiro',
                 'data': 'Data', 'horario': 'Horário', 'servico': 'Serviço Solicitado', 'valor': 'Preço (R$)'
