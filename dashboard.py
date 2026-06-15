@@ -190,7 +190,7 @@ def injetar_dados_demonstracao():
                 INSERT INTO usuarios_barber (login, senha, nome, perfil, celular, pontos_fidelidade, plano_assinatura)
                 VALUES (:l, 'sistema', :n, 'cliente', '19999999999', :p, :pl)
                 ON CONFLICT (login) DO NOTHING
-            """), {"l": cli, "n": name_formatado, "p": pontos, "pl": plano})
+            """), {"l": cli, "n": nome_formatado, "p": pontos, "pl": plano})
         
         contador = 0
         for i in range(-50, 10):  
@@ -212,7 +212,7 @@ def injetar_dados_demonstracao():
                     contador += 1
     return contador
 
-# --- ESTILIZAÇÃO CSS PREMIUM (BOTÕES LATERAIS QUADRADOS INTERATIVOS COM TEXTO FIXADO) ---
+# --- ESTILIZAÇÃO CSS PREMIUM ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -221,71 +221,54 @@ st.markdown("""
     
     /* --- ENVELOPE DO MENU LATERAL MODERNO E QUADRADO --- */
     [data-testid="stSidebar"] { background-color: #111217; border-right: 1px solid #1e2028; }
-    
-    /* Oculta os spans vazios do Streamlit */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div:first-child { display: none !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { display: none !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label [data-testid="stWidgetLabel"] { display: none !important; }
     
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] { 
-        display: flex; flex-direction: column; gap: 10px; width: 100%; 
-    }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] { display: flex; flex-direction: column; gap: 10px; width: 100%; }
     
-    /* Configuração do Bloco Quadrado Vazio */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
-        background-color: #1e2028 !important; 
-        border: 1px solid #2a2d3a !important;
-        padding: 18px 15px !important; 
-        border-radius: 8px !important; 
-        color: #94a3b8 !important; 
-        cursor: pointer; 
-        font-weight: 700; 
-        font-size: 0.95rem;
-        transition: all 0.2s ease-in-out; 
-        display: flex !important; 
-        align-items: center; 
-        justify-content: center; 
-        width: 100% !important; 
-        box-sizing: border-box !important;
+        background-color: #1e2028 !important; border: 1px solid #2a2d3a !important; padding: 18px 15px !important; 
+        border-radius: 8px !important; color: #94a3b8 !important; cursor: pointer; font-weight: 700; font-size: 0.95rem;
+        transition: all 0.2s ease-in-out; display: flex !important; align-items: center; justify-content: center; width: 100% !important; box-sizing: border-box !important;
     }
-    
-    /* Injeção Dinâmica das Descrições através do Nth-Child (CSS Indexado) */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:nth-child(1)::after { content: "📊 Painel Corporativo ERP"; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:nth-child(2)::after { content: "📅 Minha Agenda na Cadeira"; }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover { background-color: #262933 !important; border-color: #f59e0b !important; color: #ffffff !important; }
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] { background: #f59e0b !important; color: #0d0e12 !important; border: 1px solid #d97706 !important; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important; }
     
-    /* Hover - Passar o mouse */
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover { 
-        background-color: #262933 !important; 
-        border-color: #f59e0b !important; 
-        color: #ffffff !important;
+    /* --- CORREÇÃO DE ALINHAMENTO DO IMAGE_84BC22.PNG --- */
+    .time-slot-card-premium {
+        background: #14151b;
+        border: 1px solid #2a2d3a;
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+        height: 100px; /* Garante tamanho idêntico em todas as colunas */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        box-sizing: border-box;
+        margin-bottom: 10px;
     }
     
-    /* Estado Ativo / Selecionado (Destaque Premium Prosperidade) */
-    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] {
-        background: #f59e0b !important; 
-        color: #0d0e12 !important; 
-        border: 1px solid #d97706 !important; 
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important;
+    /* Customização dos botões invisíveis nativos do Streamlit para agirem como o card inteiro */
+    div.stButton > button.slot-banco-click {
+        background-color: transparent !important;
+        border: none !important;
+        color: transparent !important;
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100px;
+        z-index: 10;
+        cursor: pointer;
     }
     
-    /* Outros Elementos */
-    .metric-card-barber {
-        background: linear-gradient(135deg, #1e2028 0%, #14151b 100%);
-        padding: 22px; border-radius: 16px; border: 1px solid #2a2d3a; text-align: center;
-    }
+    .metric-card-barber { background: linear-gradient(135deg, #1e2028 0%, #14151b 100%); padding: 22px; border-radius: 16px; border: 1px solid #2a2d3a; text-align: center; }
     .metric-title { color: #94a3b8; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
     .metric-value { color: #f59e0b; font-size: 2.2rem; font-weight: 800; margin-top: 5px; }
-    
-    .time-slot-card { background: #1e2028; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid #2a2d3a; margin-bottom: 8px; }
-    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
-    .badge-livre { background: #10b98120; color: #34d399; border: 1px solid #10b981; }
-    .badge-ocupado { background: #ef444420; color: #f87171; border: 1px solid #ef4444; }
-    
     .section-barber { background: #1e2028; padding: 12px 20px; border-radius: 8px; color: #fff; font-weight: 700; border-left: 5px solid #f59e0b; margin-bottom: 15px; }
-    .product-card {
-        background: #14151b; border: 1px solid #2a2d3a; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px;
-        min-height: 290px; display: flex; flex-direction: column; justify-content: space-between;
-    }
+    .product-card { background: #14151b; border: 1px solid #2a2d3a; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px; min-height: 290px; display: flex; flex-direction: column; justify-content: space-between; }
     .barber-card-visual { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px; text-align: center; }
     .barber-agenda-row { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
     </style>
@@ -447,16 +430,29 @@ else:
             t_tarde = ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "16:00", "16:30", "17:00", "17:30"]
             t_noite = ["18:00", "18:30", "19:00", "19:30"]
             
+            # --- CORREÇÃO CIRÚRGICA DE ALINHAMENTO DA GRADE (image_84bc22.png) ---
             for turno_nome, turnos_slots in [("☀️ Turno da Manhã", t_manha), ("🌤️ Turno da Tarde", t_tarde), ("🌙 Turno da Noite", t_noite)]:
                 st.write(f"**{turno_nome}**")
                 t_cols = st.columns(4)
                 for s_idx, h_slot in enumerate(turnos_slots):
                     with t_cols[s_idx % 4]:
                         if h_slot in ocupados_list or (eh_hoje and h_slot < hora_atual_str):
-                            st.markdown(f"<div class='time-slot-card' style='border-color:#ef4444; opacity:0.5; padding:6px;'><span style='color:#f87171; font-size:0.7rem;'>🛑 Reservado</span><h5 style='margin:2px 0;'>{h_slot}</h5></div>", unsafe_allow_html=True)
+                            # Card Reservado - Ocupa exatamente 100px de altura
+                            st.markdown(f"""
+                                <div class='time-slot-card-premium' style='border-color:#ef4444; opacity:0.55;'>
+                                    <span style='color:#f87171; font-size:0.75rem; font-weight:700;'>🔴 RESERVADO</span>
+                                    <h3 style='margin:5px 0 0 0; font-weight:800; letter-spacing:1px; color:#94a3b8;'>{h_slot}</h3>
+                                </div>
+                            """, unsafe_allow_html=True)
                         else:
-                            st.markdown(f"<div class='time-slot-card' style='border-color:#10b981; padding:6px;'><span style='color:#34d399; font-size:0.7rem;'>🟢 Livre</span><h5 style='margin:2px 0;'>{h_slot}</h5></div>", unsafe_allow_html=True)
-                            if st.button("Disponível", key=f"slot_flx_{turno_nome}_{h_slot}", use_container_width=True):
+                            # Card Livre Integrado - O botão preenche e ativa o card transparente de 100px
+                            st.markdown(f"""
+                                <div class='time-slot-card-premium' style='border-color:#10b981; position:relative;'>
+                                    <span style='color:#34d399; font-size:0.75rem; font-weight:700;'>🟢 LIVRE</span>
+                                    <h3 style='margin:5px 0 0 0; font-weight:800; letter-spacing:1px; color:#fff;'>{h_slot}</h3>
+                                </div>
+                            """, unsafe_allow_html=True)
+                            if st.button("", key=f"slot_flx_{turno_nome}_{h_slot}", use_container_width=True):
                                 mostrar_popup_confirmacao(h_slot, barb_fluxo, serv_fluxo, SERVICOS[serv_fluxo]["preco"], data_sel)
 
             st.markdown("<br><br>", unsafe_allow_html=True)
@@ -537,7 +533,7 @@ else:
     elif st.session_state['perfil'] in ('barbeiro', 'admin'):
         modo_visao = "📅 Minha Agenda na Cadeira (Gabriel)"
         if st.session_state['perfil'] == 'admin':
-            modo_visao = st.sidebar.radio("Selecione o Painel Ativo:", ["📊 Painel Corporativo ERP Prosperidade", "📅 Minha Agenda na Cadeira (Gabriel)"])
+            modo_visao = st.sidebar.radio("Selecione o Painel Active:", ["📊 Painel Corporativo ERP Prosperidade", "📅 Minha Agenda na Cadeira (Gabriel)"])
         
         if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)" or st.session_state['perfil'] == 'barbeiro':
             barbeiro_ativo = "Gabriel" if st.session_state['perfil'] == 'admin' else st.session_state['nome_usuario']
@@ -621,7 +617,6 @@ else:
             st.markdown("<div class='section-barber'>📅 CALENDÁRIO CORPORATIVO DE GESTÃO EXECUTIVA</div>", unsafe_allow_html=True)
             periodo_sel = st.date_input("Intervalo de Datas Executivas:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm_final")
             
-            # --- BLINDAGEM CONTRA NAMEERROR ---
             if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: 
                 data_inicio, data_fim = periodo_sel
             elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1: 
@@ -689,12 +684,10 @@ else:
                     st.dataframe(df_performance, use_container_width=True)
                 else: st.caption("Sem dados de produção.")
 
-            # --- PILAR DO ALMOXARIFADO: RESOLVIDO O GATILHO DO KEYERROR ---
             with adm_menu[3]:
                 st.markdown("### 📦 Backoffice de Almoxarifado Inteligente")
                 df_estoque = pd.read_sql_query("SELECT * FROM estoque_produtos", engine)
                 for _, r in df_estoque.iterrows():
-                    # Alterado estritamente para buscar 'quantidade' mapeada em PT-BR no Neon
                     if r['quantidade'] <= r['limite_minimo']:
                         st.error(f"🚨 **ALERTA DE ESTOQUE CRÍTICO:** O produto {r['nome_produto']} possui apenas `{r['quantidade']}` unidades.")
                 st.dataframe(df_estoque, use_container_width=True)
