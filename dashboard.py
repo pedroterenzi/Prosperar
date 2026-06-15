@@ -6,7 +6,17 @@ import hashlib
 from datetime import datetime, timedelta, date
 from sqlalchemy import create_engine, text
 
-# 1. CONFIGURAÇÃO DA PÁGINA
+# =========================================================
+# 1. INICIALIZAÇÃO DE ESTADOS DA SESSÃO (ANTI-KEYERROR)
+# =========================================================
+if 'auth' not in st.session_state: st.session_state['auth'] = False
+if 'user' not in st.session_state: st.session_state['user'] = None
+if 'perfil' not in st.session_state: st.session_state['perfil'] = None
+if 'nome_usuario' not in st.session_state: st.session_state['nome_usuario'] = None
+if 'reg_sucesso' not in st.session_state: st.session_state['reg_sucesso'] = 0
+if 'ultimo_horario_salvo' not in st.session_state: st.session_state['ultimo_horario_salvo'] = None
+
+# Configuração global de layout
 st.set_page_config(layout="wide", page_title="Barbearia Prosperidade", page_icon="💈")
 
 # =========================================================
@@ -39,6 +49,9 @@ def obter_engine():
 def hash_senha(senha):
     return hashlib.sha256(str.encode(senha)).hexdigest()
 
+# =========================================================
+# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO DE CHECKOUT
+# =========================================================
 @st.dialog("💈 Confirmar e Escolher Checkout")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
     st.markdown(f"### 📋 Resumo do seu Pedido")
@@ -152,6 +165,53 @@ try:
 except Exception as e:
     st.error(f"⚠️ Erro Crítico na Inicialização do Banco: {e}")
 
+# =========================================================
+# 🧪 FUNÇÃO INJETORA INTELIGENTE (SIMULAÇÃO DE MÉTRICAS)
+# =========================================================
+def injetar_dados_demonstracao():
+    engine = obter_engine()
+    clientes_fake = ['alexandre_guerra', 'leonardo_arengue', 'bruno_felicio', 'danilo_santos', 'luciano_souza', 'paulo_higuchi']
+    barbeiros_fake = ['Gabriel', 'Lucas']
+    servicos_fake = list(SERVICOS.keys())
+    formas_p = ['Pix', 'Cartão de Crédito', 'Dinheiro']
+    feedbacks = ['Excelente atendimento', 'Corte impecável', 'Atrasou 5 minutos', 'Muito profissional', 'Gostei do café']
+    
+    hoje = date.today()
+    
+    with engine.begin() as conn:
+        conn.execute(text("DELETE FROM agendamentos;"))
+        conn.execute(text("DELETE FROM sala_espera;"))
+        
+        for idx, cli in enumerate(clientes_fake):
+            nome_formatado = cli.replace('_', ' ').title()
+            pontos = 8 if idx == 2 else 3
+            plano = 'VIP Executivo' if idx == 0 else 'Nenhum'
+            conn.execute(text("""
+                INSERT INTO usuarios_barber (login, senha, nome, perfil, celular, pontos_fidelidade, plano_assinatura)
+                VALUES (:l, 'sistema', :n, 'cliente', '19999999999', :p, :pl)
+                ON CONFLICT (login) DO NOTHING
+            """), {"l": cli, "n": nome_formatado, "p": pontos, "pl": plano})
+        
+        contador = 0
+        for i in range(-50, 10):  
+            data_alvo = hoje + timedelta(days=i)
+            for j, hora in enumerate(["09:30", "11:00", "14:30", "16:00", "17:30"]):
+                if (i + j) % 2 == 0 or i == 0: 
+                    cliente = clientes_fake[(i + j) % len(clientes_fake)]
+                    barbeiro = barbeiros_fake[(i * j) % len(barbeiros_fake)]
+                    servico = servicos_fake[(j) % len(servicos_fake)]
+                    valor = SERVICOS[servico]["preco"]
+                    fp = formas_p[(i + j) % len(formas_p)]
+                    nota = 5 if (i+j) % 4 != 0 else 3
+                    fb = feedbacks[(i+j) % len(feedbacks)] if nota == 5 else 'O corte foi bom, mas a cadeira atrasou um pouco.'
+                    
+                    conn.execute(text("""
+                        INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status, forma_pagamento, nota_avaliacao, feedback_texto)
+                        VALUES (:u, :b, :d, :h, :s, :v, 'Agendado', :fp, :nt, :fb)
+                    """), {"u": cliente, "b": barbeiro, "d": str(data_alvo), "h": hora, "s": servico, "v": valor, "fp": fp, "nt": nota, "fb": fb})
+                    contador += 1
+    return contador
+
 # --- ESTILIZAÇÃO CSS PREMIUM ---
 st.markdown("""
     <style>
@@ -182,7 +242,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # =========================================================
-# FLUXO DE CONTROLE DE SESSÃO
+# FLUXO DE CORPO PRINCIPAL DE NAVEGAÇÃO
 # =========================================================
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBEARIA PROSPERIDADE</h1>", unsafe_allow_html=True)
@@ -353,7 +413,7 @@ else:
                                 mostrar_popup_confirmacao(h_slot, barb_fluxo, serv_fluxo, SERVICOS[serv_fluxo]["preco"], data_sel)
 
             st.markdown("<br><br>", unsafe_allow_html=True)
-            st.markdown("<div class='section-barber'>❌ GERENCIAR MEUS AGENDAMENTOS ATIVOS</div>", unsafe_allow_html=True)
+            st.markdown("<div class='section-barber'>X GERENCIAR MEUS AGENDAMENTOS ATIVOS</div>", unsafe_allow_html=True)
             if not df_meus_cards.empty:
                 st.dataframe(df_meus_cards, use_container_width=True)
                 id_cancelar_cliente = st.number_input("Digite o ID do agendamento que deseja desmarcar:", min_value=1, step=1, key="c_del_cli")
@@ -364,7 +424,7 @@ else:
                         st.rerun()
 
         with c_menu[1]:
-            st.markdown("### 👑 Ficha de Estilo do Cliente & Clube Fidelidade Gamificado")
+            st.markdown("### 👑 Meu Perfil de Estilo & Fidelidade")
             col_fid1, col_fid2 = st.columns(2)
             with col_fid1:
                 pontos = int(df_cli['pontos_fidelidade'])
@@ -437,10 +497,10 @@ else:
             
             with engine.connect() as conn:
                 df_b_hoje = pd.read_sql_query(text("""
-                    SELECT a.*, u.nome as cliente_nome, u.preferencias, u.celular 
+                    SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, u.nome as cliente_nome, u.preferencias, u.celular 
                     FROM agendamentos a 
                     LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
-                    WHERE a.status = 'Agendado' AND a.barbeiro_nome = :b AND a.data = :d ORDER BY a.horario ASC
+                    WHERE a.status = 'Agendado' AND a.barbeiro_nome = :b AS a.data = :d ORDER BY a.horario ASC
                 """), conn, params={"b": barbeiro_ativo, "d": str(date.today())})
             
             faturamento_cadeira = df_b_hoje['valor'].sum()
@@ -476,7 +536,7 @@ else:
                             <div style="background: {cor_card}; padding: 16px; border-radius: 12px; border: 1px solid #2a2d3a; margin-bottom: 8px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
                                     <div>
-                                        <span style="font-size:1.3rem; font-weight:900; color:#fff;">⏰ {h_slot}</span>
+                                        <span style="font-size:1.3rem; font-weight:800; color:#fff;">⏰ {h_slot}</span>
                                         <span style="font-size:1.15rem; font-weight:700; color:#fff; margin-left:15px;">👤 {reg_c['cliente_nome']}</span>
                                         <span style="background:#ffffff20; color:#fff; font-size:0.8rem; padding:3px 10px; border-radius:20px; margin-left:15px; font-weight:600;">🛠️ {serv_nome}</span>
                                     </div>
@@ -509,47 +569,38 @@ else:
         # 3. INTERFACE EXECUTIVE ERP DO PROPRIETÁRIO (GABRIEL DONO)
         # =========================================================
         else:
-            # --- TRAVA DE SEGURANÇA E CONTEXTO DE HISTÓRICO ANTERIOR ---
-            # Define o fuso horário local e captura o intervalo com comparativos do mês anterior (Maio vs Junho)
-            st.markdown("## 👑 PROSPERIDADE OS — Dashboard Executivo e BI Operacional")
+            adm_menu = st.tabs(["📊 Saúde do Negócio", "💸 Split & Caixa Automatizado", "👥 RH & Performance", "📦 Almoxarifado Inteligente", "➕ Recepção Kanban / Encaixe"])
             
-            adm_menu = st.tabs(["📊 Saúde do Negócio", "💸 Split & Caixa Automatizado", " RH & Performance", "📦 Almoxarifado Inteligente", "➕ Recepção Kanban / Encaixe"])
+            col_data_filt, col_prof_filt = st.columns([2, 2])
+            with col_data_filt:
+                periodo_sel = st.date_input("Intervalo de Datas Executivas:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm_final")
             
-            # Calendário de Filtro Superior Avançado
-            periodo_sel = st.date_input("Janela de Filtro Consolidado:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm_final")
-            if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: d_i, d_f = periodo_sel
-            else: d_i = d_f = date.today()
+            if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: data_inicio, data_fim = periodo_sel
+            else: data_inicio = data_fim = date.today()
 
-            # Puxa dados reais e dados deletados/faltas para calcular No-Show e Ocupação
-            df_adm_total = pd.read_sql_query(text("SELECT * FROM agendamentos WHERE data BETWEEN :ini AND :fim"), engine, params={"ini": str(d_i), "fim": str(d_f)})
+            df_adm_total = pd.read_sql_query(text("SELECT * FROM agendamentos WHERE data BETWEEN :ini AND :fim"), engine, params={"ini": str(data_inicio), "fim": str(data_fim)})
             df_ativos = df_adm_total[df_adm_total['status'] == 'Agendado']
             df_faltas = df_adm_total[df_adm_total['status'] == 'No-Show']
 
-            # --- PILAR 1: DASHBOARD EXECUTIVO ---
             with adm_menu[0]:
                 st.markdown("### 📈 Monitoramento Estratégico de Saúde do Negócio")
                 
                 bruto_periodo = df_ativos['valor'].sum()
                 ticket_medio = df_ativos['valor'].mean() if not df_ativos.empty else 0.0
                 
-                # Cálculo de Taxa de Ocupação Real
-                slots_totais_periodo = 20 * 2 * ((d_f - d_i).days + 1) # 20 slots * 2 barbeiros * dias
+                slots_totais_periodo = 20 * 2 * ((data_fim - data_inicio).days + 1)
                 taxa_ocupacao = min(int((len(df_ativos) / max(slots_totais_periodo, 1)) * 100), 100)
                 
-                # Cálculo da taxa de No-show
                 total_marcacoes = len(df_adm_total) if len(df_adm_total) > 0 else 1
                 taxa_noshow = int((len(df_faltas) / total_marcacoes) * 100)
 
                 adm_col1, adm_col2, adm_col3, adm_col4 = st.columns(4)
-                with adm_col1: 
-                    st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Faturamento Bruto</div><div class='metric-value'>R$ {bruto_periodo:.2f}</div><p style='color:#10b981; font-size:0.8rem; margin:0;'>📈 +14.2% (vs Maio)</p></div>", unsafe_allow_html=True)
-                with adm_col2: 
-                    st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ticket Médio Geral</div><div class='metric-value' style='color:#3b82f6;'>R$ {ticket_medio:.2f}</div><p style='color:#94a3b8; font-size:0.8rem; margin:0;'>Meta: R$ 50,00</p></div>", unsafe_allow_html=True)
+                with adm_col1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Faturamento Bruto</div><div class='metric-value'>R$ {bruto_periodo:.2f}</div><p style='color:#10b981; font-size:0.8rem; margin:0;'>📈 +14.2% (vs Maio)</p></div>", unsafe_allow_html=True)
+                with adm_col2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ticket Médio Geral</div><div class='metric-value' style='color:#3b82f6;'>R$ {ticket_medio:.2f}</div><p style='color:#94a3b8; font-size:0.8rem; margin:0;'>Meta: R$ 50,00</p></div>", unsafe_allow_html=True)
                 with adm_col3:
                     cor_oc = "#10b981" if taxa_ocupacao >= 60 else "#f59e0b"
                     st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ocupação de Cadeira</div><div class='metric-value' style='color:{cor_oc};'>{taxa_ocupacao}%</div><p style='color:#94a3b8; font-size:0.8rem; margin:0;'>Mínimo Ideal: 60%</p></div>", unsafe_allow_html=True)
-                with adm_col4:
-                    st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Índice de No-Show</div><div class='metric-value' style='color:#ef4444;'>{taxa_noshow}%</div><p style='color:#94a3b8; font-size:0.8rem; margin:0;'>Meta: Abaixo de 5%</p></div>", unsafe_allow_html=True)
+                with adm_col4: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Índice de No-Show</div><div class='metric-value' style='color:#ef4444;'>{taxa_noshow}%</div><p style='color:#94a3b8; font-size:0.8rem; margin:0;'>Meta: Abaixo de 5%</p></div>", unsafe_allow_html=True)
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("#### ⚡ Motor de Marketing: Campanhas Ativas de CRM Segmentado")
@@ -563,10 +614,8 @@ else:
                     if st.button("🍺 ENVIAR REGALOS PARA ANIVERSARIANTES", use_container_width=True):
                         st.success("Notificações em massa enviadas!")
 
-            # --- PILAR 2: GESTÃO FINANCEIRA E SPLIT AUTOMÁTICO ---
             with adm_menu[1]:
                 st.markdown("### 💸 Divisão de Caixa e Split Automatizado de Contas")
-                
                 repasse_equipe = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_ativos.iterrows() if r['servico'] in SERVICOS])
                 lucro_liquido_casa = bruto_periodo - repasse_equipe
                 
@@ -577,53 +626,32 @@ else:
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown("#### 📑 Fluxo de Lançamento de Custos Fixos e Variáveis da Empresa")
-                with st.expander("➕ Inserir Custo Fixo (Aluguel, Luz, Água, Internet)"):
+                with st.expander("➕ Inserir Custo Fixo"):
                     st.text_input("Descrição do Gasto:")
                     st.number_input("Valor da Fatura (R$):", min_value=0.0)
-                    if st.button("Lançar no Fluxo de Caixa"):
-                        st.toast("Custo fixo provisionado com sucesso!")
+                    if st.button("Lançar no Fluxo de Caixa"): st.toast("Custo fixo provisionado!")
 
-            # --- PILAR 3: RH E RANKING DE PERFORMANCE ---
             with adm_menu[2]:
                 st.markdown("### 🏆 Ranking de Performance Operacional da Equipe")
-                
-                # Agrupa dados fiscais por barbeiro para montar o ranking
-                df_performance = df_ativos.groupby('barbeiro_nome').agg(
-                    Cortes_Feitos=('id', 'count'),
-                    Faturamento_Total=('valor', 'sum')
-                ).reset_index().sort_values(by='Faturamento_Total', ascending=False)
-                
-                st.dataframe(df_performance, use_container_width=True)
-                st.caption("O ranking calcula o volume bruto gerado na cadeira para fins de premiações internas e acompanhamento de metas.")
+                if not df_ativos.empty:
+                    df_performance = df_ativos.groupby('barbeiro_nome').agg(Cortes_Feitos=('id', 'count'), Faturamento_Total=('valor', 'sum')).reset_index().sort_values(by='Faturamento_Total', ascending=False)
+                    st.dataframe(df_performance, use_container_width=True)
+                else: st.caption("Sem dados de produção.")
 
-            # --- PILAR 4: CONTROLE DE ESTOQUE DUPLO ---
             with adm_menu[3]:
                 st.markdown("### 📦 Backoffice de Almoxarifado Inteligente")
                 df_estoque = pd.read_sql_query("SELECT * FROM estoque_produtos", engine)
-                
-                # Monitor de Alerta Crítico
                 for _, r in df_estoque.iterrows():
                     if r['quantidade'] <= r['limite_minimo']:
-                        st.error(f"🚨 **ALERTA DE ESTOQUE CRÍTICO:** O produto **{r['nome_produto']}** possui apenas `{r['quantidade']}` unidades disponíveis (Gatilho mínimo: {r['limite_minimo']}).")
-                
-                st.markdown("#### Estoque Geral (Uso Interno vs Vitrine de Balcão)")
+                        st.error(f"🚨 **ALERTA DE ESTOQUE CRÍTICO:** O produto {r['nome_produto']} possui apenas `{r['quantidade']}` unidades.")
                 st.dataframe(df_estoque, use_container_width=True)
-                
-                with st.expander("📷 Entrada de Mercadoria por Código de Barras / NF-e"):
-                    st.camera_input("Apontar para o Código de Barras do Fornecedor:")
-                    st.number_input("Quantidade Recebida:", min_value=1, step=1)
-                    if st.button("Atualizar Almoxarifado"):
-                        st.success("Estoque atualizado e sincronizado na nuvem!")
 
-            # --- PILAR 5: VISÃO DA RECEPÇÃO KANBAN / WALK-IN ---
             with adm_menu[4]:
                 st.markdown("### ➕ Painel de Recepção Kanban e Encaixes Walk-in")
-                
-                st.markdown("#### Adicionar Cliente Walk-in (Chegou da Rua Sem Agendar)")
                 col_w1, col_w2, col_w3 = st.columns(3)
-                with col_w1: w_nome = st.text_input("Nome do Cliente de Rua:")
-                with col_w2: w_barb = st.selectbox("Designar Barbeiro Disponível:", ["Gabriel", "Lucas"], key="w_b")
-                with col_w3: w_serv = st.selectbox("Serviço:", list(SERVICOS.keys()), key="w_s")
+                with col_w1: w_nome = st.text_input("Nome do Cliente de Balcão:")
+                with col_w2: w_barb = st.selectbox("Designar Barbeiro Disponível:", ["Gabriel", "Lucas"], key="m_brb_adm")
+                with col_w3: w_serv = st.selectbox("Serviço:", list(SERVICOS.keys()), key="m_sv_adm")
                 
                 if st.button("🚀 Confirmar Encaixe de Balcão Imediato", use_container_width=True):
                     if w_nome:
@@ -633,9 +661,7 @@ else:
                         st.rerun()
                 
                 st.markdown("---")
-                st.markdown("#### ⏳ Clientes Monitorados na Sala de Espera Física Hoje")
+                st.markdown("#### ⏳ Clientes na Fila Física da Sala de Espera Hoje")
                 df_espera_sala = pd.read_sql_query("SELECT id, cliente_login, horario_checkin, status_presenca FROM sala_espera", engine)
-                if df_espera_sala.empty:
-                    st.caption("Nenhum cliente aguardando no sofá da recepção neste momento.")
-                else:
-                    st.dataframe(df_espera_sala, use_container_width=True)
+                if df_espera_sala.empty: st.caption("Nenhum cliente aguardando na recepção.")
+                else: st.dataframe(df_espera_sala, use_container_width=True)
