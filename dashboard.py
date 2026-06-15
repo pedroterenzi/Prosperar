@@ -189,7 +189,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # =========================================================
-# 🛡️ POP-UP DIALOG CORRIGIDO (RESOLVIDO EMBALAGEM DE BOTÃO WHATSAPP)
+# 🛡️ POP-UP DIALOG SEQUENCIAL COM INTERFACE DO WHATSAPP
 # =========================================================
 @st.dialog("🛡️ Confirmar seu Agendamento")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
@@ -246,7 +246,7 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                 st.rerun()
 
 # =========================================================
-# FLUXO DE AUTENTICAÇÃO
+# FLUXO DE AUTENTICAÇÃO SEPARADO (CLIENTE VS BARBEIRO)
 # =========================================================
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBERFLOW OS</h1>", unsafe_allow_html=True)
@@ -565,7 +565,6 @@ else:
             with col_b_name:
                 barbeiro_agenda_sel = st.selectbox("Visualizar Agenda do Profissional:", ["Gabriel", "Lucas"], key="nome_b_agenda")
             
-            # --- FIXADO: ADICIONADA SELEÇÃO DE FILTRO POR BARBEIRO NO SQL PARA EVITAR REPETIÇÃO DE CHAVE ---
             df_agenda_dia_real = pd.read_sql_query(
                 text("""
                     SELECT a.*, u.nome as cliente_nome 
@@ -588,7 +587,8 @@ else:
             for i in range(20):
                 horarios_trabalho.append((b_time + timedelta(minutes=30*i)).strftime("%H:%M"))
                 
-            # Garante mapeamento único já filtrado pelo barbeiro correto
+            # --- BLINDAGEM DE LOGICA: DROP_DUPLICATES PREVINE O ERRO DE INDICE REPETIDO DO CAIXA ---
+            df_agenda_dia_real = df_agenda_dia_real.drop_duplicates(subset=['horario'])
             mapa_agenda_dia = df_agenda_dia_real.set_index('horario').to_dict(orient='index')
             
             for h_slot in horarios_trabalho:
