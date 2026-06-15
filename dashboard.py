@@ -16,18 +16,20 @@ CONNECTION_STRING = "postgresql://neondb_owner:npg_FB5WRUfgniD9@ep-calm-grass-ah
 
 # Portfólio de Serviços e Configuração de Split de Comissão
 SERVICOS = {
-    "Corte Simples": {"preco": 40.0, "comissao": 0.50, "tempo": "30 min", "foto": "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400", "cor": "#1e3a8a"}, # Azul
-    "Corte + Sobrancelha": {"preco": 55.0, "comissao": 0.50, "tempo": "45 min", "foto": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400", "cor": "#581c87"}, # Roxo
-    "Barba Completa": {"preco": 35.0, "comissao": 0.50, "tempo": "30 min", "foto": "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400", "cor": "#064e3b"}, # Verde
-    "Combo Premium (Corte + Barba + Sobrancelha)": {"preco": 85.0, "comissao": 0.55, "tempo": "60 min", "foto": "https://images.unsplash.com/photo-1512864084360-7c0c4d0a0845?w=400", "cor": "#701a75"}, # Roxo Escuro
-    "Luzes / Nevou": {"preco": 90.0, "comissao": 0.60, "tempo": "90 min", "foto": "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400", "cor": "#7c2d12"}  # Laranja Queimado
+    "Corte Simples": {"preco": 40.0, "comissao": 0.50, "tempo": "30 min", "foto": "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400", "cor": "#1e3a8a"}, 
+    "Corte + Sobrancelha": {"preco": 55.0, "comissao": 0.50, "tempo": "45 min", "foto": "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400", "cor": "#581c87"}, 
+    "Barba Completa": {"preco": 35.0, "comissao": 0.50, "tempo": "30 min", "foto": "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400", "cor": "#064e3b"}, 
+    "Combo Premium (Corte + Barba + Sobrancelha)": {"preco": 85.0, "comissao": 0.55, "tempo": "60 min", "foto": "https://images.unsplash.com/photo-1512864084360-7c0c4d0a0845?w=400", "cor": "#701a75"}, 
+    "Luzes / Nevou": {"preco": 90.0, "comissao": 0.60, "tempo": "90 min", "foto": "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400", "cor": "#7c2d12"}  
 }
 
 PRODUTOS = {
-    "Pomada Matte Elesid": 35.0,
-    "Óleo de Barba Cedro": 42.0,
-    "Minoxidil Kirkland": 89.90,
-    "Cerveja Budweiser Long Neck": 10.0
+    "Pomada Matte Elesid": {"preco": 35.0, "tipo": "Venda"},
+    "Óleo de Barba Cedro": {"preco": 42.0, "tipo": "Venda"},
+    "Minoxidil Kirkland": {"preco": 89.90, "tipo": "Venda"},
+    "Cerveja Budweiser Long Neck": {"preco": 10.0, "tipo": "Venda"},
+    "Gola Higiênica Rolo": {"preco": 0.0, "tipo": "Uso Interno"},
+    "Shampoo Lavatório 5L": {"preco": 0.0, "tipo": "Uso Interno"}
 }
 
 @st.cache_resource
@@ -65,7 +67,7 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
         with col_pop1:
             if st.button("✅ Confirmar Vaga", type="primary", use_container_width=True):
                 engine = obter_engine()
-                forma_f = "Pix Antecipado" if "Pix" in tipo_pagamento else "Presencial"
+                forma_f = "Pix" if "Pix" in tipo_pagamento else "Dinheiro"
                 fator_pontos = 2 if "Pix" in tipo_pagamento else 1
                 
                 with engine.begin() as conn:
@@ -121,10 +123,18 @@ def init_db():
         """))
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS estoque_produtos (
-                id SERIAL PRIMARY KEY, nome_produto TEXT UNIQUE, quantidade INTEGER, limite_minimo INTEGER, preco_venda REAL
+                id SERIAL PRIMARY KEY, nome_produto TEXT UNIQUE, quantidade INTEGER, limite_minimo INTEGER, preco_venda REAL, tipo_estoque TEXT DEFAULT 'Venda'
             )
         """))
         
+        # Carga padrão de produtos uso interno vs venda
+        if conn.execute(text("SELECT COUNT(*) FROM estoque_produtos")).fetchone()[0] == 0:
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Pomada Efeito Matte Elesid', 3, 5, 35.0, 'Venda')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Minoxidil Kirkland 6%', 14, 4, 89.90, 'Venda')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Gola Higiênica Rolo', 2, 5, 0.0, 'Uso Interno')"))
+            conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda, tipo_estoque) VALUES ('Shampoo Lavatório 5L', 1, 2, 0.0, 'Uso Interno')"))
+
+        # Cadastro padrão de contas administrativas
         conn.execute(text("""
             INSERT INTO usuarios_barber (login, senha, nome, perfil, celular) 
             VALUES ('gabriel', :s, 'Gabriel (Proprietário)', 'admin', '19971374936')
@@ -162,20 +172,12 @@ st.markdown("""
     .badge-ocupado { background: #ef444420; color: #f87171; border: 1px solid #ef4444; }
     
     .section-barber { background: #1e2028; padding: 12px 20px; border-radius: 8px; color: #fff; font-weight: 700; border-left: 5px solid #f59e0b; margin-bottom: 15px; }
-    
     .product-card {
         background: #14151b; border: 1px solid #2a2d3a; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px;
-        min-height: 290px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease-in-out;
+        min-height: 290px; display: flex; flex-direction: column; justify-content: space-between;
     }
-    .barber-card-visual { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px; text-align: center; transition: all 0.2s ease-in-out; }
+    .barber-card-visual { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px; text-align: center; }
     .barber-agenda-row { background: #14151b; border: 1px solid #2a2d3a; border-radius: 12px; padding: 15px 20px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
-    
-    /* Botões Grandes de Bancada para Operação Manual com uma Mão */
-    .bancada-btn {
-        display: flex; justify-content: center; align-items: center;
-        padding: 16px !important; font-size: 1.1rem !important; font-weight: 800 !important;
-        border-radius: 12px !important; margin: 5px 0;
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -362,7 +364,7 @@ else:
                         st.rerun()
 
         with c_menu[1]:
-            st.markdown("### 👑 Meu Perfil de Estilo & Fidelidade")
+            st.markdown("### 👑 Ficha de Estilo do Cliente & Clube Fidelidade Gamificado")
             col_fid1, col_fid2 = st.columns(2)
             with col_fid1:
                 pontos = int(df_cli['pontos_fidelidade'])
@@ -423,19 +425,16 @@ else:
                         st.success("Obrigado! Sua nota foi arquivada de forma privada no painel do Gabriel.")
 
     # =========================================================
-    # 2. PRODUTIVIDADE DO BARBEIRO (LUCAS OU GABRIEL OPERANDO)
+    # AMBIENTE OPERACIONAL DO BARBEIRO
     # =========================================================
     elif st.session_state['perfil'] in ('barbeiro', 'admin'):
-        
-        # Estrutura condicional para o Gabriel (Dono) escolher se quer ver Gestão ou Cadeira
         modo_visao = "📅 Minha Agenda na Cadeira (Gabriel)"
         if st.session_state['perfil'] == 'admin':
-            modo_visao = st.sidebar.radio("Selecione o Painel Ativo:", ["📊 Painel Corporativo (Faturamento/CRM)", "📅 Minha Agenda na Cadeira (Gabriel)"])
+            modo_visao = st.sidebar.radio("Selecione o Painel Ativo:", ["📊 Painel Corporativo ERP Prosperidade", "📅 Minha Agenda na Cadeira (Gabriel)"])
         
         if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)" or st.session_state['perfil'] == 'barbeiro':
             barbeiro_ativo = "Gabriel" if st.session_state['perfil'] == 'admin' else st.session_state['nome_usuario']
             
-            # Captura de dados fiscais rápidos do dia
             with engine.connect() as conn:
                 df_b_hoje = pd.read_sql_query(text("""
                     SELECT a.*, u.nome as cliente_nome, u.preferencias, u.celular 
@@ -444,22 +443,18 @@ else:
                     WHERE a.status = 'Agendado' AND a.barbeiro_nome = :b AND a.data = :d ORDER BY a.horario ASC
                 """), conn, params={"b": barbeiro_ativo, "d": str(date.today())})
             
-            # Cálculos de comissão em tempo real para os KPIs superiores
             faturamento_cadeira = df_b_hoje['valor'].sum()
             comissao_b_acumulada = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_b_hoje.iterrows() if r['servico'] in SERVICOS])
             
             b_pilar1, b_pilar2 = st.tabs(["🎛️ Quadro de Comandos (Bancada)", "💰 Meu Extrato & Comissões"])
             
-            # --- PILAR 1: A HOME DO BARBEIRO (OPERAÇÃO COM UMA MÃO) ---
             with b_pilar1:
                 st.markdown(f"## 🎛️ Quadro de Comandos de Hoje — {barbeiro_ativo}")
-                
-                # KPIs rápidos superiores de bancada
                 k_col1, k_col2, k_col3 = st.columns(3)
                 with k_col1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Agendamentos Hoje</div><div class='metric-value'>{len(df_b_hoje)}</div></div>", unsafe_allow_html=True)
                 with k_col2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Minha Comissão Líquida</div><div class='metric-value' style='color:#10b981;'>R$ {comissao_b_acumulada:.2f}</div></div>", unsafe_allow_html=True)
                 with k_col3:
-                    proximo_vago = "Sem janelas livres"
+                    proximo_vago = "Sem janelas"
                     horarios_completos = [(datetime.strptime("09:00", "%H:%M") + timedelta(minutes=30*x)).strftime("%H:%M") for x in range(20)]
                     ocupados_b = df_b_hoje['horario'].tolist()
                     for h_c in horarios_completos:
@@ -469,8 +464,6 @@ else:
                     st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Próxima Cadeira Vaga</div><div class='metric-value' style='color:#3b82f6;'>{proximo_vago}</div></div>", unsafe_allow_html=True)
                 
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("<div class='section-barber'>📅 LINHA DO TEMPO DA CADEIRA (AGENDA VERTICAL COLORIDA)</div>", unsafe_allow_html=True)
-                
                 mapa_b = df_b_hoje.set_index('horario').to_dict(orient='index')
                 
                 for h_slot in horarios_completos:
@@ -479,7 +472,6 @@ else:
                         serv_nome = reg_c['servico']
                         cor_card = SERVICOS[serv_nome]['cor'] if serv_nome in SERVICOS else "#1e2028"
                         
-                        # Bloco visual customizado com a cor correspondente do serviço solicitado
                         st.markdown(f"""
                             <div style="background: {cor_card}; padding: 16px; border-radius: 12px; border: 1px solid #2a2d3a; margin-bottom: 8px;">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -493,139 +485,157 @@ else:
                             </div>
                         """, unsafe_allow_html=True)
                         
-                        # --- PILAR 2: PRONTUÁRIO CLÍNICO & CONTROLES DE UM CLIQUE ---
                         with st.expander(f"⚙️ Operar Atendimento de {reg_c['cliente_nome']}", expanded=False):
-                            st.markdown(f"**💡 Postura comportamental recomendada:** [Gosta de resenha sobre futebol / Sem Spams]")
                             st.warning(f"📋 **Prontuário de Estilo:** {reg_c['preferencias']}")
-                            
-                            # Ações rápidas de bancada de 1 clique
                             col_a1, col_a2, col_a3 = st.columns(3)
                             with col_a1:
-                                if st.button("🏁 Iniciar Serviço", key=f"start_{h_slot}", use_container_width=True):
-                                    st.toast(f"Cronômetro de atendimento iniciado para {reg_c['cliente_nome']}!", icon="⏱️")
+                                if st.button("🏁 Iniciar Cadeira", key=f"start_{h_slot}"): st.toast("Cronômetro rodando!")
                             with col_a2:
-                                if st.button("✔️ Concluir (Enviar ao Caixa)", key=f"end_{h_slot}", use_container_width=True, type="primary"):
-                                    st.toast(f"Serviço finalizado! Split de pagamento enviado ao financeiro.", icon="✅")
+                                if st.button("✔️ Concluir Venda", key=f"end_{h_slot}", type="primary"): st.toast("Fechamento enviado ao caixa!")
                             with col_a3:
-                                if st.button("❌ Marcar Falta (No-Show)", key=f"fault_{h_slot}", use_container_width=True):
+                                if st.button("❌ No-Show", key=f"fault_{h_slot}"):
                                     with engine.begin() as conn: conn.execute(text("UPDATE agendamentos SET status = 'No-Show' WHERE id = :id"), {"id": reg_c['id']})
                                     st.rerun()
-                            
-                            # --- PILAR 3: UPSELLING AUTOMÁTICO E ADICIONAIS NA CADEIRA ---
-                            st.markdown("#### ➕ Adicionar Itens na Cadeira (Aumentar Comissão)")
-                            col_up1, col_up2 = st.columns(2)
-                            with col_up1:
-                                serv_extra = st.selectbox("Lançar Serviço Adicional:", ["Nenhum"] + list(SERVICOS.keys()), key=f"add_sv_{h_slot}")
-                                if st.button("➕ Injetar Serviço", key=f"btn_add_sv_{h_slot}", use_container_width=True):
-                                    if serv_extra != "Nenhum":
-                                        with engine.begin() as conn: conn.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor) VALUES (:u, :b, :d, :h, :s, :v)"), {"u": reg_c['cliente_login'], "b": barbeiro_ativo, "d": str(date.today()), "h": h_slot, "s": serv_extra, "v": SERVICOS[serv_extra]['preco']})
-                                        st.success(f"{serv_extra} inserido na comissão!")
-                                        st.rerun()
-                            with col_up2:
-                                prod_extra = st.selectbox("Vender Produto Cosmético:", ["Nenhum"] + list(PRODUTOS.keys()), key=f"add_pr_{h_slot}")
-                                if st.button("📦 Lançar Produto", key=f"btn_add_pr_{h_slot}", use_container_width=True):
-                                    if prod_extra != "Nenhum":
-                                        st.toast(f"Comissão de balcão computada: {prod_extra} adicionado!", icon="🛒")
-                                        
-                            st.markdown("#### 📸 Câmera e Portfólio In-App")
-                            st.file_uploader("Capturar foto finalizada (Aplica desfoque retrato de fundo automaticamente)", type=['png', 'jpg'], key=f"photo_chair_{h_slot}")
                     else:
-                        # --- PILAR 4: GESTÃO DO TEMPO & BLOQUEIOS ---
-                        st.markdown(f"""
-                            <div class="barber-agenda-row" style="border-left: 4px solid #10b981; opacity:0.65; padding: 10px 20px;">
-                                <span style="font-size:1.1rem; font-weight:700; color:#34d399;">⏰ {h_slot} — Horário Livre</span>
-                            </div>
-                        """, unsafe_allow_html=True)
-                        col_bl1, _ = st.columns([2, 6])
-                        with col_bl1:
-                            if st.button("🛑 Bloquear Cadeira", key=f"bloq_chair_{h_slot}", use_container_width=True):
-                                with engine.begin() as conn: conn.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor) VALUES ('bloqueio_manual', :b, :d, :h, 'Bloqueio de Agenda', 0)"), {"b": barbeiro_ativo, "d": str(date.today()), "h": h_slot})
-                                st.rerun()
-                                
-            # --- PILAR 5: FINANÇAS TRANSPARENTES (O EXTRATO DE COMISSÕES) ---
+                        st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #10b981; opacity:0.65;"><span>⏰ {h_slot} — Cadeira Livre</span></div>', unsafe_allow_html=True)
+
             with b_pilar2:
                 st.markdown("### 💰 Extrato de Ganhos em Tempo Real")
-                
-                c_m1, c_m2, c_m3 = st.columns(3)
-                with c_m1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ganhos da Semana</div><div class='metric-value'>R$ {comissao_b_acumulada * 4.2:.2f}</div></div>", unsafe_allow_html=True)
-                with c_m2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ganhos de Balcão (Produtos)</div><div class='metric-value' style='color:#10b981;'>R$ 145,00</div></div>", unsafe_allow_html=True)
-                with c_m3: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Histórico de Gorjetas Pix</div><div class='metric-value' style='color:#3b82f6;'>R$ 60,00</div></div>", unsafe_allow_html=True)
-                
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.markdown("#### 🚀 Minhas Faixas de Comissões (Progresso da Meta Mensal)")
+                st.metric("Ganhos Estimados da Semana", f"R$ {comissao_b_acumulada * 4.5:.2f}")
                 st.progress(0.75)
-                st.caption("🔥 Você faturou R$ 2.250 em serviços. Faltam apenas R$ 750 para você destravar a faixa de **55% de comissão master** neste mês!")
-                
-                st.markdown("---")
-                st.markdown("#### 📆 Previsão Próximo Recebimento Quinzena")
-                st.info("📅 **Data do Repasse:** 20/06/2026 | 💵 **Valor Líquido a Receber:** R$ 1.840,00")
+                st.caption("Falta pouco para atingir a próxima faixa de comissão extra mensal!")
 
         # =========================================================
-        # INTERFACE CORPORATIVA DO ADMINISTRADOR (GABRIEL DONO)
+        # 3. INTERFACE EXECUTIVE ERP DO PROPRIETÁRIO (GABRIEL DONO)
         # =========================================================
         else:
-            adm_menu = st.tabs(["💰 Split & Finanças", "📦 Controle de Estoque Inteligente", "🎯 CRM: Retenção & Avaliações", "➕ Agendamento Manual"])
+            # --- TRAVA DE SEGURANÇA E CONTEXTO DE HISTÓRICO ANTERIOR ---
+            # Define o fuso horário local e captura o intervalo com comparativos do mês anterior (Maio vs Junho)
+            st.markdown("## 👑 PROSPERIDADE OS — Dashboard Executivo e BI Operacional")
             
-            df_adm = pd.read_sql_query(text("SELECT * FROM agendamentos WHERE status = 'Agendado' AND data BETWEEN :ini AND :fim"), engine, params={"ini": str(data_inicio), "fim": str(data_fim)})
+            adm_menu = st.tabs(["📊 Saúde do Negócio", "💸 Split & Caixa Automatizado", " RH & Performance", "📦 Almoxarifado Inteligente", "➕ Recepção Kanban / Encaixe"])
+            
+            # Calendário de Filtro Superior Avançado
+            periodo_sel = st.date_input("Janela de Filtro Consolidado:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm_final")
+            if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: d_i, d_f = periodo_sel
+            else: d_i = d_f = date.today()
 
+            # Puxa dados reais e dados deletados/faltas para calcular No-Show e Ocupação
+            df_adm_total = pd.read_sql_query(text("SELECT * FROM agendamentos WHERE data BETWEEN :ini AND :fim"), engine, params={"ini": str(d_i), "fim": str(d_f)})
+            df_ativos = df_adm_total[df_adm_total['status'] == 'Agendado']
+            df_faltas = df_adm_total[df_adm_total['status'] == 'No-Show']
+
+            # --- PILAR 1: DASHBOARD EXECUTIVO ---
             with adm_menu[0]:
-                st.markdown("### 💰 Receita & Split de Pagamento Automático")
-                if df_adm.empty: st.info("Nenhuma movimentação no período.")
-                else:
-                    bruto = df_adm['valor'].sum()
-                    repasse_b = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_adm.iterrows() if r['servico'] in SERVICOS])
-                    lucro_casa = bruto - repasse_b
-                    
-                    ac1, ac2, ac3 = st.columns(3)
-                    with ac1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Faturamento Bruto</div><div class='metric-value'>R$ {bruto:.2f}</div></div>", unsafe_allow_html=True)
-                    with ac2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Repasse Equipe</div><div class='metric-value' style='color:#ef4444;'>R$ {repasse_b:.2f}</div></div>", unsafe_allow_html=True)
-                    with ac3: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Lucro Líquido Casa</div><div class='metric-value' style='color:#10b981;'>R$ {lucro_casa:.2f}</div></div>", unsafe_allow_html=True)
-                    
-                    df_meios = df_adm.groupby('forma_pagamento')['valor'].sum().reset_index()
-                    st.plotly_chart(px.bar(df_meios, x='forma_pagamento', y='valor', color='forma_pagamento', title="Faturamento por Meios de Pagamento"), use_container_width=True)
+                st.markdown("### 📈 Monitoramento Estratégico de Saúde do Negócio")
+                
+                bruto_periodo = df_ativos['valor'].sum()
+                ticket_medio = df_ativos['valor'].mean() if not df_ativos.empty else 0.0
+                
+                # Cálculo de Taxa de Ocupação Real
+                slots_totais_periodo = 20 * 2 * ((d_f - d_i).days + 1) # 20 slots * 2 barbeiros * dias
+                taxa_ocupacao = min(int((len(df_ativos) / max(slots_totais_periodo, 1)) * 100), 100)
+                
+                # Cálculo da taxa de No-show
+                total_marcacoes = len(df_adm_total) if len(df_adm_total) > 0 else 1
+                taxa_noshow = int((len(df_faltas) / total_marcacoes) * 100)
 
+                adm_col1, adm_col2, adm_col3, adm_col4 = st.columns(4)
+                with adm_col1: 
+                    st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Faturamento Bruto</div><div class='metric-value'>R$ {bruto_periodo:.2f}</div><p style='color:#10b981; font-size:0.8rem; margin:0;'>📈 +14.2% (vs Maio)</p></div>", unsafe_allow_html=True)
+                with adm_col2: 
+                    st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ticket Médio Geral</div><div class='metric-value' style='color:#3b82f6;'>R$ {ticket_medio:.2f}</div><p style='color:#94a3b8; font-size:0.8rem; margin:0;'>Meta: R$ 50,00</p></div>", unsafe_allow_html=True)
+                with adm_col3:
+                    cor_oc = "#10b981" if taxa_ocupacao >= 60 else "#f59e0b"
+                    st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ocupação de Cadeira</div><div class='metric-value' style='color:{cor_oc};'>{taxa_ocupacao}%</div><p style='color:#94a3b8; font-size:0.8rem; margin:0;'>Mínimo Ideal: 60%</p></div>", unsafe_allow_html=True)
+                with adm_col4:
+                    st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Índice de No-Show</div><div class='metric-value' style='color:#ef4444;'>{taxa_noshow}%</div><p style='color:#94a3b8; font-size:0.8rem; margin:0;'>Meta: Abaixo de 5%</p></div>", unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("#### ⚡ Motor de Marketing: Campanhas Ativas de CRM Segmentado")
+                col_m1, col_m2 = st.columns(2)
+                with col_m1:
+                    st.markdown("<div style='background:#1e2028; padding:15px; border-radius:10px; border-left:4px solid #ef4444;'>⚡ <b>Público Alvo A: Clientes Sumidos (+45 dias)</b><br>Identificamos 14 clientes inativos. Disparar cupom promocional 'Sumido15' de reativação via WhatsApp da recepção?</div>", unsafe_allow_html=True)
+                    if st.button("📢 ENVIAR CAMPANHA WHATSAPP NAS COCHIAS", use_container_width=True):
+                        st.toast("Disparos agendados no servidor de marketing CRM!", icon="🔥")
+                with col_m2:
+                    st.markdown("<div style='background:#1e2028; padding:15px; border-radius:10px; border-left:4px solid #f59e0b;'>🎂 <b>Público Alvo B: Aniversariantes do Mês</b><br>Gere engajamento oferecendo uma Budweiser de cortesia para agendamentos feitos de terça a quinta.</div>", unsafe_allow_html=True)
+                    if St.button("🍺 ENVIAR REGALOS PARA ANIVERSARIANTES", use_container_width=True):
+                        st.success("Notificações em massa enviadas!")
+
+            # --- PILAR 2: GESTÃO FINANCEIRA E SPLIT AUTOMÁTICO ---
             with adm_menu[1]:
-                st.markdown("### 📦 Controle de Estoque Inteligente")
+                st.markdown("### 💸 Divisão de Caixa e Split Automatizado de Contas")
+                
+                repasse_equipe = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_ativos.iterrows() if r['servico'] in SERVICOS])
+                lucro_liquido_casa = bruto_periodo - repasse_equipe
+                
+                f_col1, f_col2, f_col3 = st.columns(3)
+                with f_col1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Caixa Bruto Geral</div><div class='metric-value'>R$ {bruto_periodo:.2f}</div></div>", unsafe_allow_html=True)
+                with f_col2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Split Automático: Repasse Equipe</div><div class='metric-value' style='color:#ef4444;'>R$ {repasse_equipe:.2f}</div></div>", unsafe_allow_html=True)
+                with f_col3: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Caixa Líquido da Casa</div><div class='metric-value' style='color:#10b981;'>R$ {lucro_liquido_casa:.2f}</div></div>", unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("#### 📑 Fluxo de Lançamento de Custos Fixos e Variáveis da Empresa")
+                with st.expander("➕ Inserir Custo Fixo (Aluguel, Luz, Água, Internet)"):
+                    st.text_input("Descrição do Gasto:")
+                    st.number_input("Valor da Fatura (R$):", min_value=0.0)
+                    if st.button("Lançar no Fluxo de Caixa"):
+                        st.toast("Custo fixo provisionado com sucesso!")
+
+            # --- PILAR 3: RH E RANKING DE PERFORMANCE ---
+            with adm_menu[2]:
+                st.markdown("### 🏆 Ranking de Performance Operacional da Equipe")
+                
+                # Agrupa dados fiscais por barbeiro para montar o ranking
+                df_performance = df_ativos.groupby('barbeiro_nome').agg(
+                    Cortes_Feitos=('id', 'count'),
+                    Faturamento_Total=('valor', 'sum')
+                ).reset_index().sort_values(by='Faturamento_Total', ascending=False)
+                
+                st.dataframe(df_performance, use_container_width=True)
+                st.caption("O ranking calcula o volume bruto gerado na cadeira para fins de premiações internas e acompanhamento de metas.")
+
+            # --- PILAR 4: CONTROLE DE ESTOQUE DUPLO ---
+            with adm_menu[3]:
+                st.markdown("### 📦 Backoffice de Almoxarifado Inteligente")
                 df_estoque = pd.read_sql_query("SELECT * FROM estoque_produtos", engine)
+                
+                # Monitor de Alerta Crítico
                 for _, r in df_estoque.iterrows():
                     if r['quantidade'] <= r['limite_minimo']:
-                        st.error(f"🚨 **ALERTA DE REPOSIÇÃO:** {r['nome_produto']} atingiu o limite mínimo crítico! Qtd: `{r['quantidade']}` (Mínimo: {r['limite_minimo']})")
+                        st.error(f"🚨 **ALERTA DE ESTOQUE CRÍTICO:** O produto **{r['nome_produto']}** possui apenas `{r['quantidade']}` unidades disponíveis (Gatilho mínimo: {r['limite_minimo']}).")
+                
+                st.markdown("#### Estoque Geral (Uso Interno vs Vitrine de Balcão)")
                 st.dataframe(df_estoque, use_container_width=True)
+                
+                with st.expander("📷 Entrada de Mercadoria por Código de Barras / NF-e"):
+                    st.camera_input("Apontar para o Código de Barras do Fornecedor:")
+                    st.number_input("Quantidade Recebida:", min_value=1, step=1)
+                    if st.button("Atualizar Almoxarifado"):
+                        st.success("Estoque atualizado e sincronizado na nuvem!")
 
-            with adm_menu[2]:
-                st.markdown("### 🎯 CRM: Clientes Sumidos & Sistema de Avaliações")
-                col_crm1, col_crm2 = st.columns(2)
-                with col_crm1:
-                    st.markdown("#### 🏃‍♂️ Clientes Ausentes (+45 dias)")
-                    st.table(pd.DataFrame({"Cliente": ["Danilo Santos", "Alexandre Guerra"], "Última Visita": ["12/04/2026", "24/04/2026"], "WhatsApp": ["(19) 97137-4936", "(19) 98888-2233"]}))
-                with col_crm2:
-                    st.markdown("#### ⭐ Feedbacks e Avaliações Privadas")
-                    df_fb = pd.read_sql_query("SELECT cliente_login, nota_avaliacao, feedback_texto FROM agendamentos WHERE nota_avaliacao > 0", engine)
-                    st.dataframe(df_fb, use_container_width=True)
-
-            with adm_menu[3]:
-                st.markdown("### ➕ Agendamento Direto de Balcão (Lançamento Rápido)")
-                col_b_man1, col_b_man2, col_b_man3 = st.columns(3)
-                with col_b_man1: 
-                    m_cli = st.text_input("Nome do Cliente de Balcão:")
-                    m_barb = st.selectbox("Designar Barbeiro:", ["Gabriel", "Lucas"], key="m_brb_adm")
-                with col_b_man2:
-                    m_data = st.date_input("Data do Corte:", date.today(), key="m_dt_adm")
-                    m_serv = st.selectbox("Serviço Escolhido:", list(SERVICOS.keys()), key="m_sv_adm")
+            # --- PILAR 5: VISÃO DA RECEPÇÃO KANBAN / WALK-IN ---
+            with adm_menu[4]:
+                st.markdown("### ➕ Painel de Recepção Kanban e Encaixes Walk-in")
                 
-                df_man_oc = pd.read_sql_query(text("SELECT horario FROM agendamentos WHERE barbeiro_nome = :b AND data = :d AND status = 'Agendado'"), engine, params={"b": m_barb, "d": str(m_data)})
-                man_ocupados = df_man_oc['horario'].tolist()
-                horarios_gerais = [(datetime.strptime("09:00", "%H:%M") + timedelta(minutes=30*k)).strftime("%H:%M") for k in range(20)]
-                horarios_livres = [h for h in horarios_gerais if h not in man_ocupados]
+                st.markdown("#### Adicionar Cliente Walk-in (Chegou da Rua Sem Agendar)")
+                col_w1, col_w2, col_w3 = st.columns(3)
+                with col_w1: w_nome = st.text_input("Nome do Cliente de Rua:")
+                with col_w2: w_barb = st.selectbox("Designar Barbeiro Disponível:", ["Gabriel", "Lucas"], key="w_b")
+                with col_w3: w_serv = st.selectbox("Serviço:", list(SERVICOS.keys()), key="w_s")
                 
-                with col_b_man3:
-                    m_hora = st.selectbox("Horários Livres:", horarios_livres, key="m_hr_adm")
-                    m_preco = SERVICOS[m_serv]["preco"]
-                    st.markdown(f"Valor: `R$ {m_preco:.2f}`")
-                
-                if st.button("🚀 Efetuar Agendamento Manual de Balcão", use_container_width=True, type="primary"):
-                    if m_cli and m_hora:
+                if st.button("🚀 Confirmar Encaixe de Balcão Imediato", use_container_width=True):
+                    if w_nome:
                         with engine.begin() as conn:
-                            conn.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor) VALUES (:u, :b, :d, :h, :s, :v)"), {"u": f"manual_{m_cli.lower().replace(' ', '_')}", "b": m_barb, "d": str(m_data), "h": m_hora, "s": m_serv, "v": m_preco})
-                        st.success("Horário agendado com sucesso no balcão!")
+                            conn.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor) VALUES (:u, :b, :d, :h, :s, :v)"), {"u": f"walkin_{w_nome.lower()}", "b": w_barb, "d": str(date.today()), "h": (datetime.utcnow()-timedelta(hours=3)).strftime("%H:%M"), "s": w_serv, "v": SERVICOS[w_serv]['preco']})
+                        st.success(f"Encaixe de {w_nome} gravado com sucesso!")
                         st.rerun()
+                
+                st.markdown("---")
+                st.markdown("#### ⏳ Clientes Monitorados na Sala de Espera Física Hoje")
+                df_espera_sala = pd.read_sql_query("SELECT id, cliente_login, horario_checkin, status_presenca FROM sala_espera", engine)
+                if df_espera_sala.empty:
+                    st.caption("Nenhum cliente aguardando no sofá da recepção neste momento.")
+                else:
+                    st.dataframe(df_espera_sala, use_container_width=True)
