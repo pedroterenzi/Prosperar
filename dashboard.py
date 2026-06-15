@@ -107,7 +107,6 @@ if 'user' not in st.session_state: st.session_state['user'] = None
 if 'perfil' not in st.session_state: st.session_state['perfil'] = None
 if 'nome_usuario' not in st.session_state: st.session_state['nome_usuario'] = None
 if 'reg_sucesso' not in st.session_state: st.session_state['reg_sucesso'] = 0
-if 'horario_confirmando' not in st.session_state: st.session_state['horario_confirmando'] = None
 
 # --- ESTILIZAÇÃO CSS PREMIUM ---
 st.markdown("""
@@ -189,6 +188,43 @@ SERVICOS = {
     "Combo Premium (Corte + Barba + Sobrancelha)": {"preco": 85.0, "tempo": 30},
     "Luzes / Nevou": {"preco": 90.0, "tempo": 30}
 }
+
+# =========================================================
+# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO DE HORÁRIO (CENTRALIZADO)
+# =========================================================
+@st.dialog("🛡️ Confirmar seu Agendamento")
+def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
+    st.markdown(f"Você escolheu o horário das **{hora}**.")
+    st.markdown(f"""
+    * **Profissional:** {barbeiro}
+    * **Serviço:** {servico}
+    * **Preço:** <span style='color:#10b981; font-weight:bold;'>R$ {preco:.2f}</span>
+    * **Data:** {data.strftime('%d/%m/%Y')}
+    """, unsafe_allow_html=True)
+    st.markdown("Deseja confirmar a gravação do seu compromisso?")
+    
+    col_pop1, col_pop2 = st.columns(2)
+    with col_pop1:
+        if st.button("✅ Confirmar Vaga", type="primary", use_container_width=True):
+            engine = obter_engine()
+            with engine.begin() as conn:
+                conn.execute(text("""
+                    INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor)
+                    VALUES (:u, :b, :d, :h, :s, :v)
+                """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco})
+            
+            # Formatação do link direto do WhatsApp corporativo
+            msg_wpp = f"💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\n\n📅 *Data:* {data.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora}\n👤 *Barbeiro:* {barbeiro}\n🛠️ *Serviço:* {servico}\n💵 *Valor:* R$ {preco:.2f}"
+            url_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_wpp)}"
+            
+            st.success(f"🎉 Agendado com sucesso para as {hora}!")
+            st.markdown(f'<a href="{url_wpp}" target="_blank" style="text-decoration:none;"><div style="background-color:#25d366; color:white; padding:12px; text-align:center; border-radius:8px; font-weight:bold; margin-top:8px;">💬 NOTIFICAR NO WHATSAPP</div></a>', unsafe_allow_html=True)
+            st.balloons()
+            st.toast("Horário agendado com sucesso!")
+            
+    with col_pop2:
+        if st.button("❌ Cancelar", use_container_width=True):
+            st.rerun()
 
 # =========================================================
 # FLUXO DE AUTENTICAÇÃO
@@ -274,7 +310,6 @@ else:
     with col_h2:
         if st.button("Encerra Sessão", use_container_width=True):
             st.session_state['auth'] = False
-            st.session_state['horario_confirmando'] = None
             st.rerun()
             
     st.markdown("---")
@@ -301,37 +336,8 @@ else:
                 
             preco_servico = SERVICOS[servico_sel]["preco"]
             st.markdown(f"💵 **Investimento do Serviço:** <span style='color:#10b981; font-size:1.2rem; font-weight:800;'>R$ {preco_servico:.2f}</span>", unsafe_allow_html=True)
-            
-            if st.session_state['horario_confirmando'] is not None:
-                hora_conf = st.session_state['horario_confirmando']
-                st.markdown("---")
-                with st.chat_message("assistant"):
-                    st.markdown(f"### 🛡️ Confirmar seu Agendamento para as **{hora_conf}**?")
-                    st.markdown(f"• **Profissional:** {barbeiro_sel}\n• **Serviço:** {servico_sel}\n• **Preço:** R$ {preco_servico:.2f}\n• **Data:** {data_sel.strftime('%d/%m/%Y')}")
-                    
-                    cc_1, cc_2 = st.columns(2)
-                    with cc_1:
-                        if st.button("✅ Sim, Confirmar Horário", type="primary", use_container_width=True):
-                            with engine.begin() as conn:
-                                conn.execute(text("""
-                                    INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor)
-                                    VALUES (:u, :b, :d, :h, :s, :v)
-                                """), {"u": st.session_state['user'], "b": barbeiro_sel, "d": str(data_sel), "h": hora_conf, "s": servico_sel, "v": preco_servico})
-                            
-                            msg_wpp = f"💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\n\n📅 *Data:* {data_sel.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora_conf}\n👤 *Barbeiro:* {barbeiro_sel}\n🛠️ *Serviço:* {servico_sel}\n💵 *Valor:* R$ {preco_servico:.2f}"
-                            url_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_wpp)}"
-                            
-                            st.session_state['horario_confirmando'] = None
-                            st.success(f"🎉 Reservado com sucesso para as {hora_conf}!")
-                            st.markdown(f'<a href="{url_wpp}" target="_blank" style="text-decoration:none;"><div style="background-color:#25d366; color:white; padding:16px; text-align:center; border-radius:12px; font-weight:bold; margin-top:12px; box-shadow: 0 4px 12px rgba(37,211,102,0.3);">💬 ENVIAR COMPROVANTE VIA WHATSAPP</div></a>', unsafe_allow_html=True)
-                            st.balloons()
-                            st.rerun()
-                    with cc_2:
-                        if st.button("❌ Mudar de Ideia / Cancelar", use_container_width=True):
-                            st.session_state['horario_confirmando'] = None
-                            st.rerun()
-                st.markdown("---")
 
+            # Estrutura a lista de slots horários das 09h às 19h
             horarios_janela = []
             base_time = datetime.strptime("09:00", "%H:%M")
             for i in range(20):
@@ -363,9 +369,16 @@ else:
                                 <h4 style='margin:5px 0; color:#fff;'>{hora}</h4>
                             </div>
                         """, unsafe_allow_html=True)
+                        
+                        # --- DISPARO DA JANELA POP-UP CENTRALIZADA VIA DIALOG ---
                         if st.button("Solicitar Vaga", key=f"av_btn_{hora}", use_container_width=True, type="secondary"):
-                            st.session_state['horario_confirmando'] = hora
-                            st.rerun()
+                            mostrar_popup_confirmacao(
+                                hora=hora, 
+                                barbeiro=barbeiro_sel, 
+                                servico=servico_sel, 
+                                preco=preco_servico, 
+                                data=data_sel
+                            )
 
             st.markdown("<br><br>", unsafe_allow_html=True)
             st.markdown("<div class='section-barber'>Meus Compromissos & Opção de Cancelamento</div>", unsafe_allow_html=True)
@@ -421,14 +434,10 @@ else:
     elif st.session_state['perfil'] == 'barbeiro':
         menu_b = st.sidebar.radio("Navegação do Negócio", ["📈 BI & Visão Estratégica", "📅 Painel de Controle Operacional"])
         
-        # Carregamento global inicial (apenas uma query base de segurança rápida)
-        df_base_pre = pd.read_sql_query("SELECT barbeiro_nome FROM agendamentos LIMIT 1", engine)
-        
         if menu_b == "📈 BI & Visão Estratégica":
             st.markdown("## 📊 Inteligência de Negócio & Insights Gerenciais")
             st.markdown("<div class='section-barber'>📅 PAINEL DE CONTROLE TÁTICO: FILTROS OPERACIONAIS</div>", unsafe_allow_html=True)
             
-            # --- CONSTRUÇÃO DO FILTRO CENTRAL CONJUNTO (BASEADO NA image_943403.png) ---
             col_data_filt, col_prof_filt = st.columns([2, 2])
             
             with col_data_filt:
@@ -445,12 +454,10 @@ else:
             else:
                 data_inicio = data_fim = periodo_sel
 
-            # Busca todos os barbeiros únicos dinamicamente para alimentar o Segmented Control corporativo
             df_barbeiros_lista = pd.read_sql_query("SELECT nome FROM barbeiros", engine)
             lista_barbeiros_sistema = df_barbeiros_lista['nome'].tolist()
 
             with col_prof_filt:
-                # Substitui o multiselect feio por botões horizontais premium
                 barbeiros_selecionados = st.segmented_control(
                     "Filtrar Equipe de Profissionais:",
                     options=lista_barbeiros_sistema,
@@ -462,7 +469,6 @@ else:
             if not barbeiros_selecionados:
                 st.warning("⚠️ Selecione ao menos um profissional nos botões acima para renderizar os dados.")
             else:
-                # Realiza a query filtrando por período E pelos profissionais ativos nos novos botões
                 df_all_age = pd.read_sql_query(
                     text("""
                         SELECT a.*, u.nome as cliente_nome 
