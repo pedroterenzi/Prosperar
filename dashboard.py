@@ -79,7 +79,7 @@ def injetar_dados_demonstracao():
         for cli in clientes_fake:
             nome_formatado = cli.replace('_', ' ').title()
             conn.execute(text("""
-                INSERT INTO usuarios_barber (login, senha, nome, perfil, cellular)
+                INSERT INTO usuarios_barber (login, senha, nome, perfil, celular)
                 VALUES (:l, 'sistema', :n, 'cliente', '19999999999')
                 ON CONFLICT (login) DO NOTHING
             """), {"l": cli, "n": nome_formatado})
@@ -109,7 +109,7 @@ if 'nome_usuario' not in st.session_state: st.session_state['nome_usuario'] = No
 if 'reg_sucesso' not in st.session_state: st.session_state['reg_sucesso'] = 0
 if 'horario_confirmando' not in st.session_state: st.session_state['horario_confirmando'] = None
 
-# --- ESTILIZAÇÃO CSS PREMIUM (ATUALIZADA) ---
+# --- ESTILIZAÇÃO CSS PREMIUM ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -118,15 +118,13 @@ st.markdown("""
     
     div[data-baseweb="popover"] { z-index: 999999 !important; }
     
-    /* --- CUSTOMIZAÇÃO PREMIUM DA BARRA LATERAL (image_943ba8.png) --- */
+    /* --- CUSTOMIZAÇÃO PREMIUM DA BARRA LATERAL --- */
     [data-testid="stSidebar"] { background-color: #111217; border-right: 1px solid #1e2028; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] { display: flex; flex-direction: column; gap: 6px; width: 100%; }
     
-    /* Esconde as bolinhas feias do radio button original */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p img { display:none !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label [data-testid="stWidgetLabel"] { display: none !important; }
     
-    /* Transforma cada item do radio em um card clicável moderno */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {
         background-color: #1e2028 !important; border: 1px solid #2a2d3a !important;
         padding: 14px 18px !important; border-radius: 12px !important; margin-bottom: 2px !important; 
@@ -135,23 +133,20 @@ st.markdown("""
         justify-content: flex-start; width: 100% !important; box-sizing: border-box !important;
     }
     
-    /* Remover os círculos nativos do Streamlit via CSS seletor estrutural */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label > div:first-child { display: none !important; }
     
-    /* Efeito de passar o mouse por cima (Hover) */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover { 
         background-color: #262933 !important; border-color: #404557 !important; 
         color: #ffffff !important; transform: translateX(3px); 
     }
     
-    /* Estado Ativo / Selecionado (Efeito Neon Gold/Amber) */
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] {
         background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; 
         color: #ffffff !important; border: 1px solid #b45309 !important; font-weight: 700; 
         box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25) !important;
     }
     
-    /* --- COMPONENTES DO CORPO DO DASHBOARD --- */
+    /* --- COMPONENTES DO DASHBOARD --- */
     .metric-card-barber {
         background: linear-gradient(135deg, #1e2028 0%, #14151b 100%);
         padding: 22px; border-radius: 16px; border: 1px solid #2a2d3a;
@@ -186,6 +181,14 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+
+SERVICOS = {
+    "Corte Simples": {"preco": 40.0, "tempo": 30},
+    "Corte + Sobrancelha": {"preco": 55.0, "tempo": 30},
+    "Barba Completa": {"preco": 35.0, "tempo": 30},
+    "Combo Premium (Corte + Barba + Sobrancelha)": {"preco": 85.0, "tempo": 30},
+    "Luzes / Nevou": {"preco": 90.0, "tempo": 30}
+}
 
 # =========================================================
 # FLUXO DE AUTENTICAÇÃO
@@ -269,7 +272,7 @@ else:
     with col_h1:
         st.markdown(f"### 💈 **{st.session_state['nome_usuario']}** <span style='color:#f59e0b'>[{st.session_state['perfil'].upper()}]</span>", unsafe_allow_html=True)
     with col_h2:
-        if st.button("🚪 Encerrar Sessão", use_container_width=True):
+        if st.button("Encerra Sessão", use_container_width=True):
             st.session_state['auth'] = False
             st.session_state['horario_confirmando'] = None
             st.rerun()
@@ -416,96 +419,119 @@ else:
     # AMBIENTE DO BARBEIRO
     # =========================================================
     elif st.session_state['perfil'] == 'barbeiro':
-        
-        # --- MENU LATERAL PREMIUM TRANSFORMADO VIA CSS ---
         menu_b = st.sidebar.radio("Navegação do Negócio", ["📈 BI & Visão Estratégica", "📅 Painel de Controle Operacional"])
+        
+        # Carregamento global inicial (apenas uma query base de segurança rápida)
+        df_base_pre = pd.read_sql_query("SELECT barbeiro_nome FROM agendamentos LIMIT 1", engine)
         
         if menu_b == "📈 BI & Visão Estratégica":
             st.markdown("## 📊 Inteligência de Negócio & Insights Gerenciais")
+            st.markdown("<div class='section-barber'>📅 PAINEL DE CONTROLE TÁTICO: FILTROS OPERACIONAIS</div>", unsafe_allow_html=True)
             
-            st.markdown("<div class='section-barber'>📅 FILTRO DE JANELA TEMPORAL DO CONSOLIDADO</div>", unsafe_allow_html=True)
+            # --- CONSTRUÇÃO DO FILTRO CENTRAL CONJUNTO (BASEADO NA image_943403.png) ---
+            col_data_filt, col_prof_filt = st.columns([2, 2])
             
-            col_data_filt, _ = st.columns([2, 2])
             with col_data_filt:
                 periodo_sel = st.date_input(
                     "Selecione o Intervalo de Análise:",
                     value=[date(2026, 6, 1), date(2026, 6, 30)],  
                     key="periodo_bi_principal"
                 )
-            
+                
             if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2:
                 data_inicio, data_fim = periodo_sel
             elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1:
                 data_inicio = data_fim = periodo_sel[0]
             else:
                 data_inicio = data_fim = periodo_sel
-                
-            st.markdown(f"**Análise ativa:** Gerenciando dados de `{data_inicio.strftime('%d/%m/%Y')}` até `{data_fim.strftime('%d/%m/%Y')}`")
-            st.markdown("---")
 
-            df_all_age = pd.read_sql_query(
-                text("""
-                    SELECT a.*, u.nome as cliente_nome 
-                    FROM agendamentos a 
-                    LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
-                    WHERE a.status = 'Agendado' AND a.data BETWEEN :ini AND :fim
-                """), 
-                engine, params={"ini": str(data_inicio), "fim": str(data_fim)}
-            )
-            
-            if df_all_age.empty:
-                st.warning("⚠️ Nenhum histórico operacional encontrado na janela temporal selecionada.")
-            else:
-                df_all_age['data_dt'] = pd.to_datetime(df_all_age['data'])
-                df_all_age['dia_semana'] = df_all_age['data_dt'].dt.strftime('%A')
-                
-                traducao_dias = {
-                    'Monday': 'Segunda-Feira', 'Tuesday': 'Terça-Feira', 'Wednesday': 'Quarta-Feira',
-                    'Thursday': 'Quinta-Feira', 'Friday': 'Sexta-Feira', 'Saturday': 'Sábado', 'Sunday': 'Domingo'
-                }
-                df_all_age['dia_semana'] = df_all_age['dia_semana'].map(traducao_dias)
+            # Busca todos os barbeiros únicos dinamicamente para alimentar o Segmented Control corporativo
+            df_barbeiros_lista = pd.read_sql_query("SELECT nome FROM barbeiros", engine)
+            lista_barbeiros_sistema = df_barbeiros_lista['nome'].tolist()
 
-                f_barber = st.sidebar.multiselect("Filtrar por Profissionais:", df_all_age['barbeiro_nome'].unique(), default=df_all_age['barbeiro_nome'].unique())
-                df_filtered = df_all_age[df_all_age['barbeiro_nome'].isin(f_barber)]
-
-                tot_atendimentos = len(df_filtered)
-                faturamento_total = df_filtered['valor'].sum()
-                ticket_medio = df_filtered['valor'].mean() if not df_filtered.empty else 0
-                
-                st.markdown(f"""
-                    <div style="display: flex; justify-content: space-between; gap: 15px; margin-bottom: 25px;">
-                        <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Total de Atendimentos</div><div class="metric-value">{tot_atendimentos}</div></div>
-                        <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Faturamento Bruto</div><div class="metric-value" style="color:#10b981">R$ {faturamento_total:.2f}</div></div>
-                        <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Ticket Médio</div><div class="metric-value" style="color:#3b82f6">R$ {ticket_medio:.2f}</div></div>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                st.markdown("<div class='section-barber'>📈 ANÁLISE DE VOLUMETRIA: DIAS OPERACIONAIS MAIS ACIONADOS</div>", unsafe_allow_html=True)
-                df_dias = df_filtered.groupby('dia_semana').size().reindex(list(traducao_dias.values())).fillna(0).reset_index(name='Atendimentos')
-                fig_barras = px.bar(df_dias, x='dia_semana', y='Atendimentos', color='Atendimentos', 
-                                    color_continuous_scale='YlOrBr', text_auto=True)
-                fig_barras.update_layout(
-                    height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                    font={'color':'white', 'size': 13}, xaxis_title="Dia da Semana", yaxis_title="Total de Cortes Marcados"
+            with col_prof_filt:
+                # Substitui o multiselect feio por botões horizontais premium
+                barbeiros_selecionados = st.segmented_control(
+                    "Filtrar Equipe de Profissionais:",
+                    options=lista_barbeiros_sistema,
+                    default=lista_barbeiros_sistema,
+                    selection_mode="multi",
+                    key="filtro_segmentado_profissionais"
                 )
-                st.plotly_chart(fig_barras, use_container_width=True)
                 
-                col_g1, col_g2 = st.columns(2)
-                with col_g1:
-                    st.markdown("### 🛠️ Mix de Serviços Solicitados")
-                    df_serv = df_filtered.groupby('servico').size().reset_index(name='Qtd')
-                    fig_pizza = px.pie(df_serv, values='Qtd', names='servico', hole=0.45, color_discrete_sequence=px.colors.sequential.YlOrBr_r)
-                    fig_pizza.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color':'white'})
-                    st.plotly_chart(fig_pizza, use_container_width=True)
-                with col_g2:
-                    st.markdown("### 🏆 Repartição de Market Share Financeiro")
-                    df_rank = df_filtered.groupby('barbeiro_nome').agg({'valor':'sum'}).rename(columns={'valor':'Total (R$)'}).reset_index()
-                    fig_rank = px.bar(df_rank, x='barbeiro_nome', y='Total (R$)', color='Total (R$)', color_continuous_scale='Blugrn')
-                    fig_rank.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color':'white'})
-                    st.plotly_chart(fig_rank, use_container_width=True)
+            if not barbeiros_selecionados:
+                st.warning("⚠️ Selecione ao menos um profissional nos botões acima para renderizar os dados.")
+            else:
+                # Realiza a query filtrando por período E pelos profissionais ativos nos novos botões
+                df_all_age = pd.read_sql_query(
+                    text("""
+                        SELECT a.*, u.nome as cliente_nome 
+                        FROM agendamentos a 
+                        LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
+                        WHERE a.status = 'Agendado' 
+                        AND a.data BETWEEN :ini AND :fim
+                        AND a.barbeiro_nome IN :barbeiros
+                    """), 
+                    engine, 
+                    params={
+                        "ini": str(data_inicio), 
+                        "fim": str(data_fim), 
+                        "barbeiros": tuple(barbeiros_selecionados)
+                    }
+                )
+                
+                st.markdown(f"**Análise ativa:** Monitorando `{', '.join(barbeiros_selecionados)}` de `{data_inicio.strftime('%d/%m/%Y')}` até `{data_fim.strftime('%d/%m/%Y')}`")
+                st.markdown("---")
+                
+                if df_all_age.empty:
+                    st.info("Nenhum histórico operacional encontrado para os parâmetros selecionados.")
+                else:
+                    df_all_age['data_dt'] = pd.to_datetime(df_all_age['data'])
+                    df_all_age['dia_semana'] = df_all_age['data_dt'].dt.strftime('%A')
+                    
+                    traducao_dias = {
+                        'Monday': 'Segunda-Feira', 'Tuesday': 'Terça-Feira', 'Wednesday': 'Quarta-Feira',
+                        'Thursday': 'Quinta-Feira', 'Friday': 'Sexta-Feira', 'Saturday': 'Sábado', 'Sunday': 'Domingo'
+                    }
+                    df_all_age['dia_semana'] = df_all_age['dia_semana'].map(traducao_dias)
+
+                    tot_atendimentos = len(df_all_age)
+                    faturamento_total = df_all_age['valor'].sum()
+                    ticket_medio = df_all_age['valor'].mean() if not df_all_age.empty else 0
+                    
+                    st.markdown(f"""
+                        <div style="display: flex; justify-content: space-between; gap: 15px; margin-bottom: 25px;">
+                            <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Total de Atendimentos</div><div class="metric-value">{tot_atendimentos}</div></div>
+                            <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Faturamento Bruto</div><div class="metric-value" style="color:#10b981">R$ {faturamento_total:.2f}</div></div>
+                            <div class="metric-card-barber" style="flex: 1;"><div class="metric-title">Ticket Médio</div><div class="metric-value" style="color:#3b82f6">R$ {ticket_medio:.2f}</div></div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.markdown("<div class='section-barber'>📈 ANÁLISE DE VOLUMETRIA: DIAS OPERACIONAIS MAIS ACIONADOS</div>", unsafe_allow_html=True)
+                    df_dias = df_all_age.groupby('dia_semana').size().reindex(list(traducao_dias.values())).fillna(0).reset_index(name='Atendimentos')
+                    fig_barras = px.bar(df_dias, x='dia_semana', y='Atendimentos', color='Atendimentos', 
+                                        color_continuous_scale='YlOrBr', text_auto=True)
+                    fig_barras.update_layout(
+                        height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                        font={'color':'white', 'size': 13}, xaxis_title="Dia da Semana", yaxis_title="Total de Cortes Marcados"
+                    )
+                    st.plotly_chart(fig_barras, use_container_width=True)
+                    
+                    col_g1, col_g2 = st.columns(2)
+                    with col_g1:
+                        st.markdown("### 🛠️ Mix de Serviços Solicitados")
+                        df_serv = df_all_age.groupby('servico').size().reset_index(name='Qtd')
+                        fig_pizza = px.pie(df_serv, values='Qtd', names='servico', hole=0.45, color_discrete_sequence=px.colors.sequential.YlOrBr_r)
+                        fig_pizza.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color':'white'})
+                        st.plotly_chart(fig_pizza, use_container_width=True)
+                    with col_g2:
+                        st.markdown("### 🏆 Repartição de Market Share Financeiro")
+                        df_rank = df_all_age.groupby('barbeiro_nome').agg({'valor':'sum'}).rename(columns={'valor':'Total (R$)'}).reset_index()
+                        fig_rank = px.bar(df_rank, x='barbeiro_nome', y='Total (R$)', color='Total (R$)', color_continuous_scale='Blugrn')
+                        fig_rank.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color':'white'})
+                        st.plotly_chart(fig_rank, use_container_width=True)
 
         elif menu_b == "📅 Painel de Controle Operacional":
-            
             st.markdown("<div class='section-barber'>📅 MINHA AGENDA DIÁRIA (VISÃO VISUAL DO BARBEIRO)</div>", unsafe_allow_html=True)
             
             col_b_data, col_b_name = st.columns(2)
