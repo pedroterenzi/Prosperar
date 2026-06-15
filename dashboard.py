@@ -560,7 +560,7 @@ else:
                         st.toast("Disparos agendados no servidor de marketing CRM!", icon="🔥")
                 with col_m2:
                     st.markdown("<div style='background:#1e2028; padding:15px; border-radius:10px; border-left:4px solid #f59e0b;'>🎂 <b>Público Alvo B: Aniversariantes do Mês</b><br>Gere engajamento oferecendo uma Budweiser de cortesia para agendamentos feitos de terça a quinta.</div>", unsafe_allow_html=True)
-                    if St.button("🍺 ENVIAR REGALOS PARA ANIVERSARIANTES", use_container_width=True):
+                    if st.button("🍺 ENVIAR REGALOS PARA ANIVERSARIANTES", use_container_width=True):
                         st.success("Notificações em massa enviadas!")
 
             # --- PILAR 2: GESTÃO FINANCEIRA E SPLIT AUTOMÁTICO ---
