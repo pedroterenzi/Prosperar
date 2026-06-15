@@ -30,53 +30,106 @@ def obter_engine():
 def hash_senha(senha):
     return hashlib.sha256(str.encode(senha)).hexdigest()
 
+# =========================================================
+# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO (MOVIDO PARA O TOPO)
+# =========================================================
+@st.dialog("🛡️ Confirmar seu Agendamento")
+def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
+    st.markdown(f"Você escolheu o horário das **{hora}**.")
+    st.markdown(f"""
+    * **Profissional:** {barbeiro}
+    * **Serviço:** {servico}
+    * **Preço:** <span style='color:#10b981; font-weight:bold;'>R$ {preco:.2f}</span>
+    * **Data:** {data.strftime('%d/%m/%Y')}
+    """, unsafe_allow_html=True)
+    
+    if st.session_state["ultimo_horario_salvo"] == hora:
+        st.markdown(f"""
+            <div style="background-color:#10b98115; border:1px solid #10b981; color:#34d399; padding:15px; border-radius:10px; font-weight:bold; text-align:center; margin-top:15px; margin-bottom:15px;">
+                🎉 Agendado com sucesso no sistema para as {hora}!
+            </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("Concluir e Fechar", use_container_width=True, type="primary"):
+            st.session_state["ultimo_horario_salvo"] = None  
+            st.rerun()
+            
+    else:
+        st.markdown("Deseja confirmar a gravação do seu compromisso?")
+        col_pop1, col_pop2 = st.columns(2)
+        with col_pop1:
+            if st.button("✅ Confirmar Vaga", type="primary", use_container_width=True):
+                engine = obter_engine()
+                with engine.begin() as conn:
+                    conn.execute(text("""
+                        INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor)
+                        VALUES (:u, :b, :d, :h, :s, :v)
+                    """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco})
+                    
+                    # Concede ponto de fidelidade no Neon
+                    conn.execute(text("UPDATE usuarios_barber SET pontos_fidelidade = pontos_fidelidade + 1 WHERE login = :u"), {"u": st.session_state['user']})
+                
+                st.session_state["ultimo_horario_salvo"] = hora
+                st.balloons()
+                st.rerun()
+                
+        with col_pop2:
+            if st.button("❌ Cancelar", use_container_width=True):
+                st.session_state["ultimo_horario_salvo"] = None
+                st.rerun()
+
+# Otimização estrutural: Executa cada comando de banco em blocos Try/Except isolados
 def init_db():
     engine = obter_engine()
+    
+    # Criação de Tabelas Base
     with engine.begin() as conn:
-        # 1. Tabela de Usuários Estendida (CRM / Preferências / Assinaturas)
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS usuarios_barber (
                 id SERIAL PRIMARY KEY, login TEXT UNIQUE, senha TEXT, nome TEXT, perfil TEXT, celular TEXT
             )
         """))
-        
-        # Migrações seguras (Evitam quebra de banco em infraestrutura existente)
-        try: conn.execute(text("ALTER TABLE usuarios_barber ADD COLUMN preferencias TEXT DEFAULT 'Gosta de café sem açúcar, usa pomada matte';"))
-        except: pass
-        try: conn.execute(text("ALTER TABLE usuarios_barber ADD COLUMN pontos_fidelidade INTEGER DEFAULT 0;"))
-        except: pass
-        try: conn.execute(text("ALTER TABLE usuarios_barber ADD COLUMN plano_assinatura TEXT DEFAULT 'Nenhum';"))
-        except: pass
+    
+    # Injeção Isolada de Novas Colunas (Evita InFailedSqlTransaction)
+    for coluna, tipo in [("preferencias", "TEXT DEFAULT 'Gosta de café sem açúcar, usa pomada matte'"), 
+                         ("pontos_fidelidade", "INTEGER DEFAULT 0"), 
+                         ("plano_assinatura", "TEXT DEFAULT 'Nenhum'")]:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE usuarios_barber ADD COLUMN {coluna} {tipo};"))
+        except:
+            pass
 
-        # 2. Tabela Central de Agendamentos (Com Finanças, Avaliações e Split)
+    with engine.begin() as conn:
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS agendamentos (
                 id SERIAL PRIMARY KEY, cliente_login TEXT, barbeiro_nome TEXT,
                 data TEXT, horario TEXT, servico TEXT, valor REAL, status TEXT DEFAULT 'Agendado'
             )
         """))
-        try: conn.execute(text("ALTER TABLE agendamentos ADD COLUMN forma_pagamento TEXT DEFAULT 'Pix';"))
-        except: pass
-        try: conn.execute(text("ALTER TABLE agendamentos ADD COLUMN nota_avaliacao INTEGER DEFAULT 0;"))
-        except: pass
-        try: conn.execute(text("ALTER TABLE agendamentos ADD COLUMN feedback_texto TEXT;"))
-        except: pass
+        
+    for col_ag, tipo_ag in [("forma_pagamento", "TEXT DEFAULT 'Pix'"), 
+                            ("nota_avaliacao", "INTEGER DEFAULT 0"), 
+                            ("feedback_texto", "TEXT")]:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE agendamentos ADD COLUMN {col_ag} {tipo_ag};"))
+        except:
+            pass
 
-        # 3. Tabela de Monitoramento de Check-ins (Sala de Espera Virtual)
+    with engine.begin() as conn:
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS sala_espera (
                 id SERIAL PRIMARY KEY, cliente_login TEXT, horario_checkin TEXT, status_presenca TEXT DEFAULT 'A caminho'
             )
         """))
-
-        # 4. Tabela de Almoxarifado e Estoque de Balcão
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS estoque_produtos (
                 id SERIAL PRIMARY KEY, nome_produto TEXT UNIQUE, quantidade INTEGER, limite_minimo INTEGER, preco_venda REAL
             )
         """))
         
-        # Carga padrão de produtos para avaliação do Admin
+        # Carga padrão de produtos
         if conn.execute(text("SELECT COUNT(*) FROM estoque_produtos")).fetchone()[0] == 0:
             conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda) VALUES ('Pomada Efeito Matte Elesid', 3, 5, 35.0)"))
             conn.execute(text("INSERT INTO estoque_produtos (nome_produto, quantidade, limite_minimo, preco_venda) VALUES ('Minoxidil Kirkland 6%', 14, 4, 89.90)"))
@@ -91,7 +144,7 @@ def init_db():
 try:
     init_db()
 except Exception as e:
-    st.error(f"⚠️ Erro de Banco de Dados: {e}")
+    st.error(f"⚠️ Erro Crítico na Inicialização do Banco: {e}")
 
 # =========================================================
 # 🧪 FUNÇÃO INJETORA INTELIGENTE (SIMULAÇÃO DE MÉTRICAS)
@@ -121,7 +174,7 @@ def injetar_dados_demonstracao():
             """), {"l": cli, "n": nome_formatado, "p": pontos, "pl": plano})
         
         contador = 0
-        for i in range(-50, 10):  # Histórico longo para simular retenção e CRM
+        for i in range(-50, 10):  
             data_alvo = hoje + timedelta(days=i)
             for j, hora in enumerate(["09:30", "11:00", "14:30", "16:00", "17:30"]):
                 if (i + j) % 2 == 0 or i == 0: 
@@ -148,7 +201,9 @@ if 'nome_usuario' not in st.session_state: st.session_state['nome_usuario'] = No
 if 'reg_sucesso' not in st.session_state: st.session_state['reg_sucesso'] = 0
 if 'ultimo_horario_salvo' not in st.session_state: st.session_state['ultimo_horario_salvo'] = None
 
-# --- ECOSSISTEMA DO USUÁRIO CONECTADO ---
+# =========================================================
+# FLUXO DE TELA INICIAL
+# =========================================================
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBEARIA PROSPERIDADE</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align:center; color:#94a3b8;'>PROSPERIDADE OS — Gestão Operacional, CRM & Finanças Integradas</p>", unsafe_allow_html=True)
@@ -245,7 +300,7 @@ else:
                             mostrar_popup_confirmacao(hora, barb_sel, serv_sel, SERVICOS[serv_sel]["preco"], data_sel)
 
         with c_menu[1]:
-            st.markdown("### 👑 Meu Clube Fidelidade & Nota de Estilo")
+            st.markdown("### 👑 Meu Perfil de Estilo & Fidelidade")
             f_col1, f_col2 = st.columns(2)
             with f_col1:
                 st.markdown(f"""
@@ -259,7 +314,7 @@ else:
                 st.markdown(f"""
                     <div class='metric-card-barber' style='border-left:6px solid #3b82f6;'>
                         <div class='metric-title'>Plano de Assinatura Ativo</div>
-                        <div class='metric-value' style='font-size:1.6rem; padding-top:12px; color:#3b82f6;'>{df_cli['plano_add_assinatura'] if 'plano_add_assinatura' in df_cli else df_cli['plano_assinatura']}</div>
+                        <div class='metric-value' style='font-size:1.6rem; padding-top:12px; color:#3b82f6;'>{df_cli['plano_assinatura']}</div>
                     </div>
                 """, unsafe_allow_html=True)
                 if df_cli['plano_assinatura'] == "Nenhum":
@@ -271,22 +326,21 @@ else:
             st.markdown("#### 🗒️ Minha Ficha de Estilo (Visualizado pelo Barbeiro)")
             st.info(df_cli['preferencias'])
             st.markdown("#### 📸 Fotos dos meus Cortes Anteriores (Histórico de Cadeira)")
-            st.caption("Abaixo constam as fotos arquivadas pelo seu barbeiro profissional para replicação rápida de estilo.")
             st.image(["https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=300", "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=300"], width=150, caption=["Último Corte (Mid Fade)", "Corte Anterior (Cabelo + Barba)"])
 
         with c_menu[2]:
             st.markdown("### ⏳ Check-in e Sala de Espera Virtual")
-            st.write("A caminho da barbearia? Faça o check-in e entre na fila virtual para agilizar seu atendimento!")
-            if st.button("🚀 FAZER CHECK-IN ENQUANTO JÁ ESTOU A CAMINHO"):
-                with engine.begin() as conn: conn.execute(text("INSERT INTO sala_espera (cliente_login, horario_checkin) VALUES (:u, :h)"), {"u": st.session_state['user'], "h": (datetime.utcnow()-timedelta(hours=3)).strftime("%H:%M")})
+            st.write("A caminho da barbearia? Faça o check-in e entre na fila virtual para agilizar seu recepção!")
+            if st.button("🚀 FAZER CHECK-IN AGORA"):
+                with engine.begin() as conn: 
+                    conn.execute(text("INSERT INTO sala_espera (cliente_login, horario_checkin) VALUES (:u, :h)"), {"u": st.session_state['user'], "h": (datetime.utcnow()-timedelta(hours=3)).strftime("%H:%M")})
                 st.toast("Check-in computado! Os profissionais foram alertados na bancada.")
             
             st.markdown("#### Tempo de Espera Estimado da Barbearia")
             st.metric(label="Tempo na Sala de Espera Física para Encaixes", value="12 min", delta="Cadeiras Otimizadas")
 
         with c_menu[3]:
-            st.markdown("### ⭐ Avaliação Interna Direta ao Proprietário")
-            st.write("Sua nota e opinião vão direto para o dono (de forma privada) para controle de qualidade!")
+            st.markdown("### ### ⭐ Avaliação Interna Direta ao Proprietário")
             with st.form("form_feedback"):
                 nota = st.slider("Nota do Atendimento:", 1, 5, 5)
                 comentario = st.text_area("O que achou do serviço e do atendimento?")
@@ -303,7 +357,7 @@ else:
         with b_menu[0]:
             st.markdown("### 📅 Linha de Trabalho Diária")
             with engine.connect() as conn:
-                df_cortes = pd.read_sql_query(text("SELECT a.*, u.nome as cliente_nome, u.preferencias FROM agendamentos a LEFT JOIN usuarios_barber u ON a.cliente_login = u.login WHERE a.status = 'Agendado' AND a.barbeiro_nome = :b_nome AND a.data = :d_alvo"), conn, params={"b_nome": st.session_state['nome_usuario'], "d_alvo": str(date.today())})
+                df_cortes = pd.read_sql_query(text("SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, u.nome as cliente_nome, u.preferencias FROM agendamentos a LEFT JOIN usuarios_barber u ON a.cliente_login = u.login WHERE a.status = 'Agendado' AND a.barbeiro_nome = :b_nome AND a.data = :d_alvo"), conn, params={"b_nome": st.session_state['nome_usuario'], "d_alvo": str(date.today())})
             
             st.metric("Atendimentos Confirmados Hoje", len(df_cortes))
             
@@ -317,9 +371,9 @@ else:
                     st.markdown(f"""
                         <div class="barber-agenda-row" style="border-left: 6px solid #ef4444; background: #ef444405;">
                             <div>
-                                <span style="font-size:1.2rem; font-weight:800; color:#ef4444;">⏰ {h}</span>
+                                <span style="font-size:1.3rem; font-weight:800; color:#ef4444;">⏰ {h}</span>
                                 <span style="margin-left:20px; font-weight:700; color:#fff;">👤 Cliente: {reg['cliente_nome']}</span>
-                                <span style="margin-left:20px; color:#94a3b8; font-size:0.85rem;">✂️ {reg['servico']}</span>
+                                <span style="margin-left:20px; color:#94a3b8; font-size:0.85rem;"> 🛠️ {reg['servico']}</span>
                             </div>
                             <div style='color:#f59e0b; font-weight:700;'>R$ {reg['valor']:.2f}</div>
                         </div>
