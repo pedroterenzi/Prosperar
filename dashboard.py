@@ -17,7 +17,7 @@ CONNECTION_STRING = "postgresql://neondb_owner:npg_FB5WRUfgniD9@ep-calm-grass-ah
 WHATSAPP_NOTIFICA = "5519971374936" 
 
 # =========================================================
-# DICIONÁRIOS E PORTFÓLIO DE SERVIÇOS (MOVIDO PARA O TOPO)
+# DICIONÁRIOS E PORTFÓLIO DE SERVIÇOS
 # =========================================================
 SERVICOS = {
     "Corte Simples": {"preco": 40.0, "tempo": 30},
@@ -188,12 +188,13 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # =========================================================
-# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO DE HORÁRIO
+# 🛡️ POP-UP DIALOG SEQUENCIAL (MELHORIA SOLICITADA - image_93b8df.png)
 # =========================================================
 @st.dialog("🛡️ Confirmar seu Agendamento")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
-    if "sucesso_popup" not in st.session_state:
-        st.session_state["sucesso_popup"] = False
+    # Controla o estado de exibição interno desse pop-up específico
+    if "confirmado_neste_clique" not in st.session_state:
+        st.session_state["confirmado_neste_clique"] = False
 
     st.markdown(f"Você escolheu o horário das **{hora}**.")
     st.markdown(f"""
@@ -203,29 +204,31 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
     * **Data:** {data.strftime('%d/%m/%Y')}
     """, unsafe_allow_html=True)
     
-    if st.session_state["sucesso_popup"]:
+    # SE JÁ CLICOU EM CONFIRMAR: Some com tudo e mostra apenas o botão do WhatsApp
+    if st.session_state["confirmado_neste_clique"]:
         msg_wpp = f"💈 *CONFIRMAÇÃO DE AGENDAMENTO* 💈\n\nOlá, o cliente *{st.session_state['nome_usuario']}* agendou um horário:\n\n📅 *Data:* {data.strftime('%d/%m/%Y')}\n⏰ *Horário:* {hora}\n👤 *Barbeiro:* {barbeiro}\n🛠️ *Serviço:* {servico}\n💵 *Valor:* R$ {preco:.2f}"
         url_wpp = f"https://api.whatsapp.com/send?phone={WHATSAPP_NOTIFICA}&text={urllib.parse.quote(msg_wpp)}"
         
         st.markdown(f"""
-            <div style="background-color:#10b98115; border:1px solid #10b981; color:#34d399; padding:15px; border-radius:10px; font-weight:bold; text-align:center; margin-bottom:15px;">
-                🎉 Agendado com sucesso no sistema para as {hora}!
+            <div style="background-color:#10b98115; border:1px solid #10b981; color:#34d399; padding:15px; border-radius:10px; font-weight:bold; text-align:center; margin-top:15px; margin-bottom:15px;">
+                🎉 Agendado com sucesso para as {hora}!
             </div>
         """, unsafe_allow_html=True)
         
         st.markdown(f"""
             <a href="{url_wpp}" target="_blank" style="text-decoration:none;">
-                <div style="background-color:#25d366; color:white; padding:15px; text-align:center; border-radius:10px; font-weight:bold; box-shadow: 0 4px 12px rgba(37,211,102,0.25);">
+                <div style="background-color:#25d366; color:white; padding:16px; text-align:center; border-radius:12px; font-weight:bold; box-shadow: 0 4px 12px rgba(37,211,102,0.3); font-size:1.05rem;">
                     💬 NOTIFICAR NO WHATSAPP
                 </div>
             </a>
         """, unsafe_allow_html=True)
         
-        if st.button("Fechar Janela", use_container_width=True):
-            del st.session_state["sucesso_popup"]
+        if st.button("Concluir e Sair", use_container_width=True):
+            del st.session_state["confirmado_neste_clique"]
             st.rerun()
             
     else:
+        # TELA INICIAL: Mostra a pergunta e os botões padrão da image_93b8df.png
         st.markdown("Deseja confirmar a gravação do seu compromisso?")
         col_pop1, col_pop2 = st.columns(2)
         with col_pop1:
@@ -237,18 +240,19 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                         VALUES (:u, :b, :d, :h, :s, :v)
                     """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco})
                 
-                st.session_state["sucesso_popup"] = True
+                # Muda a visualização para a próxima sequência
+                st.session_state["confirmado_neste_clique"] = True
                 st.balloons()
                 st.rerun()
                 
         with col_pop2:
             if st.button("❌ Cancelar", use_container_width=True):
-                if "sucesso_popup" in st.session_state:
-                    del st.session_state["sucesso_popup"]
+                if "confirmado_neste_clique" in st.session_state:
+                    del st.session_state["confirmado_neste_clique"]
                 st.rerun()
 
 # =========================================================
-# FLUXO DE ENTRADA / LOGIN
+# FLUXO DE AUTENTICAÇÃO
 # =========================================================
 if not st.session_state['auth']:
     st.markdown("<h1 style='text-align:center; color:#f59e0b; font-weight:900; margin-top:30px;'>💈 BARBERFLOW OS</h1>", unsafe_allow_html=True)
