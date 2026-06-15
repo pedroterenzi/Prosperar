@@ -389,16 +389,29 @@ else:
             with pr_c4:
                 st.markdown("<div class='product-card'><h4>Gel Cola Blindado Extra-Forte</h4><p>Fixação Extrema para Penteados Modernos (500g)</p><h3 style='color:#f59e0b;'>R$ 22,00</h3></div>", unsafe_allow_html=True)
 
-    # =========================================================
+# =========================================================
     # AMBIENTE DO BARBEIRO
     # =========================================================
     elif st.session_state['perfil'] == 'barbeiro':
         menu_b = st.sidebar.radio("Navegação do Negócio", ["📊 BI & Visão Estratégica", "📅 Painel de Controle Operacional"])
         
-        st.sidebar.subheader("📅 Janela Temporal")
-        data_inicio = st.sidebar.date_input("De:", date.today() - timedelta(days=7))
-        data_fim = st.sidebar.date_input("Até:", date.today() + timedelta(days=15))
+        # --- NOVO FILTRO DE PERÍODO CORRIGIDO ---
+        st.sidebar.subheader("📅 Janela Temporal de Análise")
+        periodo_sel = st.sidebar.date_input(
+            "Selecione o Período:",
+            value=[date(2026, 6, 1), date(2026, 6, 30)], # Inicia mostrando o mês cheio
+            key="periodo_bi"
+        )
         
+        # Garante as variáveis de início e fim baseadas na seleção do calendário
+        if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2:
+            data_inicio, data_fim = periodo_sel
+        elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1:
+            data_inicio = data_fim = periodo_sel[0]
+        else:
+            data_inicio = data_fim = periodo_sel
+        
+        # Executa a query filtrando tudo o que estiver ENTRE a data inicial e final selecionada
         df_all_age = pd.read_sql_query(
             text("""
                 SELECT a.*, u.nome as cliente_nome 
@@ -410,10 +423,10 @@ else:
         )
         
         if menu_b == "📊 BI & Visão Estratégica":
-            st.markdown("## 📊 Inteligência de Negócio & Insights Gerenciais")
+            st.markdown(f"## 📊 Inteligência de Negócio — Período: {data_inicio.strftime('%d/%m/%Y')} até {data_fim.strftime('%d/%m/%Y')}")
             
             if df_all_age.empty:
-                st.info("Nenhum histórico operacional encontrado na janela temporal selecionada.")
+                st.warning("⚠️ Nenhum histórico operacional encontrado na janela temporal selecionada.")
             else:
                 df_all_age['data_dt'] = pd.to_datetime(df_all_age['data'])
                 df_all_age['dia_semana'] = df_all_age['data_dt'].dt.strftime('%A')
@@ -466,7 +479,7 @@ else:
                     st.plotly_chart(fig_rank, use_container_width=True)
 
         elif menu_b == "📅 Painel de Controle Operacional":
-            st.markdown("## 📋 Prontuário Geral de Agendamentos")
+            st.markdown(f"## 📋 Prontuário Geral — Agenda de {data_inicio.strftime('%d/%m')} a {data_fim.strftime('%d/%m/%Y')}")
             st.caption("Visão detalhada da agenda para acompanhamento em tempo real de clientes confirmados.")
             
             st.markdown("<div class='section-barber'>Horários Alocados na Janela Selecionada</div>", unsafe_allow_html=True)
