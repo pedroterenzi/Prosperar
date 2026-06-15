@@ -174,9 +174,12 @@ st.markdown("""
         background: #1e2028; padding: 12px 20px; border-radius: 8px;
         color: #fff; font-weight: 700; border-left: 5px solid #f59e0b; margin-bottom: 15px;
     }
+    
+    /* Altura fixa (min-height) inserida nos cards de produtos e promoções para alinhar o grid */
     .product-card {
-        background: #14151b; border: 1px solid #2a2d3a; padding: 15px;
+        background: #14151b; border: 1px solid #2a2d3a; padding: 20px 15px;
         border-radius: 12px; text-align: center; margin-bottom: 15px;
+        min-height: 230px; display: flex; flex-direction: column; justify-content: space-between;
     }
     
     .barber-agenda-row {
@@ -187,7 +190,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # =========================================================
-# 🛡️ POP-UP DIALOG ATUALIZADO (REMOVIDO WHATSAPP SEQUENCIAL)
+# 🛡️ POP-UP DIALOG DE CONFIRMAÇÃO DE HORÁRIO
 # =========================================================
 @st.dialog("🛡️ Confirmar seu Agendamento")
 def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
@@ -354,8 +357,7 @@ else:
             
             st.markdown("<div class='section-barber'>Horários Disponíveis</div>", unsafe_allow_html=True)
             
-            # --- FIXADO: TRAVA DINÂMICA DE FUSO HORÁRIO BRASILEIRO (GMT-3) ---
-            # O Streamlit Cloud roda em UTC. Subtraímos 3 horas para cravar o horário de Brasília correto.
+            # Ajuste dinâmico de fuso horário local brasileiro (GMT-3) para travas de segurança do dia
             agora_brasil = datetime.utcnow() - timedelta(hours=3)
             hora_atual_str = agora_brasil.strftime("%H:%M")
             eh_hoje = (data_sel == date.today())
@@ -408,27 +410,28 @@ else:
                     else:
                         st.error("ID informado inválido ou não pertence aos seus agendamentos.")
 
+        # --- ABAS DE EXIBIÇÃO DE COMBOS E PRODUTOS (ALINHADOS EM GRID SIMÉTRICO VIA CSS min-height) ---
         with menu_c[1]:
             st.markdown("## ✨ Campanhas Especiais e Clubes de Assinatura")
             p_c1, p_c2, p_c3 = st.columns(3)
             with p_c1:
-                st.markdown("<div class='product-card'><h3 style='color:#f59e0b;'>🔥 Terça Maluca</h3><p>Corte Simples com 25% de Desconto direto no balcão!</p><h2 style='color:#10b981;'>R$ 30,00</h2></div>", unsafe_allow_html=True)
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h3>🔥 Terça Maluca</h3><p>Corte Simples com 25% de Desconto direto no balcão para pagamentos em dinheiro ou Pix!</p></div><h2 style='color:#10b981; margin:0;'>R$ 30,00</h2></div>", unsafe_allow_html=True)
             with p_c2:
-                st.markdown("<div class='product-card'><h3 style='color:#f59e0b;'>👑 Plano VIP Mensal</h3><p>Cortes Ilimitados + 2 Barbas por mês com direito a Chopp livre.</p><h2 style='color:#10b981;'>R$ 149,90 / mes</h2></div>", unsafe_allow_html=True)
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h3>👑 Plano VIP Mensal</h3><p>Cortes Ilimitados + 2 Barbas completas por mês com direito a Chopp artesanal livre na cadeira.</p></div><h2 style='color:#10b981; margin:0;'>R$ 149,90 / mes</h2></div>", unsafe_allow_html=True)
             with p_c3:
-                st.markdown("<div class='product-card'><h3 style='color:#f59e0b;'>⚡ Combo Alinhado</h3><p>Corte + Sobrancelha + Lavagem Especial com Shampoos Premium.</p><h2 style='color:#10b981;'>R$ 60,00</h2></div>", unsafe_allow_html=True)
+                st.markdown("<div class='product-card'><h3 style='flex-grow:1;'>⚡ Combo Alinhado</h3><p>Corte + Sobrancelha executada na navalha + Lavagem Especial com massagem capilar e Shampoos Premium.</p><h2 style='color:#10b981; margin:0;'>R$ 60,00</h2></div>", unsafe_allow_html=True)
 
         with menu_c[2]:
             st.markdown("## 🧴 Vitrine de Produtos Home-Care")
             pr_c1, pr_c2, pr_c3, pr_c4 = st.columns(4)
             with pr_c1:
-                st.markdown("<div class='product-card'><h4>Elesid Pomada Efeito Matte</h4><p>Fixação Forte de Alta Performance (150g)</p><h3 style='color:#f59e0b;'>R$ 35,00</h3></div>", unsafe_allow_html=True)
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h4>Elesid Pomada Efeito Matte</h4><p>Fixação Forte de Alta Performance para penteados estruturados (150g)</p></div><h3 style='color:#f59e0b; margin:0;'>R$ 35,00</h3></div>", unsafe_allow_html=True)
             with pr_c2:
-                st.markdown("<div class='product-card'><h4>Minoxidil Kirkland 6%</h4><p>Tratamento Científico para Barba e Cabelo (60ml)</p><h3 style='color:#f59e0b;'>R$ 89,90</h3></div>", unsafe_allow_html=True)
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h4>Minoxidil Kirkland 6%</h4><p>Tratamento Científico e Clínico importado para crescimento de Barba e Cabelo (60ml)</p></div><h3 style='color:#f59e0b; margin:0;'>R$ 89,90</h3></div>", unsafe_allow_html=True)
             with pr_c3:
-                st.markdown("<div class='product-card'><h4>Óleo Hidratante de Barba</h4><p>Maciez Extrema com Essência de Cedro Amadeirado</p><h3 style='color:#f59e0b;'>R$ 42,00</h3></div>", unsafe_allow_html=True)
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h4>Óleo Hidratante de Barba</h4><p>Maciez Extrema, brilho controlado e perfume com Essência de Cedro Amadeirado</p></div><h3 style='color:#f59e0b; margin:0;'>R$ 42,00</h3></div>", unsafe_allow_html=True)
             with pr_c4:
-                st.markdown("<div class='product-card'><h4>Gel Cola Blindado Extra-Forte</h4><p>Fixação Extrema para Penteados Modernos (500g)</p><h3 style='color:#f59e0b;'>R$ 22,00</h3></div>", unsafe_allow_html=True)
+                st.markdown("<div class='product-card'><div style='flex-grow:1;'><h4>Gel Cola Blindado Extra-Forte</h4><p>Fixação Extrema e duradoura para Penteados Modernos e penteados artísticos (500g)</p></div><h3 style='color:#f59e0b; margin:0;'>R$ 22,00</h3></div>", unsafe_allow_html=True)
 
     # =========================================================
     # AMBIENTE DO BARBEIRO
@@ -543,7 +546,7 @@ else:
 
         elif menu_b == "📅 Painel de Controle Operacional":
             st.markdown("<div class='section-barber'>➕ CRIAR AGENDAMENTO MANUAL (BALCÃO / WHATSAPP)</div>", unsafe_allow_html=True)
-            with st.expander("📝 Abrir Formulário de Agendamento Direto", expanded=False):
+            with st.expander("📝 Abrir Formulário de Agendamento Direct-to-Chair", expanded=False):
                 col_man1, col_man2, col_man3 = st.columns(3)
                 with col_man1:
                     manual_cliente = st.text_input("Nome do Cliente:", placeholder="Ex: João da Silva").strip()
