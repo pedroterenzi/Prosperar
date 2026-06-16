@@ -57,7 +57,6 @@ def enviar_notificacao_whatsapp(barbeiro, cliente, data, horario, servico, valor
     Gera uma URL de redirecionamento para o WhatsApp informando o barbeiro sobre o status da vaga.
     De acordo com o pedido, ambos os barbeiros estão vinculados temporariamente ao celular fornecido.
     """
-    # Celular fixado para testes conforme solicitado
     celular_barbeiro = "5519971374936" 
     
     if acao == "agendamento":
@@ -78,11 +77,9 @@ def enviar_notificacao_whatsapp(barbeiro, cliente, data, horario, servico, valor
                 f"🛠️ *Serviço:* {servico}\n\n" \
                 f"A vaga está disponível novamente na sua grade."
 
-    # Codifica o texto para formato de URL segura
     texto_url = urllib.parse.quote(texto)
     link_whatsapp = f"https://api.whatsapp.com/send?phone={celular_barbeiro}&text={texto_url}"
     
-    # Injeta um script JS rápido no Streamlit para abrir em uma nova aba do navegador
     js = f"window.open('{link_whatsapp}', '_blank');"
     st.components.v1.html(f"<script>{js}</script>", height=0, width=0)
 
@@ -130,7 +127,6 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                 
                 st.session_state["ultimo_horario_salvo"] = hora
                 
-                # --- DISPARO DO WHATSAPP NO AGENDAMENTO ---
                 enviar_notificacao_whatsapp(
                     barbeiro=barbeiro, 
                     cliente=st.session_state['nome_usuario'], 
@@ -228,7 +224,6 @@ st.markdown("""
     * { font-family: 'Plus Jakarta Sans', sans-serif; }
     .stApp { background-color: #0d0e12; color: #e2e8f0; }
     
-    /* --- MENU LATERAL EM BOTÕES QUADRADOS INTERATIVOS --- */
     [data-testid="stSidebar"] { background-color: #111217; border-right: 1px solid #1e2028; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div:first-child { display: none !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] label div[data-testid="stMarkdownContainer"] p { display: none !important; }
@@ -246,7 +241,6 @@ st.markdown("""
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover { background-color: #262933 !important; border-color: #f59e0b !important; color: #ffffff !important; }
     [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-checked="true"] { background: #f59e0b !important; color: #0d0e12 !important; border: 1px solid #d97706 !important; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important; }
     
-    /* --- CONFIGURAÇÃO DA GRADE DE HORÁRIOS --- */
     div[data-testid="stHorizontalBlock"] .stButton > button {
         height: 85px !important; border-radius: 10px !important; font-family: 'Plus Jakarta Sans', sans-serif !important;
         font-size: 1.3rem !important; font-weight: 800 !important; display: flex !important;
@@ -446,16 +440,13 @@ else:
                 df_editado = st.data_editor(df_meus_cards, hide_index=True, use_container_width=True)
                 
                 if st.button("🗑️ CANCELAR HORÁRIOS SELECIONADOS", type="primary", use_container_width=True):
-                    # Identifica as linhas marcadas pelo usuário para cancelamento
                     linhas_para_cancelar = df_editado[df_editado["Selecionar para Cancelar"] == True]
                     
-                    if not lines_para_cancelar.empty:
+                    if not linhas_para_cancelar.empty:
                         with engine.begin() as conn:
-                            for idx_c, row_c in lines_para_cancelar.iterrows():
+                            for idx_c, row_c in linhas_para_cancelar.iterrows():
                                 conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(row_c['id'])})
                                 
-                                # --- DISPARO DO WHATSAPP NO CANCELAMENTO ---
-                                # Formatando data para legibilidade no Wpp
                                 data_formatada = datetime.strptime(row_c['data'], '%Y-%m-%d').strftime('%d/%m/%Y')
                                 enviar_notificacao_whatsapp(
                                     barbeiro=row_c['barbeiro_nome'],
@@ -531,7 +522,6 @@ else:
         if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)" or st.session_state['perfil'] == 'barbeiro':
             barbeiro_ativo = "Gabriel" if st.session_state['perfil'] == 'admin' else st.session_state['nome_usuario']
             
-            # --- 🛠️ ESCALAMENTO E PADRONIZAÇÃO DO CÁLCULO FINANCEIRO ANTES DO LAYOUT ---
             with engine.connect() as conn:
                 df_b_hoje = pd.read_sql_query(text("""
                     SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, a.status,
@@ -542,11 +532,8 @@ else:
                 """), conn, params={"b": barbeiro_ativo, "d": str(date.today())})
             
             faturamento_cadeira = df_b_hoje['valor'].sum()
-            
-            # Cálculo Prévio Global Unificado (PREVINE NAMEERROR EM TODAS AS ABAS DO PROFISSIONAL)
             comissao_b_acumulada = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_b_hoje.iterrows() if r['servico'] in SERVICOS])
             
-            # Banner Fixo de Próximo Cliente
             df_proximos = df_b_hoje[df_b_hoje['status'] == 'Agendado']
             if not df_proximos.empty:
                 prox_c = df_proximos.iloc[0]
@@ -557,7 +544,6 @@ else:
                     </div>
                 """, unsafe_allow_html=True)
             
-            # Botão de Venda Rápida de Bancada
             col_v1, _ = st.columns([2, 6])
             with col_v1:
                 if st.button("🧴 [+ Vender Produto Adicional]", use_container_width=True, type="primary"):
@@ -566,7 +552,6 @@ else:
             
             b_pilar1, b_pilar2 = st.tabs(["🎛️ Quadro de Comandos (Bancada)", "💰 Meu Extrato & Comissões"])
             
-            # --- ABA 1: QUADRO DE COMANDOS (BANCADA) ---
             with b_pilar1:
                 st.markdown(f"## 🎛️ Quadro de Comandos de Hoje — {barbeiro_ativo}")
                 k_col1, k_col2, k_col3 = st.columns(3)
@@ -617,120 +602,119 @@ else:
                                         st.success("Ficha técnica updated!")
                                 st.markdown("---")
                                 
-ab1, ab2, ab3 = st.columns(3)
-with ab1:
-    if st.button("🏁 [ Iniciar Atendimento ]", key=f"init_c_{h_slot}", use_container_width=True): st.toast("Cadeira Ativa!")
-# CORRIGIDO: Era "From ab2:" e mudou para "with ab2:"
-with ab2:
-    if st.button(" Concluir Atendimento ", key=f"done_c_{h_slot}", type="primary", use_container_width=True): st.success("Fechamento Enviado!")
-with ab3:
-    if st.button("❌ [ Não Compareceu / No-Show ]", key=f"noshow_c_{h_slot}", use_container_width=True):
-        with engine.begin() as conn_x: conn_x.execute(text("UPDATE agendamentos SET status = 'No-Show' WHERE id = :id"), {"id": reg_c['id']})
-        st.rerun()
-elif status_c == 'Bloqueado':
-    st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #374151; opacity:0.5;"><span>⏰ {h_slot} — 🔒 Bloqueado pelo Profissional</span></div>', unsafe_allow_html=True)
-else:
-    st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #10b981; padding: 8px 20px;"><span>⏰ {h_slot} — Cadeira Livre</span></div>', unsafe_allow_html=True)
-    b_bl1, _ = st.columns([2.5, 5.5])
-    with b_bl1:
-        if st.button(f"🔒 Bloquear Horário {h_slot}", key=f"bloq_btn_{h_slot}", use_container_width=True):
-            with engine.begin() as conn_bl:
-                conn_bl.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status) VALUES ('bloqueio_manual', :b, :d, :h, 'Bloqueio Preventivo', 0, 'Bloqueado')"), {"b": barbeiro_ativo, "d": str(date.today()), "h": h_slot})
-            st.rerun()
+                                ab1, ab2, ab3 = st.columns(3)
+                                with ab1:
+                                    if st.button("🏁 [ Iniciar Atendimento ]", key=f"init_c_{h_slot}", use_container_width=True): st.toast("Cadeira Ativa!")
+                                with ab2:
+                                    if st.button(" Concluir Atendimento ", key=f"done_c_{h_slot}", type="primary", use_container_width=True): st.success("Fechamento Enviado!")
+                                with ab3:
+                                    if st.button("❌ [ Não Compareceu / No-Show ]", key=f"noshow_c_{h_slot}", use_container_width=True):
+                                        with engine.begin() as conn_x: conn_x.execute(text("UPDATE agendamentos SET status = 'No-Show' WHERE id = :id"), {"id": reg_c['id']})
+                                        st.rerun()
 
-# --- ABA 2: MEU EXTRATO & COMISSÕES ---
-with b_pilar2:
-    st.markdown("### 💰 Extrato Financeiro & Gestão de Comissões")
-    tempo_filtro = st.radio("Selecione o Intervalo de Auditoria:", ["Hoje", "Esta Semana", "Este Mês"], horizontal=True)
-    
-    sc1, sc2, sc3 = st.columns(3)
-    with sc1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ganhos Estimados do Período</div><div class='metric-value'>R$ {comissao_b_acumulada:.2f}</div></div>", unsafe_allow_html=True)
-    with sc2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Comissão de Serviços</div><div class='metric-value' style='color:#10b981;'>R$ {comissao_b_acumulada:.2f}</div></div>", unsafe_allow_html=True)
-    with sc3: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Comissão de Produtos (Balcão)</div><div class='metric-value' style='color:#3b82f6;'>R$ 0,00</div></div>", unsafe_allow_html=True)
-    
-    st.markdown("<br>#### 🚀 Minhas Faixas de Metas e Performance")
-    st.progress(0.70)
-    st.caption("Mantenha a pegada! Você concluiu 70% da sua meta semanal para destravar o bônus de cadeira.")
-    
-    st.markdown("<br><div class='section-barber'>📑 LISTA DE AUDITORIA CONSOLIDADA (SERVIÇOS PRESTADOS)</div>", unsafe_allow_html=True)
-    tabela_comissoes = []
-    for _, r_f in df_b_hoje[df_b_hoje['status'] == 'Agendado'].iterrows():
-        c_liq = r_f['valor'] * SERVICOS[r_f['servico']]['comissao'] if r_f['servico'] in SERVICOS else 0.0
-        tabela_comissoes.append({
-            "Data": r_f['data'], "Horário": r_f['horario'], "Cliente": r_f['cliente_nome'],
-            "Item Vendido": r_f['servico'], "Valor Bruto": f"R$ {r_f['valor']:.2f}", "Sua Comissão (R$)": f"R$ {c_liq:.2f}"
-        })
-    
-    if tabela_comissoes:
-        st.dataframe(pd.DataFrame(tabela_comissoes), use_container_width=True, hide_index=True)
-    else:
-        st.caption("Nenhum lançamento registrado para o filtro selecionado.")
-    st.markdown("---")
-    st.info("📅 **Previsão Próximo Recebimento Quinzena:** 20/06/2026")
+                        elif status_c == 'Bloqueado':
+                            st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #374151; opacity:0.5;"><span>⏰ {h_slot} — 🔒 Bloqueado pelo Profissional</span></div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #10b981; padding: 8px 20px;"><span>⏰ {h_slot} — Cadeira Livre</span></div>', unsafe_allow_html=True)
+                        b_bl1, _ = st.columns([2.5, 5.5])
+                        with b_bl1:
+                            if st.button(f"🔒 Bloquear Horário {h_slot}", key=f"bloq_btn_{h_slot}", use_container_width=True):
+                                with engine.begin() as conn_bl:
+                                    conn_bl.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status) VALUES ('bloqueio_manual', :b, :d, :h, 'Bloqueio Preventivo', 0, 'Bloqueado')"), {"b": barbeiro_ativo, "d": str(date.today()), "h": h_slot})
+                                st.rerun()
 
-# =========================================================
-# 3. INTERFACE CORPORATIVA THE ADM MASTER (PROPRIETÁRIO GABRIEL)
-# =========================================================
-else:
-    st.markdown("<div class='section-barber'>📅 CALENDÁRIO CORPORATIVO DE GESTÃO EXECUTIVA (APLICA EM TODO O BI)</div>", unsafe_allow_html=True)
-    periodo_sel = st.date_input("Intervalo Dinâmico de Análise:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm_erpv2")
-    
-    if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: data_inicio, data_fim = periodo_sel
-    elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1: data_inicio = data_fim = periodo_sel[0]
-    else: data_inicio = data_fim = periodo_sel
+            # --- ABA 2: MEU EXTRATO & COMISSÕES ---
+            with b_pilar2:
+                st.markdown("### 💰 Extrato Financeiro & Gestão de Comissões")
+                tempo_filtro = st.radio("Selecione o Intervalo de Auditoria:", ["Hoje", "Esta Semana", "Este Mês"], horizontal=True)
+                
+                sc1, sc2, sc3 = st.columns(3)
+                with sc1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ganhos Estimados do Período</div><div class='metric-value'>R$ {comissao_b_acumulada:.2f}</div></div>", unsafe_allow_html=True)
+                with sc2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Comissão de Serviços</div><div class='metric-value' style='color:#10b981;'>R$ {comissao_b_acumulada:.2f}</div></div>", unsafe_allow_html=True)
+                with sc3: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Comissão de Produtos (Balcão)</div><div class='metric-value' style='color:#3b82f6;'>R$ 0,00</div></div>", unsafe_allow_html=True)
+                
+                st.markdown("<br>#### 🚀 Minhas Faixas de Metas e Performance")
+                st.progress(0.70)
+                st.caption("Mantenha a pegada! Você concluiu 70% da sua meta semanal para destravar o bônus de cadeira.")
+                
+                st.markdown("<br><div class='section-barber'>📑 LISTA DE AUDITORIA CONSOLIDADA (SERVIÇOS PRESTADOS)</div>", unsafe_allow_html=True)
+                tabela_comissoes = []
+                for _, r_f in df_b_hoje[df_b_hoje['status'] == 'Agendado'].iterrows():
+                    c_liq = r_f['valor'] * SERVICOS[r_f['servico']]['comissao'] if r_f['servico'] in SERVICOS else 0.0
+                    tabela_comissoes.append({
+                        "Data": r_f['data'], "Horário": r_f['horario'], "Cliente": r_f['cliente_nome'],
+                        "Item Vendido": r_f['servico'], "Valor Bruto": f"R$ {r_f['valor']:.2f}", "Sua Comissão (R$)": f"R$ {c_liq:.2f}"
+                    })
+                
+                if tabela_comissoes:
+                    st.dataframe(pd.DataFrame(tabela_comissoes), use_container_width=True, hide_index=True)
+                else:
+                    st.caption("Nenhum lançamento registrado para o filtro selecionado.")
+                st.markdown("---")
+                st.info("📅 **Previsão Próximo Recebimento Quinzena:** 20/06/2026")
 
-    df_adm_total = pd.read_sql_query(text("SELECT * FROM agendamentos WHERE data BETWEEN :ini AND :fim"), engine, params={"ini": str(data_inicio), "fim": str(data_fim)})
-    df_ativos = df_adm_total[df_adm_total['status'] == 'Agendado']
-    df_faltas = df_adm_total[df_adm_total['status'] == 'No-Show']
+        # =========================================================
+        # 3. INTERFACE CORPORATIVA THE ADM MASTER (PROPRIETÁRIO GABRIEL)
+        # =========================================================
+        else:
+            st.markdown("<div class='section-barber'>📅 CALENDÁRIO CORPORATIVO DE GESTÃO EXECUTIVA (APLICA EM TODO O BI)</div>", unsafe_allow_html=True)
+            periodo_sel = st.date_input("Intervalo Dinâmico de Análise:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm_erpv2")
+            
+            if isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 2: data_inicio, data_fim = periodo_sel
+            elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1: data_inicio = data_fim = periodo_sel[0]
+            else: data_inicio = data_fim = periodo_sel
 
-    adm_menu = st.tabs(["📊 Saúde do Negócio & DRE", "💸 Split & Caixa Automatizado", "👥 RH & Performance de Cadeiras", "📦 Almoxarifado Inteligente", "🗂️ Kanban de Recepção"])
-    
-    with adm_menu[0]:
-        st.markdown("### 📈 Monitoramento Estratégico de Saúde do Negócio")
-        bruto_periodo = df_ativos['valor'].sum()
-        ticket_medio = df_ativos['valor'].mean() if not df_ativos.empty else 0.0
-        slots_totais = 20 * 2 * ((data_fim - data_inicio).days + 1)
-        taxa_ocupacao = min(int((len(df_ativos) / max(slots_totais, 1)) * 100), 100)
-        total_marcacoes = len(df_adm_total) if len(df_adm_total) > 0 else 1
-        taxa_noshow = int((len(df_faltas) / total_marcacoes) * 100)
+            df_adm_total = pd.read_sql_query(text("SELECT * FROM agendamentos WHERE data BETWEEN :ini AND :fim"), engine, params={"ini": str(data_inicio), "fim": str(data_fim)})
+            df_ativos = df_adm_total[df_adm_total['status'] == 'Agendado']
+            df_faltas = df_adm_total[df_adm_total['status'] == 'No-Show']
 
-        adm_col1, adm_col2, adm_col3, adm_col4 = st.columns(4)
-        with adm_col1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Faturamento Bruto</div><div class='metric-value'>R$ {bruto_periodo:.2f}</div></div>", unsafe_allow_html=True)
-        with adm_col2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ticket Médio</div><div class='metric-value' style='color:#3b82f6;'>R$ {ticket_medio:.2f}</div></div>", unsafe_allow_html=True)
-        with adm_col3:
-            st.markdown("<div class='metric-card-barber'><div class='metric-title'>Ocupação de Cadeira</div></div>", unsafe_allow_html=True)
-            st.progress(taxa_ocupacao / 100.0)
-            st.caption(f"Status Atual: **{taxa_ocupacao}%** (Mínimo Ideal: 60%)")
-        with adm_col4:
-            cor_noshow = "#10b981" if taxa_noshow <= 5 else "#ef4444"
-            st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Índice de No-Show</div><div class='metric-value' style='color:{cor_noshow};'>{taxa_noshow}%</div></div>", unsafe_allow_html=True)
-        
-        st.markdown("<br><div class='section-barber'>📈 DEMONSTRATIVO DE RESULTADO DO EXERCÍCIO (DRE SIMPLIFICADA)</div>", unsafe_allow_html=True)
-        repasse_calc = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_ativos.iterrows() if r['servico'] in SERVICOS])
-        taxas_estimadas = bruto_periodo * 0.025
-        custos_fixos_simulados = 350.00
-        lucro_real_dre = bruto_periodo - taxas_estimadas - repasse_calc - custos_fixos_simulados
-        
-        dre_df = pd.DataFrame({
-            "Indicadores Fiscais": ["(+) Faturamento Bruto de Serviços", "(-) Taxas Operacionais de Gateway (2.5%)", "(-) Repasse / Split de Barbeiros", "(-) Custos Operacionais / Variáveis", "(=) LUCRO LÍQUIDO REAL DO PERÍODO"],
-            "Valores Monetários": [f"R$ {bruto_periodo:.2f}", f"R$ {taxas_estimadas:.2f}", f"R$ {repasse_calc:.2f}", f"R$ {custos_fixos_simulados:.2f}", f"R$ {lucro_real_dre:.2f}"]
-        })
-        st.table(dre_df)
+            adm_menu = st.tabs(["📊 Saúde do Negócio & DRE", "💸 Split & Caixa Automatizado", "👥 RH & Performance de Cadeiras", "📦 Almoxarifado Inteligente", "🗂️ Kanban de Recepção"])
+            
+            with adm_menu[0]:
+                st.markdown("### 📈 Monitoramento Estratégico de Saúde do Negócio")
+                bruto_periodo = df_ativos['valor'].sum()
+                ticket_medio = df_ativos['valor'].mean() if not df_ativos.empty else 0.0
+                slots_totais = 20 * 2 * ((data_fim - data_inicio).days + 1)
+                taxa_ocupacao = min(int((len(df_ativos) / max(slots_totais, 1)) * 100), 100)
+                total_marcacoes = len(df_adm_total) if len(df_adm_total) > 0 else 1
+                taxa_noshow = int((len(df_faltas) / total_marcacoes) * 100)
 
-        st.markdown("<br><div class='section-barber'>🔄 INTELIGÊNCIA DE MERCADO: PACE DE RETORNO (RECORRÊNCIA)</div>", unsafe_allow_html=True)
-        st.metric(label="Média de Retorno do Cliente à Cadeira", value="24 dias", delta="Pace Saudável de Fidelidade (Ideal: <28 dias)")
-        
-        st.markdown("<br>#### ⚡ Central de Gatilhos de Marketing CRM")
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            st.markdown("<div style='background:#1e2028; padding:15px; border-radius:10px; border-left:4px solid #ef4444;'>⚡ <b>Leads Inativos (+45 dias)</b><br>Gatilho identifica 14 clientes aptos a reativação. Deseja auditar a lista antes do disparo?</div>", unsafe_allow_html=True)
-            if st.button("🔍 Abrir e Auditar Lista de Disparo", use_container_width=True):
-                mostrar_modal_marketing("Clientes Ausentes", ["alexandre_guerra", "danilo_santos", "luciano_souza", "paulo_higuchi"])
+                adm_col1, adm_col2, adm_col3, adm_col4 = st.columns(4)
+                with adm_col1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Faturamento Bruto</div><div class='metric-value'>R$ {bruto_periodo:.2f}</div></div>", unsafe_allow_html=True)
+                with adm_col2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Ticket Médio</div><div class='metric-value' style='color:#3b82f6;'>R$ {ticket_medio:.2f}</div></div>", unsafe_allow_html=True)
+                with adm_col3:
+                    st.markdown("<div class='metric-card-barber'><div class='metric-title'>Ocupação de Cadeira</div></div>", unsafe_allow_html=True)
+                    st.progress(taxa_ocupacao / 100.0)
+                    st.caption(f"Status Atual: **{taxa_ocupacao}%** (Mínimo Ideal: 60%)")
+                with adm_col4:
+                    cor_noshow = "#10b981" if taxa_noshow <= 5 else "#ef4444"
+                    st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Índice de No-Show</div><div class='metric-value' style='color:{cor_noshow};'>{taxa_noshow}%</div></div>", unsafe_allow_html=True)
+                
+                st.markdown("<br><div class='section-barber'>📈 DEMONSTRATIVO DE RESULTADO DO EXERCÍCIO (DRE SIMPLIFICADA)</div>", unsafe_allow_html=True)
+                repasse_calc = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_ativos.iterrows() if r['servico'] in SERVICOS])
+                taxas_estimadas = bruto_periodo * 0.025
+                custos_fixos_simulados = 350.00
+                lucro_real_dre = bruto_periodo - taxas_estimadas - repasse_calc - custos_fixos_simulados
+                
+                dre_df = pd.DataFrame({
+                    "Indicadores Fiscais": ["(+) Faturamento Bruto de Serviços", "(-) Taxas Operacionais de Gateway (2.5%)", "(-) Repasse / Split de Barbeiros", "(-) Custos Operacionais / Variáveis", "(=) LUCRO LÍQUIDO REAL DO PERÍODO"],
+                    "Valores Monetários": [f"R$ {bruto_periodo:.2f}", f"R$ {taxas_estimadas:.2f}", f"R$ {repasse_calc:.2f}", f"R$ {custos_fixos_simulados:.2f}", f"R$ {lucro_real_dre:.2f}"]
+                })
+                st.table(dre_df)
 
-    with adm_menu[1]:
-        st.markdown("### 💸 Fluxos de Caixa Automatizado e Split de Gateway")
-        repasse_b = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_ativos.iterrows() if r['servico'] in SERVICOS])
-        f_c1, f_c2, f_c3 = st.columns(3)
-        with f_c1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Caixa Bruto Geral</div><div class='metric-value'>R$ {bruto_periodo:.2f}</div></div>", unsafe_allow_html=True)
-        with f_c2: 
-            st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Split Equipe</div><div class='metric-value' style='color:#ef4444;'>R$ {repasse_b:.2f
+                st.markdown("<br><div class='section-barber'>🔄 INTELIGÊNCIA DE MERCADO: PACE DE RETORNO (RECORRÊNCIA)</div>", unsafe_allow_html=True)
+                st.metric(label="Média de Retorno do Cliente à Cadeira", value="24 dias", delta="Pace Saudável de Fidelidade (Ideal: <28 dias)")
+                
+                st.markdown("<br>#### ⚡ Central de Gatilhos de Marketing CRM")
+                col_m1, col_m2 = st.columns(2)
+                with col_m1:
+                    st.markdown("<div style='background:#1e2028; padding:15px; border-radius:10px; border-left:4px solid #ef4444;'>⚡ <b>Leads Inativos (+45 dias)</b><br>Gatilho identifica 14 clientes aptos a reativação. Deseja auditar a lista antes do disparo?</div>", unsafe_allow_html=True)
+                    if st.button("🔍 Abrir e Auditar Lista de Disparo", use_container_width=True):
+                        mostrar_modal_marketing("Clientes Ausentes", ["alexandre_guerra", "danilo_santos", "luciano_souza", "paulo_higuchi"])
+
+            with adm_menu[1]:
+                st.markdown("### 💸 Fluxos de Caixa Automatizado e Split de Gateway")
+                repasse_b = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_ativos.iterrows() if r['servico'] in SERVICOS])
+                f_c1, f_c2, f_c3 = st.columns(3)
+                with f_c1: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Caixa Bruto Geral</div><div class='metric-value'>R$ {bruto_periodo:.2f}</div></div>", unsafe_allow_html=True)
+                with f_c2: st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Split Equipe</div><div class='metric-value' style='color:#ef4444;'>R$ {repasse_b:.2f}</div></div>", unsafe_allow_html=True)
