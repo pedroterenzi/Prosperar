@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 import hashlib
+import urllib.parse  # Importado para codificar o texto da URL do WhatsApp
 from datetime import datetime, timedelta, date
 from sqlalchemy import create_engine, text
 
@@ -49,6 +50,43 @@ def hash_senha(senha):
     return hashlib.sha256(str.encode(senha)).hexdigest()
 
 # =========================================================
+# 📱 FUNÇÃO DE INTEGRAÇÃO COM WHATSAPP
+# =========================================================
+def enviar_notificacao_whatsapp(barbeiro, cliente, data, horario, servico, valor, acao="agendamento"):
+    """
+    Gera uma URL de redirecionamento para o WhatsApp informando o barbeiro sobre o status da vaga.
+    De acordo com o pedido, ambos os barbeiros estão vinculados temporariamente ao celular fornecido.
+    """
+    # Celular fixado para testes conforme solicitado
+    celular_barbeiro = "5519971374936" 
+    
+    if acao == "agendamento":
+        texto = f"⚠️ *NOVO AGENDAMENTO!* 💈\n\n" \
+                f"Olá *{barbeiro}*, um novo horário foi marcado na sua cadeira!\n\n" \
+                f"👤 *Cliente:* {cliente}\n" \
+                f"📅 *Data:* {data}\n" \
+                f"⏰ *Horário:* {horario}\n" \
+                f"🛠️ *Serviço:* {servico}\n" \
+                f"💰 *Valor:* R$ {valor:.2f}\n\n" \
+                f"Fique atento ao painel!"
+    else:
+        texto = f"🚨 *AGENDAMENTO CANCELADO!* ❌\n\n" \
+                f"Olá *{barbeiro}*, um horário foi cancelado pelo cliente.\n\n" \
+                f"👤 *Cliente:* {cliente}\n" \
+                f"📅 *Data:* {data}\n" \
+                f"⏰ *Horário:* {horario}\n" \
+                f"🛠️ *Serviço:* {servico}\n\n" \
+                f"A vaga está disponível novamente na sua grade."
+
+    # Codifica o texto para formato de URL segura
+    texto_url = urllib.parse.quote(texto)
+    link_whatsapp = f"https://api.whatsapp.com/send?phone={celular_barbeiro}&text={texto_url}"
+    
+    # Injeta um script JS rápido no Streamlit para abrir em uma nova aba do navegador
+    js = f"window.open('{link_whatsapp}', '_blank');"
+    st.components.v1.html(f"<script>{js}</script>", height=0, width=0)
+
+# =========================================================
 # 🛡️ POP-UPS DIALOGS GERENCIAIS E DE CHECKOUT
 # =========================================================
 @st.dialog("💈 Confirmar e Escolher Checkout")
@@ -91,6 +129,18 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                     conn.execute(text("UPDATE usuarios_barber SET pontos_fidelidade = pontos_fidelidade + :f WHERE login = :u"), {"f": fator_pontos, "u": st.session_state['user']})
                 
                 st.session_state["ultimo_horario_salvo"] = hora
+                
+                # --- DISPARO DO WHATSAPP NO AGENDAMENTO ---
+                enviar_notificacao_whatsapp(
+                    barbeiro=barbeiro, 
+                    cliente=st.session_state['nome_usuario'], 
+                    data=data.strftime('%d/%m/%Y'), 
+                    horario=hora, 
+                    servico=servico, 
+                    valor=preco, 
+                    acao="agendamento"
+                )
+                
                 st.balloons()
                 st.rerun()
         with col_pop2:
@@ -396,12 +446,27 @@ else:
                 df_editado = st.data_editor(df_meus_cards, hide_index=True, use_container_width=True)
                 
                 if st.button("🗑️ CANCELAR HORÁRIOS SELECIONADOS", type="primary", use_container_width=True):
-                    ids_para_remover = df_editado[df_editado["Selecionar para Cancelar"] == True]["id"].tolist()
-                    if ids_para_remover:
+                    # Identifica as linhas marcadas pelo usuário para cancelamento
+                    linhas_para_cancelar = df_editado[df_editado["Selecionar para Cancelar"] == True]
+                    
+                    if not lines_para_cancelar.empty:
                         with engine.begin() as conn:
-                            for id_rem in ids_para_remover:
-                                conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(id_rem)})
-                        st.success("Horários cancelados com sucesso!")
+                            for idx_c, row_c in lines_para_cancelar.iterrows():
+                                conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(row_c['id'])})
+                                
+                                # --- DISPARO DO WHATSAPP NO CANCELAMENTO ---
+                                # Formatando data para legibilidade no Wpp
+                                data_formatada = datetime.strptime(row_c['data'], '%Y-%m-%d').strftime('%d/%m/%Y')
+                                enviar_notificacao_whatsapp(
+                                    barbeiro=row_c['barbeiro_nome'],
+                                    cliente=st.session_state['nome_usuario'],
+                                    data=data_formatada,
+                                    horario=row_c['horario'],
+                                    servico=row_c['servico'],
+                                    valor=float(row_c['valor']),
+                                    acao="cancelamento"
+                                )
+                        st.success("Horários cancelados e barbeiro notificado!")
                         st.rerun()
 
         with c_menu[1]:
@@ -409,7 +474,7 @@ else:
             txt_prontuario = df_cli['preferencias']
             if not txt_prontuario or txt_prontuario == "Nenhum":
                 txt_prontuario = "Seu barbeiro ainda não adicionou notas sobre o seu estilo. Elas aparecerão aqui assim que seu corte for personalizado!"
-            st.info(f"📋 **Ficha Técnica:** {txt_prontuario}")
+            st.info(f"📋 **Ficha Técnico:** {txt_prontuario}")
             st.markdown("#### 📸 Fotos dos meus Cortes Anteriores")
             img_c1, img_c2, _ = st.columns([2, 2, 4])
             with img_c1: st.image("https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=500", caption="Último Fade")
@@ -555,7 +620,7 @@ else:
                                 ab1, ab2, ab3 = st.columns(3)
                                 with ab1:
                                     if st.button("🏁 [ Iniciar Atendimento ]", key=f"init_c_{h_slot}", use_container_width=True): st.toast("Cadeira Ativa!")
-                                with ab2:
+                                From ab2:
                                     if st.button(" Concluir Atendimento ", key=f"done_c_{h_slot}", type="primary", use_container_width=True): st.success("Fechamento Enviado!")
                                 with ab3:
                                     if st.button("❌ [ Não Compareceu / No-Show ]", key=f"noshow_c_{h_slot}", use_container_width=True):
