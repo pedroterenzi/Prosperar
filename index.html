@@ -45,6 +45,35 @@
             margin-bottom: 20px; 
             box-shadow: 0 8px 32px rgba(0,0,0,0.4); 
         }
+
+        /* Correção Estrutural do Formulário de Login */
+        .login-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .login-form-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .login-form-group input {
+            width: 100%;
+            padding: 14px;
+            background: #222428;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .login-form-group input:focus { border-color: var(--accent-color); outline: none; }
         
         h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
         .gold-text { color: var(--accent-color); }
@@ -68,7 +97,7 @@
         .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
         .btn-gold:hover { background: var(--accent-hover); transform: translateY(-1px); }
 
-        /* Estilização dos Cards Modernos (Padrão Streamlit Premium) */
+        /* Grade de Cards Modernos */
         .cards-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
         
         .modern-card {
@@ -91,29 +120,14 @@
         .modern-card .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
         .modern-card .price { font-weight: 800; font-size: 16px; color: var(--success-color); }
 
-        /* Grade de Horários por Turno */
+        /* Turnos e Horários */
         .turno-title { font-size: 13px; font-weight: 700; color: var(--accent-color); margin: 18px 0 8px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; }
         .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
         .btn-horario { background: #222428; color: white; border: 1px solid var(--border-color); padding: 12px 4px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; }
         .btn-horario:hover { border-color: #666; }
         .btn-horario.selecionado { background: var(--accent-color); color: black; border-color: var(--accent-color); font-weight: 700; }
 
-        /* Métricas Dashboard */
-        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-        .metric-block { background: var(--card-bg); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px; text-align: center; }
-        .metric-block span { display: block; font-size: 22px; font-weight: 800; color: white; margin-bottom: 4px; }
-        .metric-block label { margin: 0; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; }
-
-        /* Kanban Operação */
-        .kanban-item { background: #222428; border: 1px solid var(--border-color); padding: 18px; border-radius: 16px; margin-bottom: 12px; }
-        .kanban-meta { font-size: 13px; color: var(--text-muted); margin: 6px 0 14px; }
-        .kanban-actions { display: flex; gap: 8px; }
-        .btn-kb { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; color: white; }
-        .btn-kb.checkin { background: var(--blue-color); }
-        .btn-kb.done { background: var(--success-color); }
-        .btn-kb.noshow { background: var(--danger-color); }
-
-        /* Menu de Navegação */
+        /* Navegação */
         .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(26, 27, 30, 0.9); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px 8px; border-radius: 24px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); z-index: 999; }
         .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; font-weight: 600; }
         .nav-item.ativo { color: var(--accent-color); }
@@ -127,22 +141,27 @@
 <div class="app-container">
 
     <div id="tela-login" class="card" style="margin-top: 40px;">
-        <h2 style="text-align: center; font-size: 24px;">Acessar Conta</h2>
-        <label>Usuário / WhatsApp:</label>
-        <input type="text" id="login-usuario" placeholder="Ex: gabriel">
+        <h2 style="text-align: center; font-size: 24px; margin-bottom: 24px;" class="gold-text">Acessar Conta</h2>
         
-        <label>Senha:</label>
-        <input type="password" id="login-senha" placeholder="••••••">
+        <div class="login-form-group">
+            <label for="login-usuario">Usuário / WhatsApp:</label>
+            <input type="text" id="login-usuario" placeholder="Ex: gabriel">
+        </div>
         
-        <button class="btn-gold" id="btn-entrar" style="margin-top: 30px;">Entrar no Sistema</button>
-        <div id="erro-login" style="text-align: center; margin-top: 20px; font-weight: 600; font-size: 14px;"></div>
+        <div class="login-form-group">
+            <label for="login-senha">Senha:</label>
+            <input type="password" id="login-senha" placeholder="••••••">
+        </div>
+        
+        <button class="btn-gold" id="btn-entrar" style="margin-top: 16px;">Entrar no Sistema</button>
+        <div id="erro-login" style="text-align: center; margin-top: 20px; font-weight: 600; font-size: 14px; color: var(--danger-color);"></div>
     </div>
 
     <div id="conteudo-app" class="escondido">
         
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 20px;">
-                <h2 id="boas-vistas-cliente" style="font-size: 24px; margin-bottom: 4px;">Olá, Pedro!</h2>
+                <h2 id="boas-vistas-cliente" style="font-size: 24px; margin-bottom: 4px;">Olá!</h2>
                 <p style="margin:0; color: var(--text-muted); font-size: 14px;">Bora atualizar seu estilo hoje?</p>
             </div>
             
@@ -173,26 +192,15 @@
         <section id="aba-estilo" class="escondido">
             <h3>Meu Estilo</h3>
             <div class="card">
-                <p id="txt-prontuario" style="font-size: 14px; color: var(--text-muted); line-height: 1.6;"></p>
-            </div>
-        </section>
-
-        <section id="aba-fidelidade" class="escondido">
-            <h3>Fidelidade</h3>
-            <div class="card" style="text-align: center;">
-                <h4>Pontuação Acumulada</h4>
-                <p style="font-size: 28px; font-weight: 800; color: var(--accent-color);" id="txt-pontos">0</p>
+                <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6;">Nenhum detalhe técnico registrado para este perfil ainda.</p>
             </div>
         </section>
 
         <section id="aba-barbeiro" class="escondido">
-            <h2 id="txt-welcome-barbeiro">Painel do Profissional</h2>
-            <div class="metrics-grid">
-                <div class="metric-block"><span id="b-meta-agendamentos">0</span><label>Agendamentos</label></div>
-                <div class="metric-block"><span id="b-meta-faturamento" class="gold-text">R$ 0</span><label>Comissão</label></div>
+            <h2>Painel do Profissional</h2>
+            <div class="card">
+                <p>Gerenciamento de fila ativa do dia.</p>
             </div>
-            <h3>Fila de Atendimento do Dia</h3>
-            <div id="kanban-agenda-barbeiro"></div>
         </section>
 
         <nav class="nav-inferior" id="menu-navegacao"></nav>
