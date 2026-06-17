@@ -19,7 +19,7 @@
             --blue-color: #3b82f6;
         }
 
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: '-apple-system', BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; padding-bottom: 100px; }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: '-apple-system', BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; padding-bottom: 120px; }
         .app-container { width: 100%; max-width: 480px; padding: 20px; box-sizing: border-box; }
         
         .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 24px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
@@ -36,6 +36,7 @@
         .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
         .btn-gold:hover { background: var(--accent-hover); }
         .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+        .btn-small-danger { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
 
         .cards-container { display: flex; flex-direction: column; gap: 10px; }
         .modern-card { background: #1a1b1e; border: 1px solid var(--border-color); padding: 16px; border-radius: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
@@ -55,12 +56,10 @@
         .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
         .kpi-card .kpi-val { font-size: 20px; font-weight: 800; margin-top: 4px; }
 
-        /* Filtro Global Unificado */
         .filtros-tempo-container { display: flex; gap: 4px; margin-bottom: 12px; background: #1a1b1e; padding: 4px; border-radius: 10px; border: 1px solid var(--border-color); }
         .btn-filtro-tempo { flex: 1; background: none; border: none; color: var(--text-muted); padding: 8px 2px; font-size: 11px; font-weight: 700; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
         .btn-filtro-tempo.ativo { background: var(--accent-color); color: #000; }
 
-        /* Estilização da seleção de intervalo personalizado */
         .intervalo-custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 
         .lista-backoffice { display: flex; flex-direction: column; gap: 10px; }
@@ -98,13 +97,13 @@
         <div id="form-login">
             <div class="form-group">
                 <label>Usuário / Login:</label>
-                <input type="text" id="login-usuario" placeholder="Digite seu usuário para testes">
+                <input type="text" id="login-usuario" placeholder="Digite seu usuário">
             </div>
             <div class="form-group">
                 <label>Senha:</label>
                 <input type="password" id="login-senha" placeholder="•••••">
             </div>
-            <button class="btn-gold" id="btn-entrar" style="margin-top: 10px;">Entrar no System</button>
+            <button class="btn-gold" id="btn-entrar" style="margin-top: 10px;">Entrar no Sistema</button>
         </div>
 
         <div id="form-cadastro" class="escondido">
@@ -143,7 +142,15 @@
     <div id="conteudo-app" class="escondido">
         
         <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 14px; border-radius: 16px; border: 1px solid var(--border-color);">
-            <h4 style="font-size: 12px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral (Painel):</h4>
+            <h4 style="font-size: 11px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral:</h4>
+            
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label for="filtro-barbeiro-alvo">Visualizar dados de:</label>
+                <select id="filtro-barbeiro-alvo" onchange="recarregarAbaAtivaAdm()" style="padding: 10px; font-size: 13px; background: #111214;">
+                    <option value="todos">-- Todos os Barbeiros (Geral) --</option>
+                </select>
+            </div>
+
             <div class="filtros-tempo-container">
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('hoje', this)">Hoje</button>
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('ontem', this)">Ontem</button>
@@ -152,7 +159,7 @@
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('personalizado', this)">Período</button>
             </div>
             <div id="box-escolha-data-custom" class="escondido" style="margin-top: 10px;">
-                <label style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Selecione o Intervalo do Período:</label>
+                <label style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Intervalo do Período:</label>
                 <div class="intervalo-custom-grid">
                     <div class="form-group" style="margin-bottom:0;">
                         <input type="date" id="filtro-data-inicio" onchange="atualizarFiltroDataRange()" style="padding: 10px; font-size: 13px;">
@@ -200,50 +207,78 @@
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores baseados no período selecionado:</p>
             
             <div class="grid-indicadores">
-                <div class="kpi-card">
+                <div class="kpi-card restrito-adm">
                     <div class="kpi-label">Faturamento Total</div>
                     <div class="kpi-val" id="kpi-faturamento" style="color: var(--success-color);">R$ 0,00</div>
                 </div>
-                <div class="kpi-card">
+                <div class="kpi-card restrito-adm">
                     <div class="kpi-label">Ticket Médio Real</div>
                     <div class="kpi-val" id="kpi-ticket">R$ 0,00</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">Ocupação das Cadeiras</div>
-                    <div class="kpi-val" id="kpi-ocupacao">0%</div>
+                    <div class="kpi-label">Cortes Executados</div>
+                    <div class="kpi-val" id="kpi-ocupacao">0</div>
                 </div>
-                <div class="kpi-card">
+                <div class="kpi-card restrito-adm">
                     <div class="kpi-label">Taxa de No-Show</div>
                     <div class="kpi-val" id="kpi-noshow" style="color: var(--danger-color);">0%</div>
                 </div>
             </div>
 
-            <div class="card">
+            <div class="card escondido" id="card-rendimentos-barbeiro">
+                <h3 class="gold-text">Minha Carteira Pro</h3>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:-8px;">Seus ganhos acumulados filtrados por período:</p>
+                <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.08); border-color: var(--success-color);">
+                    <div>
+                        <strong style="font-size:16px;">Sua Comissão Liquida</strong><br>
+                        <span style="font-size:11px; color:var(--text-muted);" id="minha-breakdown-comissao">Carregando parcelas...</span>
+                    </div>
+                    <div style="color: var(--success-color); font-weight:800; font-size: 22px;" id="minha-comissao-total">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="card restrito-adm">
                 <h3>Divisão Automática de Comissão (Split Real)</h3>
                 <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; font-size: 12px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
                     <div id="detalhe-servicos">Serviços Brutos: R$ 0,00</div>
                     <div id="detalhe-produtos">Produtos Brutos: R$ 0,00</div>
                 </div>
-                <div class="lista-backoffice">
-                    <div class="item-backoffice">
-                        <div>
-                            <strong>Gabriel (Proprietário)</strong><br>
-                            <span style="font-size:11px; color:var(--text-muted);" id="breakdown-gabriel">Serv: R$0 | Prod: R$0 | Gorj: R$0</span>
-                        </div>
-                        <div style="color: var(--success-color); font-weight:800; font-size: 15px;" id="split-gabriel">R$ 0,00</div>
+                <div class="lista-backoffice" id="lista-split-comissoes-equipe">
                     </div>
-                    <div class="item-backoffice">
-                        <div>
-                            <strong>Lucas Barber</strong><br>
-                            <span style="font-size:11px; color:var(--text-muted);" id="breakdown-lucas">Serv: R$0 | Prod: R$0 | Gorj: R$0</span>
-                        </div>
-                        <div style="color: var(--success-color); font-weight:800; font-size: 15px;" id="split-lucas">R$ 0,00</div>
+            </div>
+
+            <div class="card restrito-adm" style="border-color: rgba(204,153,51,0.3);">
+                <h3>👥 Gerenciamento de Barbeiros</h3>
+                <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Cadastre colaboradores e defina senhas operacionais.</p>
+                
+                <div style="background: #222428; padding: 14px; border-radius: 12px; margin-bottom: 15px;">
+                    <h4 style="font-size:13px; margin-bottom:10px;">+ Incluir Novo Profissional</h4>
+                    <div class="form-group">
+                        <input type="text" id="adm-barbeiro-nome" placeholder="Nome Profissional (Ex: Igor Barber)">
                     </div>
+                    <div class="form-group">
+                        <input type="text" id="adm-barbeiro-login" placeholder="Login de Acesso">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="adm-barbeiro-senha" placeholder="Senha de Acesso">
+                    </div>
+                    <div class="form-group">
+                        <select id="adm-barbeiro-comissao">
+                            <option value="0.30">Comissão: 30%</option>
+                            <option value="0.40" selected>Comissão: 40%</option>
+                            <option value="0.50">Comissão: 50%</option>
+                        </select>
+                    </div>
+                    <button class="btn-gold" onclick="incluirBarbeiroSistema()" style="padding:10px; font-size:14px;">Salvar Novo Membro</button>
                 </div>
+
+                <h4>Corpo Técnico Atual</h4>
+                <div class="lista-backoffice" id="lista-equipe-cadastrada" style="margin-top:10px;">
+                    </div>
             </div>
         </section>
 
-        <section id="aba-adm-mkt" class="escondido">
+        <section id="aba-adm-mkt" class="escondido restrito-adm">
             <h3>CRM e Comunicação Ativa</h3>
             <div class="card" style="margin-bottom:15px;">
                 <h4>Carteira de Clientes Cadastrados</h4>
@@ -285,11 +320,9 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Profissional:</label>
+                    <label>Profissional Designado:</label>
                     <select id="encaixe-barbeiro">
-                        <option value="Gabriel (Proprietário)">Gabriel (Proprietário)</option>
-                        <option value="Lucas Barber">Lucas Barber</option>
-                    </select>
+                        </select>
                 </div>
                 <div class="intervalo-custom-grid">
                     <div class="form-group">
@@ -318,15 +351,7 @@
             <h3>Business Intelligence</h3>
             
             <div class="grid-indicadores" id="analytics-retencao">
-                <div class="kpi-card">
-                    <div class="kpi-label">Taxa de Retenção</div>
-                    <div class="kpi-val" id="kpi-retencao" style="color: var(--accent-color);">0%</div>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">LTV Médio (Vida Útil)</div>
-                    <div class="kpi-val" id="kpi-ltv" style="color: var(--success-color);">R$ 0,00</div>
-                </div>
-            </div>
 
             <div class="card">
                 <h4>Volumetria por Turnos</h4>
