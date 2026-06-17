@@ -60,6 +60,9 @@
         .btn-filtro-tempo { flex: 1; background: none; border: none; color: var(--text-muted); padding: 8px 2px; font-size: 11px; font-weight: 700; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
         .btn-filtro-tempo.ativo { background: var(--accent-color); color: #000; }
 
+        /* Estilização da seleção de intervalo personalizado */
+        .intervalo-custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+
         .lista-backoffice { display: flex; flex-direction: column; gap: 10px; }
         .item-backoffice { background: #222428; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
         
@@ -77,7 +80,6 @@
         .escondido { display: none !important; }
         .btn-status { padding: 6px 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
         
-        /* Badges de Cores Baseadas nas Classes Clientes do CRM */
         .badge-sucesso { background-color: rgba(16, 185, 129, 0.2); color: #10b981; }
         .badge-alerta { background-color: rgba(204, 153, 51, 0.2); color: var(--accent-color); }
         .badge-perigo { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
@@ -100,7 +102,7 @@
             </div>
             <div class="form-group">
                 <label>Senha:</label>
-                <input type="password" id="login-senha" placeholder="••••••">
+                <input type="password" id="login-senha" placeholder="•••••">
             </div>
             <button class="btn-gold" id="btn-entrar" style="margin-top: 10px;">Entrar no System</button>
         </div>
@@ -147,11 +149,18 @@
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('ontem', this)">Ontem</button>
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('7dias', this)">7 Dias</button>
                 <button class="btn-filtro-tempo ativo" onclick="mudarFiltroGlobalAdm('mes_atual', this)">Mês Atual</button>
-                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('personalizado', this)">Escolher Dia</button>
+                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('personalizado', this)">Período</button>
             </div>
-            <div id="box-escolha-data-custom" class="form-group escondido" style="margin-bottom: 0; margin-top: 10px;">
-                <label style="font-size: 11px;">Selecione o Dia para Análise/Monitor:</label>
-                <input type="date" id="filtro-data-especifica" onchange="atualizarFiltroDataEspecifica(this.value)" style="padding: 10px; font-size: 13px;">
+            <div id="box-escolha-data-custom" class="escondido" style="margin-top: 10px;">
+                <label style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Selecione o Intervalo do Período:</label>
+                <div class="intervalo-custom-grid">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <input type="date" id="filtro-data-inicio" onchange="atualizarFiltroDataRange()" style="padding: 10px; font-size: 13px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <input type="date" id="filtro-data-fim" onchange="atualizarFiltroDataRange()" style="padding: 10px; font-size: 13px;">
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -206,18 +215,24 @@
 
             <div class="card">
                 <h3>Divisão Automática de Comissão (Split Real)</h3>
-                <div style="display: flex; gap: 15px; margin-bottom: 15px; font-size: 12px; color: var(--text-muted); font-weight: 600;">
-                    <div id="detalhe-servicos">Serviços: R$ 0,00</div>
-                    <div id="detalhe-produtos">Produtos: R$ 0,00</div>
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; font-size: 12px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                    <div id="detalhe-servicos">Serviços Brutos: R$ 0,00</div>
+                    <div id="detalhe-produtos">Produtos Brutos: R$ 0,00</div>
                 </div>
                 <div class="lista-backoffice">
                     <div class="item-backoffice">
-                        <div><strong>Gabriel (Proprietário)</strong><br><span style="font-size:12px; color:var(--text-muted);">Comissão: 50%</span></div>
-                        <div style="color: var(--success-color); font-weight:800;" id="split-gabriel">R$ 0,00</div>
+                        <div>
+                            <strong>Gabriel (Proprietário)</strong><br>
+                            <span style="font-size:11px; color:var(--text-muted);" id="breakdown-gabriel">Serv: R$0 | Prod: R$0 | Gorj: R$0</span>
+                        </div>
+                        <div style="color: var(--success-color); font-weight:800; font-size: 15px;" id="split-gabriel">R$ 0,00</div>
                     </div>
                     <div class="item-backoffice">
-                        <div><strong>Lucas Barber</strong><br><span style="font-size:12px; color:var(--text-muted);">Comissão: 40%</span></div>
-                        <div style="color: var(--success-color); font-weight:800;" id="split-lucas">R$ 0,00</div>
+                        <div>
+                            <strong>Lucas Barber</strong><br>
+                            <span style="font-size:11px; color:var(--text-muted);" id="breakdown-lucas">Serv: R$0 | Prod: R$0 | Gorj: R$0</span>
+                        </div>
+                        <div style="color: var(--success-color); font-weight:800; font-size: 15px;" id="split-lucas">R$ 0,00</div>
                     </div>
                 </div>
             </div>
