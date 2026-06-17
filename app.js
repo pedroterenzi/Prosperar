@@ -2,6 +2,7 @@ const API_URL = "https://prosperar.onrender.com";
 
 let usuarioLogado = null;
 let perfilLogado = null;
+let nomeUsuarioLogado = null;
 
 let servicoSelecionado = null;
 let barbeiroSelecionado = null;
@@ -27,6 +28,14 @@ const HORARIOS_PADRAO = [
     { turno: "🌙 Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
 ];
 
+// 🔥 CORREÇÃO 1: ESCUTADOR DE EVENTO DA DATA CORRIGIDO PARA ATUALIZAÇÃO IMEDIATA
+document.getElementById('data').addEventListener('change', () => {
+    // Só renderiza se o barbeiro já tiver sido escolhido, evitando erros na tela
+    if (barbeiroSelecionado) {
+        renderizarGradeHorariosReais();
+    }
+});
+
 // Alternador visual do formulário de autenticação
 function alternarAbasAuth(aba) {
     document.getElementById('tab-login').classList.remove('active');
@@ -43,7 +52,7 @@ function alternarAbasAuth(aba) {
     }
 }
 
-// Fluxo de Cadastro de Usuário no Banco Neon
+// Fluxo de Cadastro de Usuário
 document.getElementById('btn-cadastrar').addEventListener('click', async () => {
     const nome = document.getElementById('cad-nome').value.trim();
     const login = document.getElementById('cad-login').value.trim();
@@ -74,7 +83,7 @@ document.getElementById('btn-cadastrar').addEventListener('click', async () => {
     }
 });
 
-// Fluxo de Login com Nível de Permissão Real
+// Fluxo de Login
 document.getElementById('btn-entrar').addEventListener('click', async () => {
     const login = document.getElementById('login-usuario').value.trim().toLowerCase();
     const senha = document.getElementById('login-senha').value;
@@ -92,6 +101,7 @@ document.getElementById('btn-entrar').addEventListener('click', async () => {
             const user = await res.json();
             usuarioLogado = user.login;
             perfilLogado = user.perfil;
+            nomeUsuarioLogado = user.nome;
 
             document.getElementById('tela-autenticacao').classList.add('escondido');
             document.getElementById('conteudo-app').classList.remove('escondido');
@@ -295,7 +305,7 @@ document.getElementById('btn-executar-encaixe').addEventListener('click', async 
         });
 
         if(res.ok) {
-            alert("⚡ Encaixe manual registrado com sucesso no banco de dados!");
+            alert("⚡ Encaixe manual registrado com sucesso no banco dados!");
             document.getElementById('encaixe-nome').value = "";
             carregarModoRecepcaoKanban();
         }
@@ -307,7 +317,13 @@ document.getElementById('btn-executar-encaixe').addEventListener('click', async 
 // --- SISTEMA CORE DE AGENDAMENTO (CLIENTE) ---
 async function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios');
-    if (!container || !barbeiroSelecionado) return;
+    if (!container) return;
+    
+    // 🔥 CORREÇÃO 2: Se o barbeiro sumiu ou mudou de aba, limpa e avisa para evitar carregar dados fantasmas
+    if (!barbeiroSelecionado) {
+        container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; text-align:center;'>⚠️ Escolha o profissional acima para abrir os horários livres.</p>";
+        return;
+    }
 
     const dataSelecionada = document.getElementById('data').value;
     let ocupados = [];
@@ -320,7 +336,9 @@ async function renderizarGradeHorariosReais() {
                 .filter(a => a.data === dataSelecionada && String(a.barbeiro).toLowerCase().includes(barbeiroSelecionado) && a.status !== 'Falta')
                 .map(a => String(a.hora).trim());
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error("Erro ao puxar agenda", e);
+    }
 
     container.innerHTML = "";
     HORARIOS_PADRAO.forEach(g => {
@@ -367,12 +385,11 @@ document.getElementById('btnPreAgendar').addEventListener('click', (e) => {
     document.getElementById('modal-confirmacao').classList.remove('escondido');
 });
 
-// EVENTO DE CONFIRMAÇÃO DO POP-UP OPERACIONALIZADO (CORRIGIDO)
+// EVENTO DE CONFIRMAÇÃO DO POP-UP OPERACIONALIZADO
 document.getElementById('btn-confirmar-modal').addEventListener('click', async (e) => {
     e.preventDefault();
     
-    // Tratativa para evitar que o código trave caso o usuário não esteja mapeado corretamente
-    const nomeCliente = usuarioLogado ? usuarioLogado.toUpperCase() : "CLIENTE_ANONIMO";
+    const nomeCliente = nomeUsuarioLogado ? nomeUsuarioLogado.toUpperCase() : "CLIENTE_ANONIMO";
     
     const payload = {
         cliente: nomeCliente,
@@ -383,7 +400,6 @@ document.getElementById('btn-confirmar-modal').addEventListener('click', async (
         pagamento: pagamentoSelecionado || "Balcão"
     };
 
-    // Alerta visual simples para você ver se o botão acordou
     const botao = document.getElementById('btn-confirmar-modal');
     botao.innerText = "Gravando...";
     botao.disabled = true;
@@ -397,12 +413,12 @@ document.getElementById('btn-confirmar-modal').addEventListener('click', async (
 
         if (res.ok) {
             document.getElementById('modal-confirmacao').classList.add('escondido');
-            alert("✨ Agendamento gravado com sucesso no Banco Neon!");
+            alert("✨ Agendamento gravado com sucesso!");
             
             try {
                 enviarMensagemWhatsApp(payload);
             } catch(wppErr) {
-                console.error("Popup de WhatsApp bloqueado ou falhou:", wppErr);
+                console.error("WhatsApp bloqueado:", wppErr);
             }
 
             horarioSelecionado = null;
@@ -416,11 +432,11 @@ document.getElementById('btn-confirmar-modal').addEventListener('click', async (
         console.error("Erro na requisição:", e);
         alert("Erro ao conectar com o servidor. Verifique sua API.");
     } finally {
-        // Restaura o botão original após a operação terminar
         botao.innerText = "Confirmar";
         botao.disabled = false;
     }
 });
+
 function enviarMensagemWhatsApp(dados) {
     const texto = `👋 Olá! Segue a confirmação do meu agendamento na Prosperar Club:\n\n👤 Cliente: ${dados.cliente}\n💇‍♂️ Procedimento: ${dados.servico}\n💈 Profissional: ${dados.barbeiro}\n📅 Data: ${dados.data}\n⏰ Horário: ${dados.hora}\n💳 Meio de Pagamento: ${dados.pagamento}\n\nObrigado!`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
@@ -428,21 +444,24 @@ function enviarMensagemWhatsApp(dados) {
 
 async function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos');
-    if (!container) return;
+    if (!container || !usuarioLogado) return;
     try {
         const res = await fetch(`${API_URL}/agendamentos`);
         if (res.ok) {
             const lista = await res.json();
-            const meus = lista.filter(a => a.cliente.toUpperCase() === usuarioLogado.toUpperCase());
+            const meus = lista.filter(a => 
+                a.cliente.toUpperCase() === nomeUsuarioLogado.toUpperCase() || 
+                a.cliente.toUpperCase() === usuarioLogado.toUpperCase()
+            );
 
             container.innerHTML = meus.length === 0 ? "<p>Nenhum agendamento ativo.</p>" : "";
             meus.forEach(item => {
                 const div = document.createElement('div');
                 div.className = "card";
                 div.innerHTML = `
-                    <strong class="gold-text">${item.servico} (${item.status})</strong><br>
+                    <strong class="gold-text">${item.servico} (${item.status || 'Pendente'})</strong><br>
                     <span>${item.barbeiro} - ${item.data} às ${item.hora}</span>
-                    <button class="btn-danger" onclick="cancelarAgendamento(${item.id})">Cancelar Reserva</button>
+                    <button class="btn-danger" style="margin-top: 8px; cursor: pointer;" onclick="cancelarAgendamento(${item.id})">Cancelar Reserva</button>
                 `;
                 container.appendChild(div);
             });
@@ -451,9 +470,14 @@ async function carregarMeusAgendamentosDoBanco() {
 }
 
 async function cancelarAgendamento(id) {
-    if(!confirm("Deseja cancelar?")) return;
-    await fetch(`${API_URL}/agendamentos/${id}`, { method: 'DELETE' });
-    carregarMeusAgendamentosDoBanco();
+    if(!confirm("Deseja cancelar esse agendamento?")) return;
+    try {
+        await fetch(`${API_URL}/agendamentos/${id}`, { method: 'DELETE' });
+        carregarMeusAgendamentosDoBanco();
+        renderizarGradeHorariosReais();
+    } catch (e) {
+        alert("Erro ao deletar agendamento.");
+    }
 }
 
 function renderizarFormularioCliente() {
@@ -489,6 +513,8 @@ function renderizarFormularioCliente() {
         };
         boxP.appendChild(div);
     });
+    
+    // Injeta a data de hoje por padrão
     document.getElementById('data').value = new Date().toISOString().split('T')[0];
 }
 
