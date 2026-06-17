@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 import hashlib
-import urllib.parse  # Importado para codificar o texto da URL do WhatsApp
+import urllib.parse  
 from datetime import datetime, timedelta, date
 from sqlalchemy import create_engine, text
 
@@ -45,6 +45,15 @@ PRODUTOS = {
 @st.cache_resource
 def obter_engine():
     return create_engine(CONNECTION_STRING, pool_pre_ping=True)
+
+# 🟢 INCLUSÃO: Cache dinâmico rápido de dados com TTL (tempo de vida) de 15s para evitar gargalo de re-run
+@st.cache_data(ttl=15)
+def buscar_dados_sql(query_texto, params=None):
+    engine = obter_engine()
+    with engine.connect() as conn:
+        if params:
+            return pd.read_sql_query(text(query_texto), conn, params=params)
+        return pd.read_sql_query(text(query_texto), conn)
 
 def hash_senha(senha):
     return hashlib.sha256(str.encode(senha)).hexdigest()
@@ -101,6 +110,7 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
         """, unsafe_allow_html=True)
         if st.button("Concluir e Atualizar Tela", use_container_width=True, type="primary"):
             st.session_state["ultimo_horario_salvo"] = None  
+            st.invalidate_overrides() # Limpa cache de dados antigos
             st.rerun()
     else:
         st.markdown("#### Como deseja realizar o pagamento?")
@@ -119,12 +129,10 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                         VALUES (:u, :b, :d, :h, :s, :v, :fp)
                     """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco, "fp": forma_f})
                     
-                    conn.execute(text("UPDATE usuarios_barber SET pontos_fidelidade = pontos_fidelidade + :f WHERE login = :u"), {"f": fator_pontos, "u": st.session_state['user']})
+                    conn.execute(text("UPDATE usuarios_barber SET pontos_fidelidade = pontos_fidelidade + :f WHERE login = :u"), {"f": faktor_pontos, "u": st.session_state['user']})
                 
-                # Armazena o estado para indicar sucesso no modal
                 st.session_state["ultimo_horario_salvo"] = hora
                 
-                # --- CORREÇÃO: Disparo seguro do WhatsApp antes do encerramento da interface ---
                 enviar_notificacao_whatsapp(
                     barbeiro=barbeiro, 
                     cliente=st.session_state['nome_usuario'], 
@@ -155,8 +163,7 @@ def mostrar_modal_marketing(titulo_campanha, lista_clientes):
 @st.dialog("📋 Histórico Analítico de Atendimentos")
 def mostrar_auditoria_barbeiro(barbeiro_nome, data_i, data_f):
     st.markdown(f"### Histórico de Cadeira de {barbeiro_nome}")
-    engine = obter_engine()
-    df_auditar = pd.read_sql_query(text("SELECT data, horario, cliente_login, servico, valor, status FROM agendamentos WHERE barbeiro_nome = :b AND data BETWEEN :ini AND :fim ORDER BY data DESC"), engine, params={"b": barbeiro_nome, "ini": str(data_i), "fim": str(data_f)})
+    df_auditar = buscar_dados_sql("SELECT data, horario, cliente_login, servico, valor, status FROM agendamentos WHERE barbeiro_nome = :b AND data BETWEEN :ini AND :fim ORDER BY data DESC", params={"b": barbeiro_nome, "ini": str(data_i), "fim": str(data_f)})
     st.dataframe(df_auditar, use_container_width=True)
 
 @st.dialog("🧴 Lançar Venda Rápida de Produto")
@@ -336,12 +343,12 @@ else:
                 st.session_state["barb_fluxo"] = last_r['barbeiro_nome']
                 st.toast("🎯 Preferências salvas! Selecione a data e o horário na linha do tempo abaixo.")
 
-        df_meus_cards = pd.read_sql_query(text("""
+        df_meus_cards = buscar_dados_sql("""
             SELECT id, barbeiro_nome, data, horario, servico, valor 
             FROM agendamentos 
             WHERE cliente_login = :u AND status = 'Agendado' AND data >= :hoje
             ORDER BY data ASC, horario ASC
-        """), engine, params={"u": st.session_state['user'], "hoje": data_hoje_str})
+        """, params={"u": st.session_state['user'], "hoje": data_hoje_str})
         
         if not df_meus_cards.empty:
             df_meus_cards = df_meus_cards[~((df_meus_cards['data'] == data_hoje_str) & (df_meus_cards['horario'] < hora_atual_str))]
@@ -413,7 +420,7 @@ else:
             st.markdown("<div class='section-barber'>PASSO 3: GRADE DE HORÁRIOS ACESSÍVEL</div>", unsafe_allow_html=True)
             data_sel = st.date_input("Selecione o Dia da Cadeira:", date.today(), min_value=date.today(), key="data_fluxo_cli")
             
-            df_oc = pd.read_sql_query(text("SELECT horario FROM agendamentos WHERE barbeiro_nome = :b AND data = :d AND status = 'Agendado'"), engine, params={"b": barb_fluxo, "d": str(data_sel)})
+            df_oc = buscar_dados_sql("SELECT horario FROM agendamentos WHERE barbeiro_nome = :b AND data = :d AND status = 'Agendado'", params={"b": barb_fluxo, "d": str(data_sel)})
             ocupados_list = df_oc['horario'].tolist()
             eh_hoje = (data_sel == date.today())
             
@@ -448,7 +455,7 @@ else:
                 if st.button("🗑️ CANCELAR HORÁRIOS SELECIONADOS", type="primary", use_container_width=True):
                     linhas_para_cancelar = df_editado[df_editado["Selecionar para Cancelar"] == True]
                     
-                    if not linhas_para_cancelar.empty:
+                    if not lines_para_cancelar.empty:
                         with engine.begin() as conn:
                             for idx_c, row_c in linhas_para_cancelar.iterrows():
                                 conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(row_c['id'])})
@@ -528,19 +535,18 @@ else:
         if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)" or st.session_state['perfil'] == 'barbeiro':
             barbeiro_ativo = "Gabriel" if st.session_state['perfil'] == 'admin' else st.session_state['nome_usuario']
             
-            with engine.connect() as conn:
-                df_b_hoje = pd.read_sql_query(text("""
-                    SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, a.status,
-                           u.nome as cliente_nome, u.preferencias, u.celular 
-                    FROM agendamentos a 
-                    LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
-                    WHERE a.barbeiro_nome = :b AND a.data = :d ORDER BY a.horario ASC
-                """), conn, params={"b": barbeiro_ativo, "d": str(date.today())})
+            # Captura base de dados em tempo real via cache
+            df_b_hoje = buscar_dados_sql("""
+                SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, a.status,
+                       u.nome as cliente_nome, u.preferencias, u.celular 
+                FROM agendamentos a 
+                LEFT JOIN usuarios_barber u ON a.cliente_login = u.login 
+                WHERE a.barbeiro_nome = :b AND a.data = :d ORDER BY a.horario ASC
+            """, params={"b": barbeiro_ativo, "d": str(date.today())})
             
             faturamento_cadeira = df_b_hoje['valor'].sum()
             comissao_b_acumulada = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_b_hoje.iterrows() if r['servico'] in SERVICOS])
             
-            # --- 🛠️ CORREÇÃO DE SYNC: FILTRO DE HORÁRIO REAL DO BANNER DO BARBEIRO (image_8890a2.jpg) ---
             agora_b = datetime.utcnow() - timedelta(hours=3)
             hora_atual_str = agora_b.strftime("%H:%M")
             
@@ -570,6 +576,7 @@ else:
             
             b_pilar1, b_pilar2 = st.tabs(["🎛️ Quadro de Comandos (Bancada)", "💰 Meu Extrato & Comissões"])
             
+            # --- 🚀 RECONSTRUÇÃO: TURNOS DA BANCADA FRAGMENTADOS CONTRA RE-RUN COMPLETO ---
             with b_pilar1:
                 st.markdown(f"## 🎛️ Quadro de Comandos de Hoje — {barbeiro_ativo}")
                 k_col1, k_col2, k_col3 = st.columns(3)
@@ -587,59 +594,56 @@ else:
                             break
                     st.markdown(f"<div class='metric-card-barber'><div class='metric-title'>Próxima Cadeira Vaga</div><div class='metric-value' style='color:#3b82f6;'>{vago_b}</div></div>", unsafe_allow_html=True)
                 
-                st.markdown("<br><div class='section-barber'>📋 SEU FLUXO DE ATENDIMENTO DE HOJE (BOTÕES GRANDES DE BANCADA)</div>", unsafe_allow_html=True)
-                mapa_b = df_b_hoje.set_index('horario').to_dict(orient='index')
+                st.markdown("<br><div class='section-barber'>📋 SEU FLUXO DE ATENDIMENTO DE HOJE (OPERADO SEM RE-RUN GLOBAL)</div>", unsafe_allow_html=True)
                 
-                for h_slot in horarios_completos:
-                    if h_slot in mapa_b:
-                        reg_c = mapa_b[h_slot]
-                        status_c = reg_c['status']
-                        
-                        if status_c == 'Agendado':
-                            serv_nome = reg_c['servico']
-                            cor_c = SERVICOS[serv_nome]['cor'] if serv_nome in SERVICOS else "#1e2028"
+                # Container fragmentado isolado: cliques aqui dentro recarregam apenas a lista de botões
+                @st.fragment
+                def renderizar_bancada_fragmentada(mapa_dados_hoje):
+                    for h_slot in horarios_completos:
+                        if h_slot in mapa_dados_hoje:
+                            reg_c = mapa_dados_hoje[h_slot]
+                            status_c = reg_c['status']
                             
-                            st.markdown(f"""
-                                <div style="background: {cor_c}; padding: 16px; border-radius: 12px; border: 1px solid #2a2d3a; margin-bottom: 8px;">
-                                    <span style="font-size:1.2rem; font-weight:800; color:#fff;">⏰ {h_slot} — 👤 {reg_c['cliente_nome']}</span> 
-                                    <span style="background:#ffffff20; font-size:0.75rem; padding:2px 8px; border-radius:10px; margin-left:10px;">🛠️ {serv_nome}</span>
-                                </div>
-                            """, unsafe_allow_html=True)
-                            
-                            with st.expander(f"⚙️ Expandir Prontuário de {reg_c['cliente_nome']}"):
-                                txt_técnico = reg_c['preferencias'] if reg_c['preferencias'] != "Nenhum" else "Seu barbeiro ainda não adicionou notas sobre o seu estilo."
-                                st.info(f"📋 **Notas Técnicas Anteriores:** {txt_técnico}")
+                            if status_c == 'Agendado':
+                                serv_nome = reg_c['servico']
+                                cor_c = SERVICOS[serv_nome]['cor'] if serv_nome in SERVICOS else "#1e2028"
                                 
-                                st.markdown("##### ✍️ Atualizar Ficha de Estilo para o Próximo Corte")
-                                novas_notas = st.text_input("Anotações de Bancada:", placeholder="Ex: Maquina 2 lateral...", key=f"notes_input_{h_slot}")
-                                camera_p = st.file_uploader("📸 Tirar Foto / Upload do Visual Finalizado", type=['png','jpg'], key=f"cam_chair_{h_slot}")
+                                st.markdown(f"""
+                                    <div style="background: {cor_c}; padding: 16px; border-radius: 12px; border: 1px solid #2a2d3a; margin-bottom: 8px;">
+                                        <span style="font-size:1.2rem; font-weight:800; color:#fff;">⏰ {h_slot} — 👤 {reg_c['cliente_nome']}</span> 
+                                        <span style="background:#ffffff20; font-size:0.75rem; padding:2px 8px; border-radius:10px; margin-left:10px;">🛠️ {serv_nome}</span>
+                                    </div>
+                                """, unsafe_allow_html=True)
                                 
-                                if st.button("💾 Salvar Notas de Cadeira", key=f"save_notes_{h_slot}", use_container_width=True):
-                                    if novas_notas:
-                                        with engine.begin() as conn_n: conn_n.execute(text("UPDATE usuarios_barber SET preferencias = :p WHERE login = :l"), {"p": novas_notas, "l": reg_c['cliente_login']})
-                                        st.success("Ficha técnica updated!")
-                                st.markdown("---")
-                                
-                                ab1, ab2, ab3 = st.columns(3)
-                                with ab1:
-                                    if st.button("🏁 [ Iniciar Atendimento ]", key=f"init_c_{h_slot}", use_container_width=True): st.toast("Cadeira Ativa!")
-                                with ab2:
-                                    if st.button(" Concluir Atendimento ", key=f"done_c_{h_slot}", type="primary", use_container_width=True): st.success("Fechamento Enviado!")
-                                with ab3:
-                                    if st.button("❌ [ Não Compareceu / No-Show ]", key=f"noshow_c_{h_slot}", use_container_width=True):
-                                        with engine.begin() as conn_x: conn_x.execute(text("UPDATE agendamentos SET status = 'No-Show' WHERE id = :id"), {"id": reg_c['id']})
-                                        st.rerun()
+                                with st.expander(f"⚙️ Expandir Prontuário de {reg_c['cliente_nome']}"):
+                                    txt_técnico = reg_c['preferencias'] if reg_c['preferencias'] != "Nenhum" else "Seu barbeiro ainda não adicionou notas sobre o seu estilo."
+                                    st.info(f"📋 **Notas Técnicas Anteriores:** {txt_técnico}")
+                                    
+                                    ab1, ab2, ab3 = st.columns(3)
+                                    with ab1:
+                                        if st.button("🏁 [ Iniciar Atendimento ]", key=f"init_c_{h_slot}", use_container_width=True): 
+                                            st.toast("Cadeira Ativa!")
+                                    with ab2:
+                                        if st.button(" Concluir Atendimento ", key=f"done_c_{h_slot}", type="primary", use_container_width=True): 
+                                            st.success("Fechamento Enviado!")
+                                    with ab3:
+                                        if st.button("❌ [ Não Compareceu / No-Show ]", key=f"noshow_c_{h_slot}", use_container_width=True):
+                                            with engine.begin() as conn_x: conn_x.execute(text("UPDATE agendamentos SET status = 'No-Show' WHERE id = :id"), {"id": reg_c['id']})
+                                            st.rerun()
 
-                        elif status_c == 'Bloqueado':
-                            st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #374151; opacity:0.5;"><span>⏰ {h_slot} — 🔒 Bloqueado pelo Profissional</span></div>', unsafe_allow_html=True)
-                    else:
-                        st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #10b981; padding: 8px 20px;"><span>⏰ {h_slot} — Cadeira Livre</span></div>', unsafe_allow_html=True)
-                        b_bl1, _ = st.columns([2.5, 5.5])
-                        with b_bl1:
-                            if st.button(f"🔒 Bloquear Horário {h_slot}", key=f"bloq_btn_{h_slot}", use_container_width=True):
-                                with engine.begin() as conn_bl:
-                                    conn_bl.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status) VALUES ('bloqueio_manual', :b, :d, :h, 'Bloqueio Preventivo', 0, 'Bloqueado')"), {"b": barbeiro_ativo, "d": str(date.today()), "h": h_slot})
-                                st.rerun()
+                            elif status_c == 'Bloqueado':
+                                st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #374151; opacity:0.5;"><span>⏰ {h_slot} — 🔒 Bloqueado pelo Profissional</span></div>', unsafe_allow_html=True)
+                        else:
+                            st.markdown(f'<div class="barber-agenda-row" style="border-left: 4px solid #10b981; padding: 8px 20px;"><span>⏰ {h_slot} — Cadeira Livre</span></div>', unsafe_allow_html=True)
+                            b_bl1, _ = st.columns([2.5, 5.5])
+                            with b_bl1:
+                                if st.button(f"🔒 Bloquear Horário {h_slot}", key=f"bloq_btn_{h_slot}", use_container_width=True):
+                                    with engine.begin() as conn_bl:
+                                        conn_bl.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status) VALUES ('bloqueio_manual', :b, :d, :h, 'Bloqueio Preventivo', 0, 'Bloqueado')"), {"b": barbeiro_ativo, "d": str(date.today()), "h": h_slot})
+                                    st.rerun()
+                
+                # Executa o isolador de cliques de bancada
+                renderizar_bancada_fragmentada(df_b_hoje.set_index('horario').to_dict(orient='index'))
 
             with b_pilar2:
                 st.markdown("### 💰 Extrato Financeiro & Gestão de Comissões")
@@ -681,7 +685,7 @@ else:
             elif isinstance(periodo_sel, (list, tuple)) and len(periodo_sel) == 1: data_inicio = data_fim = periodo_sel[0]
             else: data_inicio = data_fim = periodo_sel
 
-            df_adm_total = pd.read_sql_query(text("SELECT * FROM agendamentos WHERE data BETWEEN :ini AND :fim"), engine, params={"ini": str(data_inicio), "fim": str(data_fim)})
+            df_adm_total = buscar_dados_sql("SELECT * FROM agendamentos WHERE data BETWEEN :ini AND :fim", params={"ini": str(data_inicio), "fim": str(data_fim)})
             df_ativos = df_adm_total[df_adm_total['status'] == 'Agendado']
             df_faltas = df_adm_total[df_adm_total['status'] == 'No-Show']
 
