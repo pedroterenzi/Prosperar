@@ -3,148 +3,307 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Barbearia Prosperidade</title>
+    <title>Barbearia Prosperidade - Premium Club</title>
     <style>
         :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --accent-color: #cc9933;
+            --bg-color: #0d0d0d;
+            --card-bg: #161616;
+            --accent-color: #cc9933; /* Dourado Premium */
+            --accent-hover: #b38628;
             --text-color: #ffffff;
-            --text-muted: #aaaaaa;
+            --text-muted: #888888;
+            --border-color: #262626;
+            --success-color: #2ea44f;
         }
 
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            justify-content: center;
+            padding-bottom: 70px; /* Espaço para a barra inferior */
         }
 
-        .container {
+        .app-container {
             width: 100%;
-            max-width: 500px;
+            max-width: 480px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .card {
             background: var(--card-bg);
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 16px;
             margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         }
 
-        h2, h3 { text-align: center; color: var(--accent-color); margin-top: 0; }
-        label { display: block; margin: 15px 0 5px; font-weight: bold; color: var(--text-muted); }
+        h2, h3 { color: var(--accent-color); margin-top: 0; font-weight: 600; }
+        label { display: block; margin: 15px 0 5px; font-weight: bold; color: var(--text-muted); font-size: 14px; }
         
-        select, input {
+        select, input, textarea {
             width: 100%;
-            padding: 12px;
-            background: #2d2d2d;
-            border: 1px solid #444;
-            border-radius: 6px;
+            padding: 14px;
+            background: #222;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             color: white;
             font-size: 16px;
             box-sizing: border-box;
-            margin-bottom: 10px;
+            transition: border-color 0.2s;
         }
+        select:focus, input:focus { border-color: var(--accent-color); outline: none; }
 
+        /* Botões */
+        .btn-gold {
+            width: 100%;
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-gold:hover { background: var(--accent-hover); }
+
+        /* Grade de Horários */
         .grid-horarios {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 10px;
             margin-top: 10px;
         }
-
         .btn-horario {
-            background: #2d2d2d;
+            background: #1c1c1c;
             color: white;
-            border: 1px solid #444;
-            padding: 10px;
-            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            padding: 12px 5px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 14px;
         }
-
         .btn-horario.selecionado { background: var(--accent-color); color: black; border-color: var(--accent-color); }
 
-        .btn-acao {
+        /* Gamificação / Progresso */
+        .barra-progresso {
+            background: #222;
+            border-radius: 10px;
+            height: 12px;
             width: 100%;
-            background: var(--accent-color);
-            color: black;
-            border: none;
-            padding: 15px;
-            border-radius: 6px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 15px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progresso-preenchido {
+            background: linear-gradient(90deg, #b38628, var(--accent-color));
+            height: 100%;
+            width: 70%; /* Dinâmico via JS */
+            transition: width 0.4s;
         }
 
-        .mensagem { text-align: center; margin-top: 15px; font-weight: bold; }
-        
-        /* Classes utilitárias para esconder/mostrar telas */
+        /* Prontuário Meu Estilo */
+        .tag-estilo {
+            display: inline-block;
+            background: #222;
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin: 4px;
+            color: var(--accent-color);
+        }
+
+        /* Menu de Navegação Inferior Móvel */
+        .nav-inferior {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 480px;
+            background: #121212;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-sizing: border-box;
+            z-index: 999;
+        }
+        .nav-item {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 11px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .nav-item.ativo { color: var(--accent-color); font-weight: bold; }
+        .nav-item svg { width: 22px; height: 22px; fill: currentColor; }
+
+        /* Utilitários */
         .escondido { display: none !important; }
-        .info-usuario { text-align: center; margin-bottom: 20px; color: var(--accent-color); font-weight: bold; }
+        .mensagem { text-align: center; margin-top: 15px; font-weight: bold; }
+        .greeting-box { margin-bottom: 25px; }
+        .greeting-box h2 { text-align: left; color: white; margin-bottom: 4px; }
+        .greeting-box p { margin: 0; color: var(--text-muted); font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <div id="tela-login" class="container">
-        <h2>Acessar Conta</h2>
+<div class="app-container">
+
+    <div id="tela-login" class="card">
+        <h2 style="text-align: center;">Prosperar Club</h2>
+        <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-top: -10px;">Acesso à experiência exclusiva</p>
+        
         <label for="login-usuario">Usuário / WhatsApp:</label>
         <input type="text" id="login-usuario" placeholder="Ex: 11999999999">
         
         <label for="login-senha">Senha:</label>
         <input type="password" id="login-senha" placeholder="******">
         
-        <button class="btn-acao" id="btn-entrar">Entrar no Sistema</button>
+        <button class="btn-gold" id="btn-entrar" style="margin-top: 20px;">Entrar na Experiência</button>
         <div id="erro-login" class="mensagem" style="color: red;"></div>
     </div>
 
-    <div id="tela-agendamento" class="container escondido">
-        <div id="boas-vistas-cliente" class="info-usuario"></div>
-        <h3>Agende seu Horário</h3>
+    <div id="conteudo-app" class="escondido">
         
-        <label for="servico">1. Escolha o Serviço:</label>
-        <select id="servico">
-            <option value="Corte Simples">Corte Simples - R$ 40,00</option>
-            <option value="Corte + Sobrancelha">Corte + Sobrancelha - R$ 55,00</option>
-            <option value="Barba Completa">Barba Completa - R$ 35,00</option>
-            <option value="Combo Premium (Corte + Barba + Sobrancelha)">Combo Premium - R$ 85,00</option>
-            <option value="Luzes / Nevou">Luzes / Nevou - R$ 90,00</option>
-        </select>
+        <section id="aba-home">
+            <div class="greeting-box">
+                <h2 id="boas-vindas-cliente">Olá, Pedro!</h2>
+                <p id="frase-onboarding">Bora alinhar o visual para o fim de semana?</p>
+            </div>
 
-        <label for="barbeiro">2. Escolha o Profissional:</label>
-        <select id="barbeiro">
-            <option value="Gabriel (Proprietário)">Gabriel (Proprietário)</option>
-            <option value="Lucas Barber">Lucas Barber</option>
-        </select>
+            <div id="card-proximo-corte" class="card" style="border-left: 4px solid var(--accent-color); background: #1a1510;">
+                <h4 style="margin:0 0 8px 0; color: var(--accent-color);">📅 PRÓXIMO AGENDAMENTO</h4>
+                <p style="margin:4px 0; font-weight: bold;" id="txt-card-servico">Corte Degradê + Barba</p>
+                <p style="margin:4px 0; font-size: 14px; color: var(--text-muted);" id="txt-card-detalhes">Com Thiago • Quinta às 19:30</p>
+                <button class="btn-gold" style="padding: 8px; font-size: 12px; width: auto; margin-top: 10px; background: rgba(204,153,51,0.2); color: var(--accent-color); border: 1px solid var(--accent-color);">Alterar Horário</button>
+            </div>
 
-        <label for="data">3. Selecione o Dia:</label>
-        <input type="date" id="data">
+            <div class="card">
+                <h3>Agendar Agora</h3>
+                <label for="servico">Serviço:</label>
+                <select id="servico">
+                    <option value="Corte Simples">Corte Simples — 35 min — R$ 40</option>
+                    <option value="Corte + Sobrancelha">Corte + Sobrancelha — 45 min — R$ 55</option>
+                    <option value="Barba Completa">Barba Completa — 30 min — R$ 35</option>
+                    <option value="Combo Premium (Corte + Barba + Sobrancelha)">Combo Premium — 75 min — R$ 85</option>
+                    <option value="Luzes / Nevou">Luzes / Nevou — 90 min — R$ 90</option>
+                </select>
 
-        <label>4. Horários Disponíveis:</label>
-        <div id="container-horarios" class="grid-horarios"></div>
+                <label for="barbeiro">Profissional:</label>
+                <select id="barbeiro">
+                    <option value="Gabriel (Proprietário)">Gabriel (Proprietário) ★ 4.9</option>
+                    <option value="Lucas Barber">Lucas Barber ★ 4.8</option>
+                </select>
 
-        <label for="pagamento">5. Forma de Pagamento:</label>
-        <select id="pagamento">
-            <option value="Pix">Pix (Ganha o dobro de pontos!)</option>
-            <option value="Dinheiro">Dinheiro</option>
-            <option value="Cartão de Crédito/Débito">Cartão</option>
-        </select>
+                <label for="data">Data do Serviço:</label>
+                <input type="date" id="data">
 
-        <button class="btn-acao" id="btnConfirmar">Confirmar Agendamento</button>
-        <div id="mensagem-status" class="mensagem"></div>
+                <label>Horários Livres:</label>
+                <div id="container-horarios" class="grid-horarios"></div>
+
+                <label for="pagamento">Pagamento:</label>
+                <select id="pagamento">
+                    <option value="Pix">Pix (Ganhe o dobro de pontos fidelidade!)</option>
+                    <option value="Dinheiro">Dinheiro físico</option>
+                    <option value="Cartão de Crédito/Débito">Cartão de Crédito / Débito</option>
+                </select>
+
+                <button class="btn-gold" id="btnConfirmar" style="margin-top: 25px;">Confirmar Reserva</button>
+                <div id="mensagem-status" class="mensagem"></div>
+            </div>
+        </section>
+
+        <section id="aba-estilo" class="escondido">
+            <h3>Meu Estilo</h3>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px;">Seu prontuário estético personalizado de beleza.</p>
+            
+            <div class="card">
+                <h4>📐 Ficha Técnica da Última Visita</h4>
+                <p style="font-size: 14px; color: var(--text-muted); line-height: 1.5;">
+                    "Corte degradê navalhado partindo da zero alta. Topo cortado na tesoura tirando dois dedos, textura desfiada. Finalizado com pomada modeladora efeito matte seco."
+                </p>
+                <div style="margin-top: 15px;">
+                    <span class="tag-estilo">Degradê Navalhado</span>
+                    <span class="tag-estilo">Pomada Matte</span>
+                    <span class="tag-estilo">Máquina 0</span>
+                    <span class="tag-estilo">Gosta de Café</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h4>📸 Galeria Antes & Depois</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center;">
+                    <div style="background: #222; padding: 30px 10px; border-radius: 8px; color: var(--text-muted); font-size: 13px; border: 1px dashed var(--border-color);">Foto Lateral<br>(Adicionada pelo Barbeiro)</div>
+                    <div style="background: #222; padding: 30px 10px; border-radius: 8px; color: var(--text-muted); font-size: 13px; border: 1px dashed var(--border-color);">Foto Traseira<br>(Adicionada pelo Barbeiro)</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="aba-fidelidade" class="escondido">
+            <h3>Clube de Benefícios</h3>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px;">Sua lealdade recompensada de verdade.</p>
+
+            <div class="card" style="text-align: center;">
+                <h4>🏆 Cartão Fidelidade Digital</h4>
+                <p style="font-size: 14px; color: var(--text-muted);">Você acumulou <span id="txt-pontos" style="color: var(--accent-color); font-weight: bold; font-size: 18px;">--</span> pontos</p>
+                <div class="barra-progresso">
+                    <div id="progresso-fidelidade" class="progresso-preenchido" style="width: 0%;"></div>
+                </div>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 0;">Faltam apenas alguns pontos para liberar sua Lavagem Premium!</p>
+            </div>
+
+            <div class="card">
+                <h4>⭐ Membro VIP Assinante</h4>
+                <p style="font-size: 14px; color: var(--text-muted); line-height: 1.4;">Tenha cabelo e barba sempre perfeitos sem se preocupar em agendar de última hora.</p>
+                <button class="btn-gold" style="background: none; border: 1px solid var(--accent-color); color: var(--accent-color); margin-top: 5px;">Conhecer Planos Mensais</button>
+            </div>
+        </section>
+
+        <section id="aba-painel-barbeiro" class="escondido">
+            <h3 id="boas-vistas-barbeiro">Painel Corporativo</h3>
+            <div class="card">
+                <h4>Quadro de Comandos de Hoje</h4>
+                <p style="color: var(--text-muted); font-size: 14px;">A inteligência avançada de faturamento, gráficos de DRE e Kanban corporativo serão carregados nesta seção.</p>
+            </div>
+            <button class="btn-gold" style="background: #222; color: white;" onclick="deslogar()">Sair do Sistema</button>
+        </section>
+
+        <nav class="nav-inferior" id="menu-navegacao">
+            <button class="nav-item ativo" onclick="mudarAba('home')">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                Agendar
+            </button>
+            <button class="nav-item" onclick="mudarAba('estilo')">
+                <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.5 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                Meu Estilo
+            </button>
+            <button class="nav-item" onclick="mudarAba('fidelidade')">
+                <svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                Fidelidade
+            </button>
+            <button class="nav-item" style="color: #ff4444;" onclick="deslogar()">
+                <svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>
+                Sair
+            </button>
+        </nav>
+
     </div>
+</div>
 
-    <div id="tela-barbeiro" class="container escondido">
-        <div id="boas-vistas-barbeiro" class="info-usuario"></div>
-        <h3>Quadro de Comandos de Hoje</h3>
-        <p style="text-align: center; color: var(--text-muted);">A inteligência do seu painel e faturamento vai aparecer aqui no próximo passo.</p>
-        <button class="btn-acao" style="background: #333; color: white;" onclick="deslogar()">Sair</button>
-    </div>
-
-    <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
