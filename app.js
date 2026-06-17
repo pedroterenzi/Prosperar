@@ -274,12 +274,12 @@ function filtrarPorPeriodoGlobal(dataString) {
     return true;
 }
 
-function mudarFiltroGlobalAdm(periodo) {
+function mudarFiltroGlobalAdm(periodo, elementoClicado) {
     filtroTempoGlobal = periodo;
     document.querySelectorAll('.btn-filtro-tempo').forEach(b => b.classList.remove('ativo'));
     
-    if (event && event.target) {
-        event.target.classList.add('ativo');
+    if (elementoClicado) {
+        elementoClicado.classList.add('ativo');
     }
 
     const seletorData = document.getElementById('box-escolha-data-custom');
@@ -385,12 +385,12 @@ async function carregarListaMarketingReal() {
         
         const usuarios = await resUsers.json();
         const todosAgendamentos = await resAgendamentos.json();
-        const agendamentosFiltrados = todosAgendamentos.filter(a => filtrarPorPeriodoGlobal(a.data));
 
         container.innerHTML = "";
         let assinantes = 0;
         let faturamentoRecorrente = 0;
         const hoje = new Date();
+        hoje.setHours(0,0,0,0);
 
         usuarios.forEach(u => {
             if(u.perfil === 'admin' || u.perfil === 'barbeiro') return;
@@ -400,7 +400,7 @@ async function carregarListaMarketingReal() {
                 faturamentoRecorrente += u.plano_assinatura.includes('Gold') ? 150 : 80;
             }
 
-            const atendimentosDoCliente = agendamentosFiltrados.filter(a => 
+            const atendimentosDoCliente = todosAgendamentos.filter(a => 
                 a.cliente.toUpperCase() === u.nome.toUpperCase() && a.status === 'Concluído'
             );
 
@@ -417,7 +417,7 @@ async function carregarListaMarketingReal() {
                     classeBadge = "badge-perigo";
                 }
             } else {
-                statusFidelidade = "Sem visitas no período";
+                statusFidelidade = "Sem visitas cadastradas";
                 classeBadge = "badge-alerta";
             }
 
@@ -728,5 +728,13 @@ function alternarTela(idAba) {
 
     document.querySelectorAll('.nav-inferior .nav-item').forEach(btn => btn.classList.remove('ativo'));
     
+    // Alinha a classe ativa com o botão correspondente do menu de navegação injetado
+    const botoesMenu = document.querySelectorAll('#menu-navegacao .nav-item');
+    botoesMenu.forEach(btn => {
+        if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(idAba)) {
+            btn.classList.add('ativo');
+        }
+    });
+
     recarregarAbaAtivaAdm();
 }
