@@ -173,14 +173,19 @@
                 <h3>Agendar Nova Cadeira</h3>
                 <span class="step-label">1. Escolha o Serviço:</span>
                 <div id="container-servicos" class="cards-container"></div>
+                
                 <span class="step-label">2. Escolha o Profissional:</span>
                 <div id="container-barbeiros" class="cards-container"></div>
+                
                 <span class="step-label">3. Selecione o Dia:</span>
                 <input type="date" id="data">
+                
                 <span class="step-label">4. Horários Disponíveis:</span>
                 <div id="container-horarios"></div>
+                
                 <span class="step-label">5. Forma de Pagamento:</span>
                 <div id="container-pagamentos" class="cards-container"></div>
+                
                 <button class="btn-gold" id="btnPreAgendar" style="margin-top: 25px;">Confirmar Agendamento</button>
             </div>
         </section>
@@ -286,9 +291,24 @@
                         <option value="Lucas Barber">Lucas Barber</option>
                     </select>
                 </div>
+                <div class="intervalo-custom-grid">
+                    <div class="form-group">
+                        <label>Horário:</label>
+                        <input type="text" id="encaixe-hora" value="14:00" placeholder="Ex: 14:00">
+                    </div>
+                    <div class="form-group">
+                        <label>Gorjeta Opcional (R$):</label>
+                        <input type="number" id="encaixe-gorjeta" value="0" min="0" step="0.01" placeholder="0,00">
+                    </div>
+                </div>
                 <div class="form-group">
-                    <label>Horário:</label>
-                    <input type="text" id="encaixe-hora" value="14:00" placeholder="Ex: 14:00">
+                    <label>Forma de Pagamento:</label>
+                    <select id="encaixe-pagamento">
+                        <option value="PIX">PIX</option>
+                        <option value="DINHEIRO">Dinheiro</option>
+                        <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
+                        <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
+                    </select>
                 </div>
                 <button class="btn-gold" id="btn-executar-encaixe">Lançar Encaixe Concluído</button>
             </div>
@@ -296,7 +316,18 @@
 
         <section id="aba-adm-analytics" class="escondido">
             <h3>Business Intelligence</h3>
-            <div id="analytics-retencao"></div>
+            
+            <div class="grid-indicadores" id="analytics-retencao">
+                <div class="kpi-card">
+                    <div class="kpi-label">Taxa de Retenção</div>
+                    <div class="kpi-val" id="kpi-retencao" style="color: var(--accent-color);">0%</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">LTV Médio (Vida Útil)</div>
+                    <div class="kpi-val" id="kpi-ltv" style="color: var(--success-color);">R$ 0,00</div>
+                </div>
+            </div>
+
             <div class="card">
                 <h4>Volumetria por Turnos</h4>
                 <div id="analytics-heatmap"></div>
