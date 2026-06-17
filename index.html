@@ -46,24 +46,61 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.4); 
         }
 
-        .login-form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; width: 100%; box-sizing: border-box; }
-        .login-form-group label { font-size: 14px; font-weight: 600; color: var(--text-muted); }
-        .login-form-group input { width: 100%; padding: 14px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box; }
+        /* Alinhamento estruturado para a tela de Login */
+        .login-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .login-form-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .login-form-group input {
+            width: 100%;
+            padding: 14px;
+            background: #222428;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        .login-form-group input:focus { border-color: var(--accent-color); outline: none; }
         
         h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
         .gold-text { color: var(--accent-color); }
         
-        .step-label { display: block; margin: 24px 0 12px; font-weight: 700; color: #ffffff; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .step-label { 
+            display: block; 
+            margin: 24px 0 12px; 
+            font-weight: 700; 
+            color: #ffffff; 
+            font-size: 14px; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px; 
+        }
         
-        input[type="date"] { width: 100%; padding: 16px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box; }
+        input[type="date"] {
+            width: 100%; padding: 16px; background: #222428; border: 1px solid var(--border-color);
+            border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box;
+        }
 
         .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
         .btn-gold:hover { background: var(--accent-hover); }
 
-        .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 12px; }
 
         .cards-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
         
+        /* Layout de Cards Horizontais Estilo Streamlit */
         .modern-card {
             background: linear-gradient(rgba(26, 27, 30, 0.85), rgba(26, 27, 30, 0.95)), url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=120') no-repeat right center;
             background-size: contain;
@@ -76,7 +113,7 @@
             align-items: center;
         }
         
-        .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.08); }
+        .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.08); box-shadow: 0 0 12px rgba(204,153,51,0.2); }
         .modern-card .info-block { flex: 1; }
         .modern-card .title { font-weight: 700; font-size: 16px; color: #fff; }
         .modern-card .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
@@ -86,11 +123,11 @@
         .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
         .btn-horario { background: #222428; color: white; border: 1px solid var(--border-color); padding: 12px 4px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; }
         .btn-horario.selecionado { background: var(--accent-color); color: black; border-color: var(--accent-color); font-weight: 700; }
-        .btn-horario:disabled { opacity: 0.25; cursor: not-allowed; background: #151618; border-color: #1f2023; color: #555; }
+        .btn-horario:disabled { opacity: 0.2; cursor: not-allowed; background: #151618; border-color: #1f2023; color: #ff4444; }
 
-        /* Estilo da Janela Modal (Pop-up de Confirmação) */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        /* Camada da Modal (Pop-up de Confirmação) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
         .modal-buttons { display: flex; gap: 12px; margin-top: 20px; }
         .btn-modal-cancel { flex: 1; background: #333; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }
 
@@ -108,14 +145,17 @@
 
     <div id="tela-login" class="card" style="margin-top: 40px;">
         <h2 style="text-align: center; font-size: 24px; margin-bottom: 24px;" class="gold-text">Acessar Conta</h2>
+        
         <div class="login-form-group">
             <label>Usuário / WhatsApp:</label>
             <input type="text" id="login-usuario" placeholder="Ex: gabriel">
         </div>
+        
         <div class="login-form-group">
             <label>Senha:</label>
             <input type="password" id="login-senha" placeholder="••••••">
         </div>
+        
         <button class="btn-gold" id="btn-entrar" style="margin-top: 16px;">Entrar no Sistema</button>
     </div>
 
@@ -151,7 +191,7 @@
 
         <section id="aba-estilo" class="escondido">
             <h3>Meus Agendamentos</h3>
-            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px; margin-bottom: 20px;">Abaixo estão suas reservas ativas no nosso banco de dados:</p>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px; margin-bottom: 20px;">Abaixo estão as suas reservas gravadas no banco Neon:</p>
             <div id="container-meus-agendamentos"></div>
         </section>
 
@@ -162,12 +202,12 @@
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
         <h3 class="gold-text" style="margin-bottom: 12px;">Conferir Agendamento</h3>
-        <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 8px;">Por favor, confirme as informações antes do envio:</p>
-        <div id="modal-resumo-detalhes" style="background: #222428; padding: 14px; border-radius: 10px; font-size: 14px; line-height: 1.8; border: 1px solid var(--border-color);">
+        <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px;">Confirme as informações do seu atendimento antes de salvar:</p>
+        <div id="modal-resumo-detalhes" style="background: #222428; padding: 16px; border-radius: 12px; font-size: 14px; line-height: 1.8; border: 1px solid var(--border-color);">
             </div>
         <div class="modal-buttons">
             <button class="btn-modal-cancel" id="btn-modal-voltar">Voltar</button>
-            <button class="btn-gold" id="btn-modal-gravar" style="flex: 1; padding: 0;">Confirmar</button>
+            <button class="btn-gold" id="btn-modal-gravar" style="flex: 1; padding: 0;">Salvar na Agenda</button>
         </div>
     </div>
 </div>
