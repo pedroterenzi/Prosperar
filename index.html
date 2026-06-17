@@ -1,713 +1,401 @@
 <!DOCTYPE html>
-
 <html lang="pt-BR">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Prosperar Club - Painel Corporativo</title>
-
     <style>
-
         :root {
-
             --bg-color: #111214;
-
             --card-bg: #1a1b1e;
-
             --card-hover: #222428;
-
             --accent-color: #cc9933; 
-
             --accent-hover: #e6b85c;
-
             --text-color: #ffffff;
-
             --text-muted: #9ca3af;
-
             --border-color: #2a2b30;
-
             --success-color: #10b981;
-
             --danger-color: #ef4444;
-
             --blue-color: #3b82f6;
-
         }
 
-
-
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: '-apple-system', BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; padding-bottom: 100px; }
-
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: '-apple-system', BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; padding-bottom: 120px; }
         .app-container { width: 100%; max-width: 480px; padding: 20px; box-sizing: border-box; }
-
         
-
         .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 24px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-
         .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; box-sizing: border-box; }
-
         .form-group label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
-
         .form-group input, .form-group select { width: 100%; padding: 14px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 15px; box-sizing: border-box; }
-
         
-
         h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
-
         .gold-text { color: var(--accent-color); }
-
         
-
         .step-label { display: block; margin: 24px 0 12px; font-weight: 700; color: #ffffff; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-
         input[type="date"] { width: 100%; padding: 14px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 15px; box-sizing: border-box; }
 
-
-
         .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
-
         .btn-gold:hover { background: var(--accent-hover); }
-
         .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
-
-
+        .btn-small-danger { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
 
         .cards-container { display: flex; flex-direction: column; gap: 10px; }
-
         .modern-card { background: #1a1b1e; border: 1px solid var(--border-color); padding: 16px; border-radius: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-
         .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.08); }
-
         .modern-card .title { font-weight: 700; font-size: 15px; color: #fff; }
-
         .modern-card .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-
         .modern-card .price { font-weight: 800; font-size: 15px; color: var(--success-color); }
 
-
-
         .turno-title { font-size: 12px; font-weight: 700; color: var(--accent-color); margin: 16px 0 6px; text-transform: uppercase; }
-
         .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-
         .btn-horario { background: #222428; color: white; border: 1px solid var(--border-color); padding: 10px 2px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
-
         .btn-horario.selecionado { background: var(--accent-color); color: black; font-weight: 700; }
-
         .btn-horario:disabled { opacity: 0.2; color: var(--danger-color); background: #151618; }
 
-
-
         .grid-indicadores { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
-
         .kpi-card { background: #1a1b1e; border: 1px solid var(--border-color); padding: 16px; border-radius: 14px; }
-
         .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
-
         .kpi-card .kpi-val { font-size: 20px; font-weight: 800; margin-top: 4px; }
 
-
-
-        /* Filtro Global Unificado */
-
         .filtros-tempo-container { display: flex; gap: 4px; margin-bottom: 12px; background: #1a1b1e; padding: 4px; border-radius: 10px; border: 1px solid var(--border-color); }
-
         .btn-filtro-tempo { flex: 1; background: none; border: none; color: var(--text-muted); padding: 8px 2px; font-size: 11px; font-weight: 700; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
-
         .btn-filtro-tempo.ativo { background: var(--accent-color); color: #000; }
-
-
-
-        /* Estilização da seleção de intervalo personalizado */
 
         .intervalo-custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 
-
-
         .lista-backoffice { display: flex; flex-direction: column; gap: 10px; }
-
         .item-backoffice { background: #222428; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
-
         
-
         .toggle-auth { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-
         .toggle-auth button { flex:1; background:none; border:none; color:var(--text-muted); font-weight:700; padding:8px; cursor:pointer; }
-
         .toggle-auth button.active { color: var(--accent-color); border-bottom: 2px solid var(--accent-color); }
 
-
-
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
-
         .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; }
-
         
-
         .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(26, 27, 30, 0.95); backdrop-filter: blur(10px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px 4px; border-radius: 24px; z-index: 999; }
-
         .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; }
-
         .nav-item.ativo { color: var(--accent-color); }
-
         
-
         .escondido { display: none !important; }
-
         .btn-status { padding: 6px 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
-
         
-
         .badge-sucesso { background-color: rgba(16, 185, 129, 0.2); color: #10b981; }
-
         .badge-alerta { background-color: rgba(204, 153, 51, 0.2); color: var(--accent-color); }
-
         .badge-perigo { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
-
     </style>
-
 </head>
-
 <body>
-
-
 
 <div class="app-container">
 
-
-
+    <!-- TELA DE AUTENTICAÇÃO -->
     <div id="tela-autenticacao" class="card" style="margin-top: 30px;">
-
         <div class="toggle-auth">
-
             <button id="tab-login" class="active" onclick="alternarAbasAuth('login')">ENTRAR</button>
-
             <button id="tab-cadastro" onclick="alternarAbasAuth('cadastro')">CRIAR CONTA</button>
-
         </div>
-
-
 
         <div id="form-login">
-
             <div class="form-group">
-
                 <label>Usuário / Login:</label>
-
                 <input type="text" id="login-usuario" placeholder="Digite seu usuário para testes">
-
             </div>
-
             <div class="form-group">
-
                 <label>Senha:</label>
-
                 <input type="password" id="login-senha" placeholder="•••••">
-
             </div>
-
             <button class="btn-gold" id="btn-entrar" style="margin-top: 10px;">Entrar no System</button>
-
         </div>
-
-
 
         <div id="form-cadastro" class="escondido">
-
             <div class="form-group">
-
                 <label>Nome Completo:</label>
-
                 <input type="text" id="cad-nome" placeholder="Ex: Pedro Silva">
-
             </div>
-
             <div class="form-group">
-
                 <label>Nome de Usuário (Login):</label>
-
                 <input type="text" id="cad-login" placeholder="Ex: pedrosilva">
-
             </div>
-
             <div class="form-group">
-
                 <label>WhatsApp / Celular:</label>
-
                 <input type="text" id="cad-celular" placeholder="Ex: 11999999999">
-
             </div>
-
             <div class="form-group">
-
                 <label>Plano de Assinatura:</label>
-
                 <select id="cad-plano">
-
                     <option value="Nenhum">Sem Assinatura (Avulso)</option>
-
                     <option value="Plano Bronze">Plano Bronze (R$ 80/mês)</option>
-
                     <option value="Plano Gold">Plano Gold VIP (R$ 150/mês)</option>
-
                 </select>
-
             </div>
-
             <div class="form-group">
-
                 <label>Senha:</label>
-
                 <input type="password" id="cad-senha" placeholder="Crie uma senha">
-
             </div>
-
             <div class="form-group">
-
                 <label>Confirme a Senha:</label>
-
                 <input type="password" id="cad-confirmar-senha" placeholder="Repita a senha">
-
             </div>
-
             <button class="btn-gold" id="btn-cadastrar" style="margin-top: 10px;">Salvar Cadastro Oficial</button>
-
         </div>
-
     </div>
 
-
-
+    <!-- CONTEÚDO PRINCIPAL DO APP -->
     <div id="conteudo-app" class="escondido">
-
         
-
+        <!-- Bloco Unificado de Filtros Avançados (Tempo e Equipe) -->
         <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 14px; border-radius: 16px; border: 1px solid var(--border-color);">
-
-            <h4 style="font-size: 12px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral (Painel):</h4>
+            <h4 style="font-size: 11px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral:</h4>
+            
+            <!-- Seletor Dinâmico de Barbeiros integrado -->
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label for="filtro-barbeiro-alvo">Visualizar dados de:</label>
+                <select id="filtro-barbeiro-alvo" onchange="recarregarAbaAtivaAdm()" style="padding: 10px; font-size: 13px; background: #111214;">
+                    <option value="todos">-- Todos os Barbeiros (Geral) --</option>
+                </select>
+            </div>
 
             <div class="filtros-tempo-container">
-
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('hoje', this)">Hoje</button>
-
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('ontem', this)">Ontem</button>
-
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('7dias', this)">7 Dias</button>
-
                 <button class="btn-filtro-tempo ativo" onclick="mudarFiltroGlobalAdm('mes_atual', this)">Mês Atual</button>
-
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('personalizado', this)">Período</button>
-
             </div>
-
             <div id="box-escolha-data-custom" class="escondido" style="margin-top: 10px;">
-
                 <label style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Selecione o Intervalo do Período:</label>
-
                 <div class="intervalo-custom-grid">
-
                     <div class="form-group" style="margin-bottom:0;">
-
                         <input type="date" id="filtro-data-inicio" onchange="atualizarFiltroDataRange()" style="padding: 10px; font-size: 13px;">
-
                     </div>
-
                     <div class="form-group" style="margin-bottom:0;">
-
                         <input type="date" id="filtro-data-fim" onchange="atualizarFiltroDataRange()" style="padding: 10px; font-size: 13px;">
-
                     </div>
-
                 </div>
-
             </div>
-
         </div>
 
-
-
+        <!-- ABA DO CLIENTE: FORMULÁRIO DE MARCAÇÃO -->
         <section id="aba-home" class="escondido">
-
             <div style="margin-bottom: 20px;">
-
                 <h2 id="boas-vistas-cliente" style="font-size: 22px; margin-bottom: 4px;">Olá!</h2>
-
                 <p style="margin:0; color: var(--text-muted); font-size: 13px;">Bora atualizar seu estilo hoje?</p>
-
             </div>
-
             <div class="card">
-
                 <h3>Agendar Nova Cadeira</h3>
-
                 <span class="step-label">1. Escolha o Serviço:</span>
-
                 <div id="container-servicos" class="cards-container"></div>
-
                 
-
                 <span class="step-label">2. Escolha o Profissional:</span>
-
                 <div id="container-barbeiros" class="cards-container"></div>
-
                 
-
                 <span class="step-label">3. Selecione o Dia:</span>
-
                 <input type="date" id="data">
-
                 
-
                 <span class="step-label">4. Horários Disponíveis:</span>
-
                 <div id="container-horarios"></div>
-
                 
-
                 <span class="step-label">5. Forma de Pagamento:</span>
-
                 <div id="container-pagamentos" class="cards-container"></div>
-
                 
-
                 <button class="btn-gold" id="btnPreAgendar" style="margin-top: 25px;">Confirmar Agendamento</button>
-
             </div>
-
         </section>
 
-
-
+        <!-- ABA DO CLIENTE: HISTÓRICO DE AGENDAMENTOS -->
         <section id="aba-estilo" class="escondido">
-
             <h3>Meus Agendamentos</h3>
-
             <div id="container-meus-agendamentos"></div>
-
         </section>
 
-
-
+        <!-- ABA PAINEL OPERACIONAL: FINANCEIRO / COMISSÕES -->
         <section id="aba-adm-dash" class="escondido">
-
             <h2 class="gold-text" style="margin-bottom: 4px;">Métricas de Faturamento</h2>
-
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores baseados no período selecionado:</p>
-
             
-
             <div class="grid-indicadores">
-
-                <div class="kpi-card">
-
+                <!-- Restrito para visualização apenas de adms superiores -->
+                <div class="kpi-card restrito-adm">
                     <div class="kpi-label">Faturamento Total</div>
-
                     <div class="kpi-val" id="kpi-faturamento" style="color: var(--success-color);">R$ 0,00</div>
-
                 </div>
-
-                <div class="kpi-card">
-
+                <div class="kpi-card restrito-adm">
                     <div class="kpi-label">Ticket Médio Real</div>
-
                     <div class="kpi-val" id="kpi-ticket">R$ 0,00</div>
-
                 </div>
-
                 <div class="kpi-card">
-
-                    <div class="kpi-label">Ocupação das Cadeiras</div>
-
-                    <div class="kpi-val" id="kpi-ocupacao">0%</div>
-
+                    <div class="kpi-label">Cortes Executados</div>
+                    <div class="kpi-val" id="kpi-ocupacao">0</div>
                 </div>
-
-                <div class="kpi-card">
-
+                <div class="kpi-card restrito-adm">
                     <div class="kpi-label">Taxa de No-Show</div>
-
                     <div class="kpi-val" id="kpi-noshow" style="color: var(--danger-color);">0%</div>
-
                 </div>
-
             </div>
 
+            <!-- Painel de faturamento individual restrito para Barbeiro Colaborador -->
+            <div class="card escondido" id="card-rendimentos-barbeiro">
+                <h3 class="gold-text">Minha Carteira Pro</h3>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:-8px;">Seus ganhos acumulados filtrados por período:</p>
+                <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.08); border-color: var(--success-color);">
+                    <div>
+                        <strong style="font-size:16px;">Sua Comissão Líquida</strong><br>
+                        <span style="font-size:11px; color:var(--text-muted);" id="minha-breakdown-comissao">Calculando carteira...</span>
+                    </div>
+                    <div style="color: var(--success-color); font-weight:800; font-size: 22px;" id="minha-comissao-total">R$ 0,00</div>
+                </div>
+            </div>
 
-
-            <div class="card">
-
+            <div class="card restrito-adm">
                 <h3>Divisão Automática de Comissão (Split Real)</h3>
-
                 <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; font-size: 12px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
-
                     <div id="detalhe-servicos">Serviços Brutos: R$ 0,00</div>
-
                     <div id="detalhe-produtos">Produtos Brutos: R$ 0,00</div>
-
                 </div>
-
-                <div class="lista-backoffice">
-
-                    <div class="item-backoffice">
-
-                        <div>
-
-                            <strong>Gabriel (Proprietário)</strong><br>
-
-                            <span style="font-size:11px; color:var(--text-muted);" id="breakdown-gabriel">Serv: R$0 | Prod: R$0 | Gorj: R$0</span>
-
-                        </div>
-
-                        <div style="color: var(--success-color); font-weight:800; font-size: 15px;" id="split-gabriel">R$ 0,00</div>
-
-                    </div>
-
-                    <div class="item-backoffice">
-
-                        <div>
-
-                            <strong>Lucas Barber</strong><br>
-
-                            <span style="font-size:11px; color:var(--text-muted);" id="breakdown-lucas">Serv: R$0 | Prod: R$0 | Gorj: R$0</span>
-
-                        </div>
-
-                        <div style="color: var(--success-color); font-weight:800; font-size: 15px;" id="split-lucas">R$ 0,00</div>
-
-                    </div>
-
+                <div class="lista-backoffice" id="lista-split-comissoes-equipe">
+                    <!-- Injetado dinamicamente -->
                 </div>
-
             </div>
 
+            <!-- MÓDULO DE GESTÃO DE EQUIPE (EXCLUSIVO GABRIEL/ADMIN) -->
+            <div class="card restrito-adm" style="border-color: rgba(204,153,51,0.3);">
+                <h3>👥 Gerenciamento de Barbeiros</h3>
+                <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione novos colaboradores e configure comissões.</p>
+                
+                <div style="background: #222428; padding: 14px; border-radius: 12px; margin-bottom: 15px;">
+                    <h4 style="font-size:13px; margin-bottom:10px;">+ Incluir Novo Profissional</h4>
+                    <div class="form-group">
+                        <input type="text" id="adm-barbeiro-nome" placeholder="Nome Profissional (Ex: Igor Barber)">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="adm-barbeiro-login" placeholder="Login de Acesso">
+                    </div>
+                    <div class="form-group">
+                        <input type="password" id="adm-barbeiro-senha" placeholder="Senha de Acesso">
+                    </div>
+                    <div class="form-group">
+                        <select id="adm-barbeiro-comissao">
+                            <option value="0.30">Comissão: 30%</option>
+                            <option value="0.40" selected>Comissão: 40%</option>
+                            <option value="0.50">Comissão: 50%</option>
+                        </select>
+                    </div>
+                    <button class="btn-gold" onclick="incluirBarbeiroSistema()" style="padding:10px; font-size:14px;">Salvar Novo Membro</button>
+                </div>
+
+                <h4>Corpo Técnico Ativo</h4>
+                <div class="lista-backoffice" id="lista-equipe-cadastrada" style="margin-top:10px;">
+                    <!-- Gerado e deletado dinamicamente -->
+                </div>
+            </div>
         </section>
 
-
-
-        <section id="aba-adm-mkt" class="escondido">
-
+        <!-- ABA OPERACIONAL: CRM / MARKETING RESTRITO ADM -->
+        <section id="aba-adm-mkt" class="escondido restrito-adm">
             <h3>CRM e Comunicação Ativa</h3>
-
             <div class="card" style="margin-bottom:15px;">
-
                 <h4>Carteira de Clientes Cadastrados</h4>
-
                 <div class="lista-backoffice" id="lista-marketing-clientes" style="margin-bottom:15px; max-height:200px; overflow-y:auto;"></div>
-
             </div>
-
-
 
             <div class="card">
-
                 <h4>Clube de Assinatura Recorrente</h4>
-
                 <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-
                     <span>Assinantes Ativos:</span>
-
                     <strong id="mkt-total-assinantes">0</strong>
-
                 </div>
-
                 <div style="display:flex; justify-content:space-between;">
-
                     <span>Receita Mensal em Carteira:</span>
-
                     <span style="color: var(--success-color); font-weight:700;" id="mkt-faturamento-recorrente">R$ 0,00</span>
-
                 </div>
-
             </div>
-
         </section>
 
-
-
+        <!-- ABA OPERACIONAL: MONITOR DE RECEPÇÃO -->
         <section id="aba-adm-recepcao" class="escondido">
-
             <h3>Monitor de Atendimentos</h3>
-
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia:</p>
-
             
-
             <div id="container-kanban-recepcao" style="display:flex; flex-direction:column; gap:10px;"></div>
 
-
-
             <div class="card" style="margin-top:20px;">
-
                 <h4>⚡ Registrar Encaixe Manual (Walk-in)</h4>
-
                 <div class="form-group">
-
                     <label>Nome do Cliente da Rua:</label>
-
                     <input type="text" id="encaixe-nome" placeholder="Ex: Cliente de Balcão">
-
                 </div>
-
                 <div class="form-group">
-
                     <label>Serviço Desejado:</label>
-
                     <select id="encaixe-servico">
-
                         <option value="Corte Simples">Corte Simples (R$ 40,00)</option>
-
                         <option value="Corte + Sobrancelha">Corte + Sobrancelha (R$ 55,00)</option>
-
                         <option value="Barba Completa">Barba Completa (R$ 35,00)</option>
-
                         <option value="Combo Premium">Combo Premium (R$ 85,00)</option>
-
                     </select>
-
                 </div>
-
                 <div class="form-group">
-
-                    <label>Profissional:</label>
-
+                    <label>Profissional Designado:</label>
                     <select id="encaixe-barbeiro">
-
-                        <option value="Gabriel (Proprietário)">Gabriel (Proprietário)</option>
-
-                        <option value="Lucas Barber">Lucas Barber</option>
-
+                        <!-- Sincronizado automaticamente -->
                     </select>
-
                 </div>
-
                 <div class="intervalo-custom-grid">
-
                     <div class="form-group">
-
                         <label>Horário:</label>
-
                         <input type="text" id="encaixe-hora" value="14:00" placeholder="Ex: 14:00">
-
                     </div>
-
                     <div class="form-group">
-
                         <label>Gorjeta Opcional (R$):</label>
-
                         <input type="number" id="encaixe-gorjeta" value="0" min="0" step="0.01" placeholder="0,00">
-
                     </div>
-
                 </div>
-
                 <div class="form-group">
-
                     <label>Forma de Pagamento:</label>
-
                     <select id="encaixe-pagamento">
-
                         <option value="PIX">PIX</option>
-
                         <option value="DINHEIRO">Dinheiro</option>
-
                         <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
-
                         <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
-
                     </select>
-
                 </div>
-
                 <button class="btn-gold" id="btn-executar-encaixe">Lançar Encaixe Concluído</button>
-
             </div>
-
         </section>
 
-
-
+        <!-- ABA OPERACIONAL: BUSINESS INTELLIGENCE (ANALYTICS) -->
         <section id="aba-adm-analytics" class="escondido">
-
             <h3>Business Intelligence</h3>
-
             
-
             <div class="grid-indicadores" id="analytics-retencao">
-
-                <div class="kpi-card">
-
-                    <div class="kpi-label">Taxa de Retenção</div>
-
-                    <div class="kpi-val" id="kpi-retencao" style="color: var(--accent-color);">0%</div>
-
-                </div>
-
-                <div class="kpi-card">
-
-                    <div class="kpi-label">LTV Médio (Vida Útil)</div>
-
-                    <div class="kpi-val" id="kpi-ltv" style="color: var(--success-color);">R$ 0,00</div>
-
-                </div>
-
+                <!-- Cards populados via JS -->
             </div>
 
-
-
             <div class="card">
-
                 <h4>Volumetria por Turnos</h4>
-
                 <div id="analytics-heatmap"></div>
-
             </div>
-
             <div class="card">
-
                 <h4>Movimentação por Dias da Semana</h4>
-
                 <div id="analytics-dias-semana"></div>
-
             </div>
-
         </section>
 
-
-
+        <!-- MENU DE NAVEGAÇÃO INFERIOR DYNAMIC -->
         <nav class="nav-inferior" id="menu-navegacao"></nav>
 
-
-
     </div>
-
 </div>
 
-
-
+<!-- POP-UP MODAL DE RESERVA -->
 <div id="modal-confirmacao" class="modal-overlay escondido">
-
     <div class="modal-content">
-
         <h3>Confirmar sua Cadeira?</h3>
-
         <p id="modal-resumo-detalhes" style="font-size: 14px; line-height: 1.6; color: var(--text-muted);"></p>
-
         <button class="btn-gold" id="btn-confirmar-modal">Confirmar Oficialmente</button>
-
         <button class="btn-danger" onclick="document.getElementById('modal-confirmacao').classList.add('escondido')">Voltar / Cancelar</button>
-
     </div>
-
 </div>
-
-
 
 <script src="app.js"></script>
-
 </body>
-
 </html>
