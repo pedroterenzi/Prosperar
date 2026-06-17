@@ -4,91 +4,129 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prosperar Club - Painel Corporativo</title>
+    <!-- Importação da fonte moderna e minimalista Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #111214;
-            --card-bg: #1a1b1e;
-            --card-hover: #222428;
+            --bg-color: #0d0e10;
+            --card-bg: #16171a;
+            --card-hover: #1f2125;
             --accent-color: #cc9933; 
             --accent-hover: #e6b85c;
-            --text-color: #ffffff;
+            --text-color: #f3f4f6;
             --text-muted: #9ca3af;
-            --border-color: #2a2b30;
+            --border-color: #24262b;
             --success-color: #10b981;
             --danger-color: #ef4444;
             --blue-color: #3b82f6;
         }
 
-        body { background-color: var(--bg-color); color: var(--text-color); font-family: '-apple-system', BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; padding-bottom: 120px; }
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            display: flex; 
+            justify-content: center; 
+            padding-bottom: 120px;
+            letter-spacing: -0.2px;
+        }
         .app-container { width: 100%; max-width: 480px; padding: 20px; box-sizing: border-box; }
         
-        .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 24px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; box-sizing: border-box; }
-        .form-group label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
-        .form-group input, .form-group select { width: 100%; padding: 14px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 15px; box-sizing: border-box; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 24px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; box-sizing: border-box; }
+        .form-group label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+        .form-group input, .form-group select { 
+            width: 100%; 
+            padding: 14px; 
+            background: #1f2125; 
+            border: 1px solid var(--border-color); 
+            border-radius: 10px; 
+            color: white; 
+            font-size: 15px; 
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box; 
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--accent-color);
+            outline: none;
+        }
         
-        h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
+        h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.6px; }
         .gold-text { color: var(--accent-color); }
         
-        .step-label { display: block; margin: 24px 0 12px; font-weight: 700; color: #ffffff; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
-        input[type="date"] { width: 100%; padding: 14px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 15px; box-sizing: border-box; }
+        .step-label { display: block; margin: 24px 0 12px; font-weight: 600; color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        input[type="date"] { width: 100%; padding: 14px; background: #1f2125; border: 1px solid var(--border-color); border-radius: 10px; color: white; font-size: 15px; box-sizing: border-box; }
 
-        .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
-        .btn-gold:hover { background: var(--accent-hover); }
+        .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+        .btn-gold:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-gold:active { transform: translateY(0); }
         .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
-        .btn-small-danger { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .btn-small-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-small-danger:hover { background: var(--danger-color); color: white; }
 
         .cards-container { display: flex; flex-direction: column; gap: 10px; }
-        .modern-card { background: #1a1b1e; border: 1px solid var(--border-color); padding: 16px; border-radius: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-        .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.08); }
-        .modern-card .title { font-weight: 700; font-size: 15px; color: #fff; }
+        .modern-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+        .modern-card:hover { border-color: #383a40; background-color: var(--card-hover); }
+        .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.06); }
+        .modern-card .title { font-weight: 600; font-size: 15px; color: #fff; }
         .modern-card .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-        .modern-card .price { font-weight: 800; font-size: 15px; color: var(--success-color); }
+        .modern-card .price { font-weight: 700; font-size: 15px; color: var(--success-color); }
 
-        .turno-title { font-size: 12px; font-weight: 700; color: var(--accent-color); margin: 16px 0 6px; text-transform: uppercase; }
+        .turno-title { font-size: 12px; font-weight: 700; color: var(--accent-color); margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-        .btn-horario { background: #222428; color: white; border: 1px solid var(--border-color); padding: 10px 2px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
+        .btn-horario { background: #1f2125; color: white; border: 1px solid var(--border-color); padding: 12px 2px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; }
         .btn-horario.selecionado { background: var(--accent-color); color: black; font-weight: 700; }
-        .btn-horario:disabled { opacity: 0.2; color: var(--danger-color); background: #151618; }
+        .btn-horario:disabled { opacity: 0.15; color: var(--text-muted); background: #111214; cursor: not-allowed; text-decoration: line-through; }
 
         .grid-indicadores { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
-        .kpi-card { background: #1a1b1e; border: 1px solid var(--border-color); padding: 16px; border-radius: 14px; }
-        .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
-        .kpi-card .kpi-val { font-size: 20px; font-weight: 800; margin-top: 4px; }
+        .kpi-card { background: #16171a; border: 1px solid var(--border-color); padding: 18px; border-radius: 12px; }
+        .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+        .kpi-card .kpi-val { font-size: 22px; font-weight: 700; margin-top: 6px; letter-spacing: -0.5px; }
 
-        .filtros-tempo-container { display: flex; gap: 4px; margin-bottom: 12px; background: #1a1b1e; padding: 4px; border-radius: 10px; border: 1px solid var(--border-color); }
-        .btn-filtro-tempo { flex: 1; background: none; border: none; color: var(--text-muted); padding: 8px 2px; font-size: 11px; font-weight: 700; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
-        .btn-filtro-tempo.ativo { background: var(--accent-color); color: #000; }
+        .filtros-tempo-container { display: flex; gap: 6px; margin-bottom: 12px; background: #1f2125; padding: 4px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .btn-filtro-tempo { flex: 1; background: none; border: none; color: var(--text-muted); padding: 10px 2px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+        .btn-filtro-tempo.ativo { background: var(--accent-color); color: #000; font-weight: 700; }
 
         .intervalo-custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 
         .lista-backoffice { display: flex; flex-direction: column; gap: 10px; }
-        .item-backoffice { background: #222428; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .item-backoffice { background: #1f2125; border: 1px solid var(--border-color); padding: 14px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
         
         .toggle-auth { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-        .toggle-auth button { flex:1; background:none; border:none; color:var(--text-muted); font-weight:700; padding:8px; cursor:pointer; }
+        .toggle-auth button { flex:1; background:none; border:none; color:var(--text-muted); font-weight:700; padding:8px; cursor:pointer; font-family: 'Inter', sans-serif; font-size: 13px; }
         .toggle-auth button.active { color: var(--accent-color); border-bottom: 2px solid var(--accent-color); }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; width: 100%; max-width: 400px; }
         
-        .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(26, 27, 30, 0.95); backdrop-filter: blur(10px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px 4px; border-radius: 24px; z-index: 999; }
-        .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; }
+        .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(22, 23, 26, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 14px 4px; border-radius: 20px; z-index: 999; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif; }
         .nav-item.ativo { color: var(--accent-color); }
         
         .escondido { display: none !important; }
         .btn-status { padding: 6px 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
         
-        .badge-sucesso { background-color: rgba(16, 185, 129, 0.2); color: #10b981; }
-        .badge-alerta { background-color: rgba(204, 153, 51, 0.2); color: var(--accent-color); }
-        .badge-perigo { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .badge-sucesso { background-color: rgba(16, 185, 129, 0.15); color: #10b981; }
+        .badge-alerta { background-color: rgba(204, 153, 51, 0.15); color: var(--accent-color); }
+        .badge-perigo { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+        /* Estilos de Barras de Progresso Modernas para o BI */
+        .analytics-bar-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+        .analytics-bar-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; }
+        .analytics-bar-bg { width: 100%; background: #1f2125; height: 8px; border-radius: 99px; overflow: hidden; margin-top: 4px; }
+        .analytics-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-color), #f5cb5c); border-radius: 99px; transition: width 0.4s ease-out; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
 
-    <!-- TELA DE AUTENTICAÇÃO -->
+    <!-- FORMULÁRIO DE AUTENTICAÇÃO -->
     <div id="tela-autenticacao" class="card" style="margin-top: 30px;">
         <div class="toggle-auth">
             <button id="tab-login" class="active" onclick="alternarAbasAuth('login')">ENTRAR</button>
@@ -98,7 +136,7 @@
         <div id="form-login">
             <div class="form-group">
                 <label>Usuário / Login:</label>
-                <input type="text" id="login-usuario" placeholder="Digite seu usuário para testes">
+                <input type="text" id="login-usuario" placeholder="Digite seu usuário ou admin">
             </div>
             <div class="form-group">
                 <label>Senha:</label>
@@ -140,17 +178,16 @@
         </div>
     </div>
 
-    <!-- CONTEÚDO PRINCIPAL DO APP -->
+    <!-- ÁREA INTERNA DA APLICAÇÃO -->
     <div id="conteudo-app" class="escondido">
         
-        <!-- Bloco Unificado de Filtros Avançados (Tempo e Equipe) -->
-        <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 14px; border-radius: 16px; border: 1px solid var(--border-color);">
-            <h4 style="font-size: 11px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral:</h4>
+        <!-- FILTRO DE ANÁLISE GERAL INTEGRADO (image_2a07be.png) -->
+        <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color);">
+            <h4 style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral:</h4>
             
-            <!-- Seletor Dinâmico de Barbeiros integrado -->
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label for="filtro-barbeiro-alvo">Visualizar dados de:</label>
-                <select id="filtro-barbeiro-alvo" onchange="recarregarAbaAtivaAdm()" style="padding: 10px; font-size: 13px; background: #111214;">
+            <div class="form-group" style="margin-bottom: 14px;">
+                <label>Visualizar dados de:</label>
+                <select id="filtro-barbeiro-alvo" onchange="recarregarAbaAtivaAdm()" style="background: #131417;">
                     <option value="todos">-- Todos os Barbeiros (Geral) --</option>
                 </select>
             </div>
@@ -162,20 +199,19 @@
                 <button class="btn-filtro-tempo ativo" onclick="mudarFiltroGlobalAdm('mes_atual', this)">Mês Atual</button>
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('personalizado', this)">Período</button>
             </div>
-            <div id="box-escolha-data-custom" class="escondido" style="margin-top: 10px;">
-                <label style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Selecione o Intervalo do Período:</label>
+            <div id="box-escolha-data-custom" class="escondido">
                 <div class="intervalo-custom-grid">
                     <div class="form-group" style="margin-bottom:0;">
-                        <input type="date" id="filtro-data-inicio" onchange="atualizarFiltroDataRange()" style="padding: 10px; font-size: 13px;">
+                        <input type="date" id="filtro-data-inicio" onchange="atualizarFiltroDataRange()">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <input type="date" id="filtro-data-fim" onchange="atualizarFiltroDataRange()" style="padding: 10px; font-size: 13px;">
+                        <input type="date" id="filtro-data-fim" onchange="atualizarFiltroDataRange()">
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ABA DO CLIENTE: FORMULÁRIO DE MARCAÇÃO -->
+        <!-- ABA DO CLIENTE: HOME -->
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 20px;">
                 <h2 id="boas-vistas-cliente" style="font-size: 22px; margin-bottom: 4px;">Olá!</h2>
@@ -185,36 +221,30 @@
                 <h3>Agendar Nova Cadeira</h3>
                 <span class="step-label">1. Escolha o Serviço:</span>
                 <div id="container-servicos" class="cards-container"></div>
-                
                 <span class="step-label">2. Escolha o Profissional:</span>
                 <div id="container-barbeiros" class="cards-container"></div>
-                
                 <span class="step-label">3. Selecione o Dia:</span>
                 <input type="date" id="data">
-                
                 <span class="step-label">4. Horários Disponíveis:</span>
                 <div id="container-horarios"></div>
-                
                 <span class="step-label">5. Forma de Pagamento:</span>
                 <div id="container-pagamentos" class="cards-container"></div>
-                
                 <button class="btn-gold" id="btnPreAgendar" style="margin-top: 25px;">Confirmar Agendamento</button>
             </div>
         </section>
 
-        <!-- ABA DO CLIENTE: HISTÓRICO DE AGENDAMENTOS -->
+        <!-- ABA DO CLIENTE: RESERVAS -->
         <section id="aba-estilo" class="escondido">
             <h3>Meus Agendamentos</h3>
             <div id="container-meus-agendamentos"></div>
         </section>
 
-        <!-- ABA PAINEL OPERACIONAL: FINANCEIRO / COMISSÕES -->
+        <!-- ABA ADMINISTRATIVA: DASHBOARD FINANCEIRO & GESTÃO (image_2a1286.png) -->
         <section id="aba-adm-dash" class="escondido">
             <h2 class="gold-text" style="margin-bottom: 4px;">Métricas de Faturamento</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores baseados no período selecionado:</p>
             
             <div class="grid-indicadores">
-                <!-- Restrito para visualização apenas de adms superiores -->
                 <div class="kpi-card restrito-adm">
                     <div class="kpi-label">Faturamento Total</div>
                     <div class="kpi-val" id="kpi-faturamento" style="color: var(--success-color);">R$ 0,00</div>
@@ -224,7 +254,7 @@
                     <div class="kpi-val" id="kpi-ticket">R$ 0,00</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">Cortes Executados</div>
+                    <div class="kpi-label">Atendimentos</div>
                     <div class="kpi-val" id="kpi-ocupacao">0</div>
                 </div>
                 <div class="kpi-card restrito-adm">
@@ -233,16 +263,15 @@
                 </div>
             </div>
 
-            <!-- Painel de faturamento individual restrito para Barbeiro Colaborador -->
+            <!-- Visão Exclusiva para Colaboradores -->
             <div class="card escondido" id="card-rendimentos-barbeiro">
                 <h3 class="gold-text">Minha Carteira Pro</h3>
-                <p style="font-size:12px; color:var(--text-muted); margin-top:-8px;">Seus ganhos acumulados filtrados por período:</p>
-                <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.08); border-color: var(--success-color);">
+                <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.3);">
                     <div>
-                        <strong style="font-size:16px;">Sua Comissão Líquida</strong><br>
-                        <span style="font-size:11px; color:var(--text-muted);" id="minha-breakdown-comissao">Calculando carteira...</span>
+                        <strong style="font-size:15px;">Sua Comissão Acumulada</strong><br>
+                        <span style="font-size:11px; color:var(--text-muted);" id="minha-breakdown-comissao">Calculando rendimentos...</span>
                     </div>
-                    <div style="color: var(--success-color); font-weight:800; font-size: 22px;" id="minha-comissao-total">R$ 0,00</div>
+                    <div style="color: var(--success-color); font-weight:800; font-size: 20px;" id="minha-comissao-total">R$ 0,00</div>
                 </div>
             </div>
 
@@ -252,45 +281,49 @@
                     <div id="detalhe-servicos">Serviços Brutos: R$ 0,00</div>
                     <div id="detalhe-produtos">Produtos Brutos: R$ 0,00</div>
                 </div>
-                <div class="lista-backoffice" id="lista-split-comissoes-equipe">
-                    <!-- Injetado dinamicamente -->
-                </div>
+                <div class="lista-backoffice" id="lista-split-comissoes-equipe"></div>
             </div>
 
-            <!-- MÓDULO DE GESTÃO DE EQUIPE (EXCLUSIVO GABRIEL/ADMIN) -->
-            <div class="card restrito-adm" style="border-color: rgba(204,153,51,0.3);">
+            <!-- REFACTOR: CRIAÇÃO DINÂMICA DE EQUIPE COM BASE NO FLUXO COMPLETO (image_2a1286.png) -->
+            <div class="card restrito-adm" style="border-color: rgba(204,153,51,0.25);">
                 <h3>👥 Gerenciamento de Barbeiros</h3>
-                <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione novos colaboradores e configure comissões.</p>
+                <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione colaboradores vinculados diretamente ao banco de dados.</p>
                 
-                <div style="background: #222428; padding: 14px; border-radius: 12px; margin-bottom: 15px;">
-                    <h4 style="font-size:13px; margin-bottom:10px;">+ Incluir Novo Profissional</h4>
+                <div style="background: #1f2125; padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-color);">
+                    <h4 style="font-size:13px; margin-bottom:12px; color: var(--accent-color);">+ Incluir Novo Profissional</h4>
                     <div class="form-group">
-                        <input type="text" id="adm-barbeiro-nome" placeholder="Nome Profissional (Ex: Igor Barber)">
+                        <label>Nome Completo:</label>
+                        <input type="text" id="adm-barbeiro-nome" placeholder="Ex: Pedro Silva">
                     </div>
                     <div class="form-group">
-                        <input type="text" id="adm-barbeiro-login" placeholder="Login de Acesso">
+                        <label>Nome de Usuário (Login):</label>
+                        <input type="text" id="adm-barbeiro-login" placeholder="Ex: pedrosilva">
                     </div>
                     <div class="form-group">
-                        <input type="password" id="adm-barbeiro-senha" placeholder="Senha de Acesso">
+                        <label>WhatsApp / Celular:</label>
+                        <input type="text" id="adm-barbeiro-celular" placeholder="Ex: 11999999999">
                     </div>
                     <div class="form-group">
+                        <label>Comissão Alvo (%):</label>
                         <select id="adm-barbeiro-comissao">
                             <option value="0.30">Comissão: 30%</option>
                             <option value="0.40" selected>Comissão: 40%</option>
                             <option value="0.50">Comissão: 50%</option>
                         </select>
                     </div>
-                    <button class="btn-gold" onclick="incluirBarbeiroSistema()" style="padding:10px; font-size:14px;">Salvar Novo Membro</button>
+                    <div class="form-group">
+                        <label>Senha Operacional:</label>
+                        <input type="password" id="adm-barbeiro-senha" placeholder="Crie uma senha de acesso">
+                    </div>
+                    <button class="btn-gold" onclick="incluirBarbeiroSistema()" style="padding:12px; font-size:14px; margin-top: 4px;">Salvar Novo Membro</button>
                 </div>
 
                 <h4>Corpo Técnico Ativo</h4>
-                <div class="lista-backoffice" id="lista-equipe-cadastrada" style="margin-top:10px;">
-                    <!-- Gerado e deletado dinamicamente -->
-                </div>
+                <div class="lista-backoffice" id="lista-equipe-cadastrada" style="margin-top:10px;"></div>
             </div>
         </section>
 
-        <!-- ABA OPERACIONAL: CRM / MARKETING RESTRITO ADM -->
+        <!-- ABA ADMINISTRATIVA: CRM MARKETING -->
         <section id="aba-adm-mkt" class="escondido restrito-adm">
             <h3>CRM e Comunicação Ativa</h3>
             <div class="card" style="margin-bottom:15px;">
@@ -311,11 +344,10 @@
             </div>
         </section>
 
-        <!-- ABA OPERACIONAL: MONITOR DE RECEPÇÃO -->
+        <!-- ABA ADMINISTRATIVA: MONITOR KANBAN -->
         <section id="aba-adm-recepcao" class="escondido">
             <h3>Monitor de Atendimentos</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia:</p>
-            
             <div id="container-kanban-recepcao" style="display:flex; flex-direction:column; gap:10px;"></div>
 
             <div class="card" style="margin-top:20px;">
@@ -335,18 +367,16 @@
                 </div>
                 <div class="form-group">
                     <label>Profissional Designado:</label>
-                    <select id="encaixe-barbeiro">
-                        <!-- Sincronizado automaticamente -->
-                    </select>
+                    <select id="encaixe-barbeiro"></select>
                 </div>
                 <div class="intervalo-custom-grid">
                     <div class="form-group">
                         <label>Horário:</label>
-                        <input type="text" id="encaixe-hora" value="14:00" placeholder="Ex: 14:00">
+                        <input type="text" id="encaixe-hora" value="14:00">
                     </div>
                     <div class="form-group">
                         <label>Gorjeta Opcional (R$):</label>
-                        <input type="number" id="encaixe-gorjeta" value="0" min="0" step="0.01" placeholder="0,00">
+                        <input type="number" id="encaixe-gorjeta" value="0" min="0" step="0.01">
                     </div>
                 </div>
                 <div class="form-group">
@@ -362,37 +392,27 @@
             </div>
         </section>
 
-        <!-- ABA OPERACIONAL: BUSINESS INTELLIGENCE (ANALYTICS) -->
+        <!-- ABA ADMINISTRATIVA: BUSINESS INTELLIGENCE (image_2a0b3e.png) -->
         <section id="aba-adm-analytics" class="escondido">
             <h3>Business Intelligence</h3>
             
-            <div class="grid-indicadores" id="analytics-retencao">
-                <!-- Cards populados via JS -->
-            </div>
+            <!-- CENTRALIZADO E ENRIQUECIDO COM MÉTRICA SAAS REAL (LTV) -->
+            <div id="analytics-retencao" style="display: flex; justify-content: center; width: 100%; gap: 12px; margin-bottom: 20px;"></div>
 
             <div class="card">
                 <h4>Volumetria por Turnos</h4>
                 <div id="analytics-heatmap"></div>
             </div>
+            
             <div class="card">
                 <h4>Movimentação por Dias da Semana</h4>
                 <div id="analytics-dias-semana"></div>
             </div>
         </section>
 
-        <!-- MENU DE NAVEGAÇÃO INFERIOR DYNAMIC -->
+        <!-- MENU INFERIOR DE MACRO NAVEGAÇÃO -->
         <nav class="nav-inferior" id="menu-navegacao"></nav>
 
-    </div>
-</div>
-
-<!-- POP-UP MODAL DE RESERVA -->
-<div id="modal-confirmacao" class="modal-overlay escondido">
-    <div class="modal-content">
-        <h3>Confirmar sua Cadeira?</h3>
-        <p id="modal-resumo-detalhes" style="font-size: 14px; line-height: 1.6; color: var(--text-muted);"></p>
-        <button class="btn-gold" id="btn-confirmar-modal">Confirmar Oficialmente</button>
-        <button class="btn-danger" onclick="document.getElementById('modal-confirmacao').classList.add('escondido')">Voltar / Cancelar</button>
     </div>
 </div>
 
