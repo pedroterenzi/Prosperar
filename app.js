@@ -1,29 +1,96 @@
-// 🔥 COLE AQUI O SEU LINK DO RENDER (DEIXE SEM A BARRA NO FINAL)
 const API_URL = "https://prosperar.onrender.com"; 
 
-// Simulação de usuário logado (depois faremos a tela de login se conectar aqui)
-const CLIENTE_LOGADO = "pedro_teste"; 
-
+let usuarioLogado = null;
+let perfilLogado = null;
 let horarioSelecionado = null;
 
+// Elementos de Login
+const btnEntrar = document.getElementById('btn-entrar');
+const inputUser = document.getElementById('login-usuario');
+const inputPass = document.getElementById('login-senha');
+const erroLogin = document.getElementById('erro-login');
+
+// Elementos de Telas
+const telaLogin = document.getElementById('tela-login');
+const telaAgendamento = document.getElementById('tela-agendamento');
+const telaBarbeiro = document.getElementById('tela-barbeiro');
+
+// ==========================================
+// FUNÇÃO DE LOGIN (CONEXÃO REAL COM A API)
+// ==========================================
+btnEntrar.addEventListener('click', async () => {
+    const login = inputUser.value.trim();
+    const senha = inputPass.value.trim();
+
+    if (!login || !senha) {
+        erroLogin.innerText = "Preencha todos os campos!";
+        return;
+    }
+
+    erroLogin.innerText = "Autenticando...";
+
+    try {
+        const response = await fetch(`${API_URL}/api/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ login: login, senha: senha })
+        });
+
+        const dados = await response.json();
+
+        if (response.ok) {
+            usuarioLogado = dados.usuario.login;
+            perfilLogado = dados.usuario.perfil;
+            const nomeExibicao = dados.usuario.nome;
+
+            // Esconde tela de login
+            telaLogin.classList.add('escondido');
+
+            // Redireciona com base no perfil do banco Neon
+            if (perfilLogado === 'Barbeiro' || perfilLogado === 'admin') {
+                document.getElementById('boas-vistas-barbeiro').innerText = `💈 Olá, Barbeiro ${nomeExibicao}!`;
+                telaBarbeiro.classList.remove('escondido');
+                // Aqui depois chamaremos a função de carregar o faturamento e o kanban
+            } else {
+                document.getElementById('boas-vistas-cliente').innerText = `👋 Olá, ${nomeExibicao}!`;
+                telaAgendamento.classList.remove('escondido');
+                configurarTelaAgendamento();
+            }
+        } else {
+            erroLogin.innerText = dados.detail || "Erro ao fazer login.";
+        }
+    } catch (error) {
+        erroLogin.innerText = "Erro ao conectar com o servidor do Render.";
+    }
+});
+
+function deslogar() {
+    usuarioLogado = null;
+    perfilLogado = null;
+    telaAgendamento.classList.add('escondido');
+    telaBarbeiro.classList.add('escondido');
+    telaLogin.classList.remove('escondido');
+    inputPass.value = "";
+}
+
+// ==========================================
+// FUNÇÕES DE AGENDAMENTO (SUA TELA ATUAL)
+// ==========================================
 const campoBarbeiro = document.getElementById('barbeiro');
 const campoData = document.getElementById('data');
 const containerHorarios = document.getElementById('container-horarios');
 const btnConfirmar = document.getElementById('btnConfirmar');
 const msgStatus = document.getElementById('mensagem-status');
 
-// Define a data de hoje como padrão no calendário
-window.addEventListener('DOMContentLoaded', () => {
+function configurarTelaAgendamento() {
     const hoje = new Date().toISOString().split('T')[0];
     campoData.value = hoje;
     buscarHorarios();
-});
+}
 
-// Atualiza os horários se mudar o barbeiro ou a data
 campoBarbeiro.addEventListener('change', buscarHorarios);
 campoData.addEventListener('change', buscarHorarios);
 
-// Busca horários livres na API do Render
 async function buscarHorarios() {
     const barbeiro = campoBarbeiro.value;
     const data = campoData.value;
@@ -35,11 +102,10 @@ async function buscarHorarios() {
     try {
         const response = await fetch(`${API_URL}/api/agenda/disponibilidade?barbeiro=${encodeURIComponent(barbeiro)}&dia=${data}`);
         const dados = await response.json();
-
-        containerHorarios.innerHTML = ""; // Limpa o "Buscando..."
+        containerHorarios.innerHTML = "";
 
         if (dados.horarios_disponiveis.length === 0) {
-            containerHorarios.innerHTML = "<p style='grid-column: span 4; text-align:center; color: red;'>Nenhum horário disponível para este dia.</p>";
+            containerHorarios.innerHTML = "<p style='grid-column: span 4; text-align:center; color: red;'>Nenhum horário disponível.</p>";
             return;
         }
 
@@ -47,32 +113,26 @@ async function buscarHorarios() {
             const botao = document.createElement('button');
             botao.className = 'btn-horario';
             botao.innerText = hora;
-            botao.onclick = () => selecionarHorario(botao, hora);
+            botao.onclick = () => {
+                document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado'));
+                botao.classList.add('selecionado');
+                horarioSelecionado = hora;
+            };
             containerHorarios.appendChild(botao);
         });
-
     } catch (error) {
         containerHorarios.innerHTML = "<p style='grid-column: span 4; text-align:center; color: red;'>Erro ao carregar horários.</p>";
     }
 }
 
-function selecionarHorario(botao, hora) {
-    // Remove seleção dos outros botões
-    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado'));
-    // Seleciona o atual
-    botao.classList.add('selecionado');
-    horarioSelecionado = hora;
-}
-
-// Dispara o agendamento para o Render salvar no Neon
 btnConfirmar.addEventListener('click', async () => {
     if (!horarioSelecionado) {
-        alert("Por favor, selecione um horário antes de confirmar!");
+        alert("Por favor, selecione um horário!");
         return;
     }
 
     const payload = {
-        cliente_login: CLIENTE_LOGADO,
+        cliente_login: usuarioLogado, // Usa o usuário que fez o login real
         barbeiro_nome: campoBarbeiro.value,
         data: campoData.value,
         horario: horarioSelecionado,
@@ -95,7 +155,7 @@ btnConfirmar.addEventListener('click', async () => {
         if (response.ok) {
             msgStatus.style.color = "green";
             msgStatus.innerText = "✨ Agendamento feito com sucesso!";
-            buscarHorarios(); // Atualiza a grade para sumir o horário que acabou de ser pego
+            buscarHorarios();
         } else {
             msgStatus.style.color = "red";
             msgStatus.innerText = `Erro: ${resultado.detail}`;
