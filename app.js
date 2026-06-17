@@ -32,11 +32,14 @@ const HORARIOS_PADRAO = [
     { turno: "🌙 Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
 ];
 
-// Listener para mudança de data no formulário do cliente
-document.getElementById('data').addEventListener('change', () => {
-    if (barbeiroSelecionado) {
-        renderizarGradeHorariosReais();
-    }
+// Inicialização segura ao carregar a página
+document.addEventListener("DOMContentLoaded", () => {
+    // Ligações dos botões da tela de autenticação (sempre visíveis inicialmente)
+    const btnCadastrar = document.getElementById('btn-cadastrar');
+    if(btnCadastrar) btnCadastrar.addEventListener('click', executarCadastro);
+
+    const btnEntrar = document.getElementById('btn-entrar');
+    if(btnEntrar) btnEntrar.addEventListener('click', executarLogin);
 });
 
 // Alternador visual do formulário de autenticação
@@ -56,7 +59,7 @@ function alternarAbasAuth(aba) {
 }
 
 // Fluxo de Cadastro de Usuário
-document.getElementById('btn-cadastrar').addEventListener('click', async () => {
+async function executarCadastro() {
     const nome = document.getElementById('cad-nome').value.trim();
     const login = document.getElementById('cad-login').value.trim();
     const celular = document.getElementById('cad-celular').value.trim();
@@ -84,10 +87,10 @@ document.getElementById('btn-cadastrar').addEventListener('click', async () => {
     } catch(e) {
         alert("Erro ao conectar com o servidor.");
     }
-});
+}
 
 // Fluxo de Login
-document.getElementById('btn-entrar').addEventListener('click', async () => {
+async function executarLogin() {
     const login = document.getElementById('login-usuario').value.trim().toLowerCase();
     const senha = document.getElementById('login-senha').value;
 
@@ -111,18 +114,123 @@ document.getElementById('btn-entrar').addEventListener('click', async () => {
 
             montarMenuNavegacao(perfilLogado);
             direcionarFluxoInicial(perfilLogado, user.nome);
+            inicializarListenersPosLogin(); // Ativa os listeners internos com segurança
         } else {
             alert("Acesso negado. Verifique os dados.");
         }
     } catch(e) {
-        alert("Falha de conexão com o banco Neon.");
+        alert("Falha de conexão com o banco.");
     }
-});
+}
+
+// Inicializa listeners das abas internas somente após autenticação garantida
+function inicializarListenersPosLogin() {
+    const inputData = document.getElementById('data');
+    if(inputData) {
+        inputData.addEventListener('change', () => {
+            if (barbeiroSelecionado) renderizarGradeHorariosReais();
+        });
+    }
+
+    const btnPreAgendar = document.getElementById('btnPreAgendar');
+    if(btnPreAgendar) {
+        btnPreAgendar.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!servicoSelecionado || !barbeiroSelecionado || !horarioSelecionado || !pagamentoSelecionado) {
+                alert("Selecione todos os parâmetros antes de avançar.");
+                return;
+            }
+            document.getElementById('modal-resumo-detalhes').innerHTML = `
+                <strong>Procedimento:</strong> ${servicoSelecionado}<br>
+                <strong>Profissional:</strong> ${barbeiroSelecionado === 'gabriel' ? 'Gabriel (Proprietário)' : 'Lucas Barber'}<br>
+                <strong>Data/Hora:</strong> ${document.getElementById('data').value} às ${horarioSelecionado}<br>
+                <span style="color:var(--success-color); font-weight:bold;">Valor: R$ ${precoServico.toFixed(2)}</span>
+            `;
+            document.getElementById('modal-confirmacao').classList.remove('escondido');
+        });
+    }
+
+    const btnConfirmarModal = document.getElementById('btn-confirmar-modal');
+    if(btnConfirmarModal) {
+        btnConfirmarModal.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const nomeCliente = nomeUsuarioLogado ? nomeUsuarioLogado.toUpperCase() : "CLIENTE_ANONIMO";
+            
+            const payload = {
+                cliente: nomeCliente,
+                servico: servicoSelecionado || "Não Informado",
+                barbeiro: barbeiroSelecionado === 'gabriel' ? 'Gabriel (Proprietário)' : 'Lucas Barber',
+                data: document.getElementById('data').value,
+                hora: horarioSelecionado,
+                pagamento: pagamentoSelecionado || "Pix",
+                status: "agendado",
+                valor_produtos: 0.00,
+                valor_gorjeta: 0.00
+            };
+
+            try {
+                const res = await fetch(`${API_URL}/agendamentos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    document.getElementById('modal-confirmacao').classList.add('escondido');
+                    alert("✨ Agendamento gravado!");
+                    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`Confirmação: ${payload.servico} dia ${payload.data} às ${payload.hora}`)}`, '_blank');
+                    horarioSelecionado = null;
+                    renderizarGradeHorariosReais();
+                    carregarMeusAgendamentosDoBanco();
+                }
+            } catch (e) {}
+        });
+    }
+
+    const btnExecutarEncaixe = document.getElementById('btn-executar-encaixe');
+    if(btnExecutarEncaixe) {
+        btnExecutarEncaixe.addEventListener('click', async () => {
+            const nome = document.getElementById('encaixe-nome').value.trim();
+            const servico = document.getElementById('encaixe-servico').value;
+            const barbeiro = document.getElementById('encaixe-barbeiro').value;
+            const hora = document.getElementById('encaixe-hora').value;
+
+            if(!nome) return alert("Insira o nome do cliente.");
+
+            const dataAlvoEncaixe = (filtroTempoGlobal === 'personalizado') ? dataFiltroEspecifico : new Date().toISOString().split('T')[0];
+
+            const payload = {
+                cliente: `WALK-IN: ${nome.toUpperCase()}`,
+                servico: servico,
+                barbeiro: barbeiro,
+                data: dataAlvoEncaixe,
+                hora: hora,
+                pagamento: "Balcão (Dinheiro)",
+                status: "Concluído"
+            };
+
+            try {
+                const res = await fetch(`${API_URL}/agendamentos`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if(res.ok) {
+                    alert("⚡ Encaixe manual registrado com sucesso!");
+                    document.getElementById('encaixe-nome').value = "";
+                    carregarModoRecepcaoKanban();
+                }
+            } catch(e) {
+                alert("Falha ao registrar encaixe.");
+            }
+        });
+    }
+}
 
 function direcionarFluxoInicial(perfil, nomeUsuario) {
     if(perfil === 'admin') {
         document.getElementById('bloco-filtros-global-adm').classList.remove('escondido');
-        // Define o input do filtro global com o dia de hoje por padrão
         document.getElementById('filtro-data-especifica').value = dataFiltroEspecifico;
         alternarTela('adm-dash');
     } else if(perfil === 'barbeiro') {
@@ -138,7 +246,6 @@ function direcionarFluxoInicial(perfil, nomeUsuario) {
     }
 }
 
-// Helper Centralizado para Filtragem de Períodos
 function filtrarPorPeriodoGlobal(dataString) {
     const dataAtendimento = new Date(dataString + 'T00:00:00');
     const hoje = new Date();
@@ -167,7 +274,6 @@ function filtrarPorPeriodoGlobal(dataString) {
     return true;
 }
 
-// Gerenciador do Clique de Filtros do Topo do Painel ADM (Atualiza tudo reativamente)
 function mudarFiltroGlobalAdm(periodo) {
     filtroTempoGlobal = periodo;
     document.querySelectorAll('.btn-filtro-tempo').forEach(b => b.classList.remove('ativo'));
@@ -186,13 +292,11 @@ function mudarFiltroGlobalAdm(periodo) {
     recarregarAbaAtivaAdm();
 }
 
-// Executado quando altera o input do calendário do Filtro Global
 function atualizarFiltroDataEspecifica(valor) {
     dataFiltroEspecifico = valor;
     recarregarAbaAtivaAdm();
 }
 
-// Identifica qual aba o administrador está vendo e atualiza os dados dela baseados nas novas datas
 function recarregarAbaAtivaAdm() {
     const abas = ['adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-analytics'];
     let abaAtiva = 'adm-dash';
@@ -210,14 +314,12 @@ function recarregarAbaAtivaAdm() {
     if(abaAtiva === 'adm-analytics') carregarPainelAnalytics();
 }
 
-// ================= 💰 ABA FINANCEIRO (FINANÇAS) =================
 async function carregarDadosEstrategicosDoNeon() {
     try {
         const res = await fetch(`${API_URL}/agendamentos`);
         if(!res.ok) return;
         const todosAgendamentos = await res.json();
 
-        // Filtrando conforme o filtro global do topo
         const agendamentos = todosAgendamentos.filter(a => filtrarPorPeriodoGlobal(a.data));
 
         let faturamentoTotal = 0;
@@ -272,7 +374,6 @@ async function carregarDadosEstrategicosDoNeon() {
     }
 }
 
-// ================= 📢 ABA CRM / MARKETING =================
 async function carregarListaMarketingReal() {
     const container = document.getElementById('lista-marketing-clientes');
     if(!container) return;
@@ -284,8 +385,6 @@ async function carregarListaMarketingReal() {
         
         const usuarios = await resUsers.json();
         const todosAgendamentos = await resAgendamentos.json();
-
-        // Filtra os agendamentos pelo período selecionado no topo
         const agendamentosFiltrados = todosAgendamentos.filter(a => filtrarPorPeriodoGlobal(a.data));
 
         container.innerHTML = "";
@@ -301,7 +400,6 @@ async function carregarListaMarketingReal() {
                 faturamentoRecorrente += u.plano_assinatura.includes('Gold') ? 150 : 80;
             }
 
-            // O Churn avalia o histórico filtrado ou completo conforme o escopo do período
             const atendimentosDoCliente = agendamentosFiltrados.filter(a => 
                 a.cliente.toUpperCase() === u.nome.toUpperCase() && a.status === 'Concluído'
             );
@@ -353,7 +451,6 @@ function dispararWppCliente(celular, nome, status) {
     window.open(`https://api.whatsapp.com/send?phone=55${celular}&text=${encodeURIComponent(msg)}`, '_blank');
 }
 
-// ================= 📺 ABA MONITOR DE ATENDIMENTOS (SINCRONIZADA POR DIA OU PERÍODO) =================
 async function carregarModoRecepcaoKanban() {
     const container = document.getElementById('container-kanban-recepcao');
     if(!container) return;
@@ -363,7 +460,6 @@ async function carregarModoRecepcaoKanban() {
         if(!res.ok) return;
         const dados = await res.json();
 
-        // O monitor agora filtra com total precisão baseando-se no período global selecionado!
         const dadosFiltrados = dados.filter(item => filtrarPorPeriodoGlobal(item.data));
 
         container.innerHTML = "";
@@ -411,45 +507,6 @@ async function mudarStatusAgendamento(id, novoStatus) {
     }
 }
 
-document.getElementById('btn-executar-encaixe').addEventListener('click', async () => {
-    const nome = document.getElementById('encaixe-nome').value.trim();
-    const servico = document.getElementById('encaixe-servico').value;
-    const barbeiro = document.getElementById('encaixe-barbeiro').value;
-    const hora = document.getElementById('encaixe-hora').value;
-
-    if(!nome) return alert("Insira o nome do cliente.");
-
-    // Se o filtro for personalizado, insere na data escolhida. Se for hoje/mês, insere no dia de hoje.
-    const dataAlvoEncaixe = (filtroTempoGlobal === 'personalizado') ? dataFiltroEspecifico : new Date().toISOString().split('T')[0];
-
-    const payload = {
-        cliente: `WALK-IN: ${nome.toUpperCase()}`,
-        servico: servico,
-        barbeiro: barbeiro,
-        data: dataAlvoEncaixe,
-        hora: hora,
-        pagamento: "Balcão (Dinheiro)",
-        status: "Concluído"
-    };
-
-    try {
-        const res = await fetch(`${API_URL}/agendamentos`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(payload)
-        });
-
-        if(res.ok) {
-            alert("⚡ Encaixe manual registrado com sucesso!");
-            document.getElementById('encaixe-nome').value = "";
-            carregarModoRecepcaoKanban();
-        }
-    } catch(e) {
-        alert("Falha ao registrar encaixe.");
-    }
-});
-
-// ================= 📊 ABA ANALYTICS (BUSINESS INTELLIGENCE COM VOLUMETRIA DE DIAS DA SEMANA) =================
 async function carregarPainelAnalytics() {
     const containerMapa = document.getElementById('analytics-heatmap');
     const containerRetencao = document.getElementById('analytics-retencao');
@@ -462,41 +519,27 @@ async function carregarPainelAnalytics() {
         if(!res.ok) return;
         const todosAgendamentos = await res.json();
 
-        // Filtrando conforme o filtro global do topo
         const agendamentos = todosAgendamentos.filter(a => filtrarPorPeriodoGlobal(a.data));
 
-        // 1. Mapa de Calor por Turno
         const turnosContagem = { "Manhã": 0, "Tarde": 0, "Noite": 0 };
-        
-        // 2. Mapeamento da Quantidade de Clientes por Dia da Semana
         const volumeDiasSemana = {
-            "Segunda-feira": 0,
-            "Terça-feira": 0,
-            "Quarta-feira": 0,
-            "Quinta-feira": 0,
-            "Sexta-feira": 0,
-            "Sábado": 0,
-            "Domingo": 0
+            "Segunda-feira": 0, "Terça-feira": 0, "Quarta-feira": 0,
+            "Quinta-feira": 0, "Sexta-feira": 0, "Sábado": 0, "Domingo": 0
         };
 
         const nomesDias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
         agendamentos.forEach(a => {
-            // Processamento de Turno
             const hora = parseInt(String(a.hora).split(':')[0]);
             if(hora >= 9 && hora < 12) turnosContagem["Manhã"]++;
             else if(hora >= 12 && hora < 18) turnosContagem["Tarde"]++;
             else if(hora >= 18) turnosContagem["Noite"]++;
 
-            // Processamento do Dia da Semana
             const dataObj = new Date(a.data + 'T00:00:00');
             const nomeDia = nomesDias[dataObj.getDay()];
-            if(volumeDiasSemana[nomeDia] !== undefined) {
-                volumeDiasSemana[nomeDia]++;
-            }
+            if(volumeDiasSemana[nomeDia] !== undefined) volumeDiasSemana[nomeDia]++;
         });
 
-        // Renderiza Turnos
         containerMapa.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 10px; background: #111; padding: 15px; border-radius: 8px;">
                 <p style="font-size:13px; color:var(--text-muted); margin-bottom:5px;">Previsão de Horários de Pico no Período:</p>
@@ -506,13 +549,10 @@ async function carregarPainelAnalytics() {
             </div>
         `;
 
-        // Renderiza a volumetria analítica de dias da semana solicitada
         if(containerDiasSemana) {
             let htmlDias = `<div style="display: flex; flex-direction: column; gap: 8px; background: #111; padding: 15px; border-radius: 8px;">`;
-            
             for(let dia in volumeDiasSemana) {
                 const totalCortes = volumeDiasSemana[dia];
-                // Criação de uma barra de progresso visual simples e limpa para os relatórios
                 const porcentagemBarra = agendamentos.length > 0 ? Math.min((totalCortes / agendamentos.length) * 100, 100) : 0;
                 
                 htmlDias += `
@@ -531,7 +571,6 @@ async function carregarPainelAnalytics() {
             containerDiasSemana.innerHTML = htmlDias;
         }
 
-        // 3. Retenção Geral
         const clientesUnicos = [...new Set(agendamentos.map(a => a.cliente))];
         let recorrentes = 0;
         clientesUnicos.forEach(c => {
@@ -551,7 +590,6 @@ async function carregarPainelAnalytics() {
     }
 }
 
-// --- CORE DO CLIENTE ---
 async function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios');
     if (!container) return;
@@ -603,55 +641,6 @@ async function renderizarGradeHorariosReais() {
         container.appendChild(box);
     });
 }
-
-document.getElementById('btnPreAgendar').addEventListener('click', (e) => {
-    e.preventDefault();
-    if (!servicoSelecionado || !barbeiroSelecionado || !horarioSelecionado || !pagamentoSelecionado) {
-        alert("Selecione todos os parâmetros antes de avançar.");
-        return;
-    }
-    document.getElementById('modal-resumo-detalhes').innerHTML = `
-        <strong>Procedimento:</strong> ${servicoSelecionado}<br>
-        <strong>Profissional:</strong> ${barbeiroSelecionado === 'gabriel' ? 'Gabriel (Proprietário)' : 'Lucas Barber'}<br>
-        <strong>Data/Hora:</strong> ${document.getElementById('data').value} às ${horarioSelecionado}<br>
-        <span style="color:var(--success-color); font-weight:bold;">Valor: R$ ${precoServico.toFixed(2)}</span>
-    `;
-    document.getElementById('modal-confirmacao').classList.remove('escondido');
-});
-
-document.getElementById('btn-confirmar-modal').addEventListener('click', async (e) => {
-    e.preventDefault();
-    const nomeCliente = nomeUsuarioLogado ? nomeUsuarioLogado.toUpperCase() : "CLIENTE_ANONIMO";
-    
-    const payload = {
-        cliente: nomeCliente,
-        servico: servicoSelecionado || "Não Informado",
-        barbeiro: barbeiroSelecionado === 'gabriel' ? 'Gabriel (Proprietário)' : 'Lucas Barber',
-        data: document.getElementById('data').value,
-        hora: horarioSelecionado,
-        pagamento: pagamentoSelecionado || "Pix",
-        status: "agendado",
-        valor_produtos: 0.00,
-        valor_gorjeta: 0.00
-    };
-
-    try {
-        const res = await fetch(`${API_URL}/agendamentos`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-            document.getElementById('modal-confirmacao').classList.add('escondido');
-            alert("✨ Agendamento gravado!");
-            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`Confirmação: ${payload.servico} dia ${payload.data} às ${payload.hora}`)}`, '_blank');
-            horarioSelecionado = null;
-            renderizarGradeHorariosReais();
-            carregarMeusAgendamentosDoBanco();
-        }
-    } catch (e) {}
-});
 
 async function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos');
@@ -737,7 +726,6 @@ function alternarTela(idAba) {
     const abaAlvo = document.getElementById(`aba-${idAba}`);
     if (abaAlvo) abaAlvo.classList.remove('escondido');
 
-    // Remove a classe "ativo" de todos os botões do menu inferior e destaca o atual
     document.querySelectorAll('.nav-inferior .nav-item').forEach(btn => btn.classList.remove('ativo'));
     
     recarregarAbaAtivaAdm();
