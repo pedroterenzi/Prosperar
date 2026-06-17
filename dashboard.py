@@ -1,4 +1,4 @@
-import streamlit as st
+   import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
@@ -46,7 +46,6 @@ PRODUTOS = {
 def obter_engine():
     return create_engine(CONNECTION_STRING, pool_pre_ping=True)
 
-# 🟢 INCLUSÃO: Cache dinâmico rápido de dados com TTL (tempo de vida) de 15s para evitar gargalo de re-run
 @st.cache_data(ttl=15)
 def buscar_dados_sql(query_texto, params=None):
     engine = obter_engine()
@@ -110,7 +109,7 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
         """, unsafe_allow_html=True)
         if st.button("Concluir e Atualizar Tela", use_container_width=True, type="primary"):
             st.session_state["ultimo_horario_salvo"] = None  
-            st.invalidate_overrides() # Limpa cache de dados antigos
+            st.cache_data.clear()
             st.rerun()
     else:
         st.markdown("#### Como deseja realizar o pagamento?")
@@ -129,7 +128,7 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                         VALUES (:u, :b, :d, :h, :s, :v, :fp)
                     """), {"u": st.session_state['user'], "b": barbeiro, "d": str(data), "h": hora, "s": servico, "v": preco, "fp": forma_f})
                     
-                    conn.execute(text("UPDATE usuarios_barber SET pontos_fidelidade = pontos_fidelidade + :f WHERE login = :u"), {"f": faktor_pontos, "u": st.session_state['user']})
+                    conn.execute(text("UPDATE usuarios_barber SET pontos_fidelidade = pontos_fidelidade + :f WHERE login = :u"), {"f": fator_pontos, "u": st.session_state['user']})
                 
                 st.session_state["ultimo_horario_salvo"] = hora
                 
@@ -455,7 +454,7 @@ else:
                 if st.button("🗑️ CANCELAR HORÁRIOS SELECIONADOS", type="primary", use_container_width=True):
                     linhas_para_cancelar = df_editado[df_editado["Selecionar para Cancelar"] == True]
                     
-                    if not lines_para_cancelar.empty:
+                    if not linhas_para_cancelar.empty:
                         with engine.begin() as conn:
                             for idx_c, row_c in linhas_para_cancelar.iterrows():
                                 conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(row_c['id'])})
@@ -535,7 +534,6 @@ else:
         if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)" or st.session_state['perfil'] == 'barbeiro':
             barbeiro_ativo = "Gabriel" if st.session_state['perfil'] == 'admin' else st.session_state['nome_usuario']
             
-            # Captura base de dados em tempo real via cache
             df_b_hoje = buscar_dados_sql("""
                 SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, a.status,
                        u.nome as cliente_nome, u.preferencias, u.celular 
@@ -576,7 +574,6 @@ else:
             
             b_pilar1, b_pilar2 = st.tabs(["🎛️ Quadro de Comandos (Bancada)", "💰 Meu Extrato & Comissões"])
             
-            # --- 🚀 RECONSTRUÇÃO: TURNOS DA BANCADA FRAGMENTADOS CONTRA RE-RUN COMPLETO ---
             with b_pilar1:
                 st.markdown(f"## 🎛️ Quadro de Comandos de Hoje — {barbeiro_ativo}")
                 k_col1, k_col2, k_col3 = st.columns(3)
@@ -596,7 +593,6 @@ else:
                 
                 st.markdown("<br><div class='section-barber'>📋 SEU FLUXO DE ATENDIMENTO DE HOJE (OPERADO SEM RE-RUN GLOBAL)</div>", unsafe_allow_html=True)
                 
-                # Container fragmentado isolado: cliques aqui dentro recarregam apenas a lista de botões
                 @st.fragment
                 def renderizar_bancada_fragmentada(mapa_dados_hoje):
                     for h_slot in horarios_completos:
@@ -616,8 +612,8 @@ else:
                                 """, unsafe_allow_html=True)
                                 
                                 with st.expander(f"⚙️ Expandir Prontuário de {reg_c['cliente_nome']}"):
-                                    txt_técnico = reg_c['preferencias'] if reg_c['preferencias'] != "Nenhum" else "Seu barbeiro ainda não adicionou notas sobre o seu estilo."
-                                    st.info(f"📋 **Notas Técnicas Anteriores:** {txt_técnico}")
+                                    txt_tecnico = reg_c['preferencias'] if reg_c['preferencias'] != "Nenhum" else "Seu barbeiro ainda não adicionou notas sobre o seu estilo."
+                                    st.info(f"📋 **Notas Técnicas Anteriores:** {txt_tecnico}")
                                     
                                     ab1, ab2, ab3 = st.columns(3)
                                     with ab1:
@@ -642,7 +638,6 @@ else:
                                         conn_bl.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status) VALUES ('bloqueio_manual', :b, :d, :h, 'Bloqueio Preventivo', 0, 'Bloqueado')"), {"b": barbeiro_ativo, "d": str(date.today()), "h": h_slot})
                                     st.rerun()
                 
-                # Executa o isolador de cliques de bancada
                 renderizar_bancada_fragmentada(df_b_hoje.set_index('horario').to_dict(orient='index'))
 
             with b_pilar2:
@@ -658,7 +653,7 @@ else:
                 st.progress(0.70)
                 st.caption("Mantenha a pegada! Você concluiu 70% da sua meta semanal para destravar o bônus de cadeira.")
                 
-                st.markdown("<br><div class='section-barber'>📑 LISTA DE AUDITORIA CONSOLIDADA (SERVIÇOS PRESTADOS)</div>", unsafe_allow_html=True)
+                st.markdown("<br><div class='section-barber'>📋 SEU FLUXO DE ATENDIMENTO DE HOJE (OPERADO SEM RE-RUN GLOBAL)</div>", unsafe_allow_html=True)
                 tabela_comissoes = []
                 for _, r_f in df_b_hoje[df_b_hoje['status'] == 'Agendado'].iterrows():
                     c_liq = r_f['valor'] * SERVICOS[r_f['servico']]['comissao'] if r_f['servico'] in SERVICOS else 0.0
@@ -674,9 +669,6 @@ else:
                 st.markdown("---")
                 st.info("📅 **Previsão Próximo Recebimento Quinzena:** 20/06/2026")
 
-        # =========================================================
-        # 3. INTERFACE CORPORATIVA THE ADM MASTER (PROPRIETÁRIO GABRIEL)
-        # =========================================================
         else:
             st.markdown("<div class='section-barber'>📅 CALENDÁRIO CORPORATIVO DE GESTÃO EXECUTIVA (APLICA EM TODO O BI)</div>", unsafe_allow_html=True)
             periodo_sel = st.date_input("Intervalo Dinâmico de Análise:", value=[date(2026, 6, 1), date(2026, 6, 30)], key="p_adm_erpv2")
@@ -729,7 +721,7 @@ else:
                 st.markdown("<br>#### ⚡ Central de Gatilhos de Marketing CRM")
                 col_m1, col_m2 = st.columns(2)
                 with col_m1:
-                    st.markdown("<div style='background:#1e2028; padding:15px; border-radius:10px; border-left:4px solid #ef4444;'>⚡ <b>Leads Inativos (+45 dias)</b><br>Gatilho identifica 14 clientes aptos a reativação. Deseja auditar a lista antes do disparo?</div>", unsafe_allow_html=True)
+                    st.markdown("<div style='background:#1e2028; padding:15px; border-radius:10px; border-left:4px solid #ef4444;'>⚡ <b>Leads Inativos (+45 dias)</b><br>Gatilho identifies 14 clientes aptos a reativação. Deseja auditar a lista antes do disparo?</div>", unsafe_allow_html=True)
                     if st.button("🔍 Abrir e Auditar Lista de Disparo", use_container_width=True):
                         mostrar_modal_marketing("Clientes Ausentes", ["alexandre_guerra", "danilo_santos", "luciano_souza", "paulo_higuchi"])
 
