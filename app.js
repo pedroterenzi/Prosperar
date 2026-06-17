@@ -367,18 +367,26 @@ document.getElementById('btnPreAgendar').addEventListener('click', (e) => {
     document.getElementById('modal-confirmacao').classList.remove('escondido');
 });
 
-// EVENTO DE CONFIRMAÇÃO DO POP-UP OPERACIONALIZADO
+// EVENTO DE CONFIRMAÇÃO DO POP-UP OPERACIONALIZADO (CORRIGIDO)
 document.getElementById('btn-confirmar-modal').addEventListener('click', async (e) => {
     e.preventDefault();
     
+    // Tratativa para evitar que o código trave caso o usuário não esteja mapeado corretamente
+    const nomeCliente = usuarioLogado ? usuarioLogado.toUpperCase() : "CLIENTE_ANONIMO";
+    
     const payload = {
-        cliente: usuarioLogado.toUpperCase(),
-        servico: servicoSelecionado,
+        cliente: nomeCliente,
+        servico: servicoSelecionado || "Não Informado",
         barbeiro: barbeiroSelecionado === 'gabriel' ? 'Gabriel (Proprietário)' : 'Lucas Barber',
         data: document.getElementById('data').value,
         hora: horarioSelecionado,
-        pagamento: pagamentoSelecionado
+        pagamento: pagamentoSelecionado || "Balcão"
     };
+
+    // Alerta visual simples para você ver se o botão acordou
+    const botao = document.getElementById('btn-confirmar-modal');
+    botao.innerText = "Gravando...";
+    botao.disabled = true;
 
     try {
         const res = await fetch(`${API_URL}/agendamentos`, {
@@ -391,16 +399,28 @@ document.getElementById('btn-confirmar-modal').addEventListener('click', async (
             document.getElementById('modal-confirmacao').classList.add('escondido');
             alert("✨ Agendamento gravado com sucesso no Banco Neon!");
             
-            enviarMensagemWhatsApp(payload);
+            try {
+                enviarMensagemWhatsApp(payload);
+            } catch(wppErr) {
+                console.error("Popup de WhatsApp bloqueado ou falhou:", wppErr);
+            }
+
             horarioSelecionado = null;
             renderizarGradeHorariosReais();
             carregarMeusAgendamentosDoBanco();
+        } else {
+            const erroServidor = await res.json();
+            alert(`Erro no servidor: ${erroServidor.detail || "Erro desconhecido"}`);
         }
     } catch (e) {
-        alert("Erro ao gravar.");
+        console.error("Erro na requisição:", e);
+        alert("Erro ao conectar com o servidor. Verifique sua API.");
+    } finally {
+        // Restaura o botão original após a operação terminar
+        botao.innerText = "Confirmar";
+        botao.disabled = false;
     }
 });
-
 function enviarMensagemWhatsApp(dados) {
     const texto = `👋 Olá! Segue a confirmação do meu agendamento na Prosperar Club:\n\n👤 Cliente: ${dados.cliente}\n💇‍♂️ Procedimento: ${dados.servico}\n💈 Profissional: ${dados.barbeiro}\n📅 Data: ${dados.data}\n⏰ Horário: ${dados.hora}\n💳 Meio de Pagamento: ${dados.pagamento}\n\nObrigado!`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
