@@ -6,16 +6,17 @@
     <title>Prosperar ERP & Club</title>
     <style>
         :root {
-            --bg-color: #0d0d0d;
-            --card-bg: #161616;
+            --bg-color: #0a0a0c;
+            --card-bg: #131316;
+            --card-hover: #1c1c22;
             --accent-color: #cc9933; 
-            --accent-hover: #b38628;
+            --accent-hover: #e6b85c;
             --text-color: #ffffff;
-            --text-muted: #888888;
-            --border-color: #262626;
-            --success-color: #2ea44f;
-            --danger-color: #cb2431;
-            --blue-color: #0366d6;
+            --text-muted: #9ca3af;
+            --border-color: #222227;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --blue-color: #3b82f6;
         }
 
         body {
@@ -26,12 +27,12 @@
             padding: 0;
             display: flex;
             justify-content: center;
-            padding-bottom: 80px;
+            padding-bottom: 90px;
         }
 
         .app-container { 
             width: 100%; 
-            max-width: 500px; 
+            max-width: 480px; 
             padding: 20px; 
             box-sizing: border-box; 
         }
@@ -39,51 +40,72 @@
         .card { 
             background: var(--card-bg); 
             border: 1px solid var(--border-color); 
-            padding: 20px; 
-            border-radius: 16px; 
+            padding: 24px; 
+            border-radius: 20px; 
             margin-bottom: 20px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5); 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4); 
         }
         
-        h2, h3, h4 { color: var(--accent-color); margin-top: 0; font-weight: 600; }
-        label { display: block; margin: 15px 0 5px; font-weight: bold; color: var(--text-muted); font-size: 13px; }
+        h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
+        .gold-text { color: var(--accent-color); }
         
-        select, input, textarea {
-            width: 100%; padding: 14px; background: #222; border: 1px solid var(--border-color);
-            border-radius: 8px; color: white; font-size: 16px; box-sizing: border-box;
+        label { display: block; margin: 20px 0 10px; font-weight: 600; color: var(--text-muted); font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        input {
+            width: 100%; padding: 16px; background: #18181c; border: 1px solid var(--border-color);
+            border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box; transition: all 0.3s;
         }
+        input:focus { border-color: var(--accent-color); outline: none; }
 
-        .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        .btn-gold:hover { background: var(--accent-hover); }
+        .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
+        .btn-gold:hover { background: var(--accent-hover); transform: translateY(-1px); }
 
-        .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
-        .btn-horario { background: #1c1c1c; color: white; border: 1px solid var(--border-color); padding: 12px 5px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-horario.selecionado { background: var(--accent-color); color: black; border-color: var(--accent-color); }
+        /* Componentes de Seleção por Cards (Substitutos do Select) */
+        .cards-selection-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 5px; }
+        .selectable-card { 
+            background: #18181c; border: 2px solid var(--border-color); padding: 16px; 
+            border-radius: 14px; cursor: pointer; display: flex; justify-content: space-between; 
+            align-items: center; transition: all 0.25s ease;
+        }
+        .selectable-card:hover { border-color: #3f3f46; background: var(--card-hover); }
+        .selectable-card.selected { border-color: var(--accent-color); background: rgba(204, 153, 51, 0.05); }
+        .selectable-card .card-title { font-weight: 600; font-size: 15px; }
+        .selectable-card .card-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+        .selectable-card .card-price { color: var(--accent-color); font-weight: 700; font-size: 15px; }
 
-        /* Métrica em Blocos */
-        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .metric-block { background: #222; border: 1px solid var(--border-color); padding: 12px; border-radius: 10px; text-align: center; }
-        .metric-block span { display: block; font-size: 20px; font-weight: bold; color: white; }
-        .metric-block label { margin: 0; font-size: 11px; color: var(--text-muted); }
+        /* Divisores de Turnos da Grade */
+        .turno-header { font-size: 13px; font-weight: 700; color: var(--accent-color); margin: 15px 0 8px 2px; display: flex; align-items: center; gap: 6px; }
+        .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
+        .btn-horario { background: #18181c; color: white; border: 1px solid var(--border-color); padding: 12px 4px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .btn-horario:hover { border-color: #444; }
+        .btn-horario.selecionado { background: var(--accent-color); color: black; border-color: var(--accent-color); font-weight: 700; }
 
-        /* Kanban de Operação de Cadeira */
-        .kanban-item { background: #1f1f1f; border: 1px solid var(--border-color); padding: 15px; border-radius: 10px; margin-bottom: 10px; }
-        .kanban-meta { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+        /* Métricas Premium Dashboard */
+        .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .metric-block { background: var(--card-bg); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px; text-align: center; }
+        .metric-block span { display: block; font-size: 22px; font-weight: 800; color: white; margin-bottom: 4px; }
+        .metric-block label { margin: 0; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; }
+
+        /* Kanban Refatorado de Operação de Cadeira */
+        .kanban-item { background: #18181c; border: 1px solid var(--border-color); padding: 18px; border-radius: 16px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .kanban-meta { font-size: 13px; color: var(--text-muted); margin: 6px 0 14px; }
         .kanban-actions { display: flex; gap: 8px; }
-        .btn-kb { flex: 1; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; color: white; }
+        .btn-kb { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; color: white; transition: all 0.2s; }
+        .btn-kb:hover { filter: brightness(1.1); }
         .btn-kb.checkin { background: var(--blue-color); }
         .btn-kb.done { background: var(--success-color); }
         .btn-kb.noshow { background: var(--danger-color); }
 
-        .barra-progresso { background: #222; border-radius: 10px; height: 10px; width: 100%; margin: 8px 0; overflow: hidden; }
-        .progresso-preenchido { background: var(--accent-color); height: 100%; width: 0%; transition: width 0.3s; }
-        .tag-estilo { display: inline-block; background: #222; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 15px; font-size: 12px; margin: 3px; color: var(--accent-color); }
+        .barra-progresso { background: #18181c; border-radius: 10px; height: 10px; width: 100%; margin: 12px 0; overflow: hidden; border: 1px solid var(--border-color); }
+        .progresso-preenchido { background: var(--accent-color); height: 100%; width: 0%; transition: width 0.4s ease; }
+        .tag-estilo { display: inline-block; background: #18181c; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; font-size: 12px; margin: 4px; color: var(--accent-color); font-weight: 600; }
 
-        /* Navegações Inferiores */
-        .nav-inferior { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px; background: #121212; border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 10px 0; z-index: 999; }
-        .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
-        .nav-item.ativo { color: var(--accent-color); font-weight: bold; }
-        .nav-item svg { width: 22px; height: 22px; fill: currentColor; }
+        /* Menu de Navegação em Barra Flutuante */
+        .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(19, 19, 22, 0.85); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.04); display: flex; justify-content: space-around; padding: 12px 8px; border-radius: 24px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); z-index: 999; }
+        .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .nav-item.ativo { color: var(--accent-color); }
+        .nav-item svg { width: 20px; height: 20px; fill: currentColor; transition: transform 0.2s; }
+        .nav-item:hover svg { transform: translateY(-1px); }
         
         .escondido { display: none !important; }
     </style>
@@ -92,71 +114,65 @@
 
 <div class="app-container">
 
-    <div id="tela-login" class="card">
-        <h2 style="text-align: center;">Prosperar Executive</h2>
-        <p style="text-align: center; color: var(--text-muted); font-size: 13px; margin-top: -10px;">Insira suas credenciais corporativas ou de cliente</p>
+    <div id="tela-login" class="card" style="margin-top: 40px;">
+        <h2 style="text-align: center; font-size: 24px;">Prosperar <span class="gold-text">Club</span></h2>
+        <p style="text-align: center; color: var(--text-muted); font-size: 14px; margin-top: -8px; margin-bottom: 30px;">Acesse sua conta para agendamentos e comissões</p>
         
-        <label for="login-usuario">Usuário / WhatsApp:</label>
-        <input type="text" id="login-usuario" placeholder="Ex: gabs.barber">
+        <label for="login-usuario">Usuário ou WhatsApp</label>
+        <input type="text" id="login-usuario" placeholder="Digite seu usuário">
         
-        <label for="login-senha">Senha:</label>
-        <input type="password" id="login-senha" placeholder="******">
+        <label for="login-senha">Senha de Acesso</label>
+        <input type="password" id="login-senha" placeholder="••••••••">
         
-        <button class="btn-gold" id="btn-entrar" style="margin-top: 20px;">Autenticar no Hub</button>
-        <div id="erro-login" style="text-align: center; margin-top: 15px; font-weight: bold; color: red;"></div>
+        <button class="btn-gold" id="btn-entrar" style="margin-top: 30px;">Entrar no Sistema</button>
+        <div id="erro-login" style="text-align: center; margin-top: 20px; font-weight: 600; font-size: 14px;"></div>
     </div>
 
     <div id="conteudo-app" class="escondido">
         
         <section id="aba-home" class="escondido">
-            <div style="margin-bottom: 20px;">
-                <h2 id="boas-vistas-cliente">Olá!</h2>
-                <p style="margin:0; color: var(--text-muted); font-size: 14px;">Bora atualizar seu estilo hoje?</p>
+            <div style="margin-bottom: 25px; margin-left: 4px;">
+                <h2 id="boas-vistas-cliente" style="font-size: 26px; margin-bottom: 4px;">Olá, Pedro!</h2>
+                <p style="margin:0; color: var(--text-muted); font-size: 15px;">Bora atualizar seu estilo hoje?</p>
             </div>
             
             <div class="card">
-                <h3>Agendar Nova Cadeira</h3>
-                <label for="servico">Selecione o Procedimento:</label>
-                <select id="servico">
-                    <option value="Corte Simples">Corte Simples — R$ 40</option>
-                    <option value="Corte + Sobrancelha">Corte + Sobrancelha — R$ 55</option>
-                    <option value="Barba Completa">Barba Completa — R$ 35</option>
-                    <option value="Combo Premium (Corte + Barba + Sobrancelha)">Combo Premium — R$ 85</option>
-                </select>
+                <h3 style="font-size: 18px; margin-bottom: 5px;">Agendar Nova Cadeira</h3>
+                <p style="color: var(--text-muted); font-size: 13px; margin: 0 0 20px 0;">Escolha os parâmetros do atendimento abaixo</p>
+                
+                <label>1. Escolha o Serviço</label>
+                <div id="stack-servicos" class="cards-selection-stack">
+                    </div>
 
-                <label for="barbeiro">Profissional:</label>
-                <select id="barbeiro">
-                    <option value="Gabriel (Proprietário)">Gabriel (Proprietário) ★ 4.9</option>
-                    <option value="Lucas Barber">Lucas Barber ★ 4.8</option>
-                </select>
+                <label>2. Escolha o Profissional</label>
+                <div id="stack-barbeiros" class="cards-selection-stack">
+                    </div>
 
-                <label for="data">Data:</label>
+                <label>3. Selecione o Dia</label>
                 <input type="date" id="data">
 
-                <label>Vagas Disponíveis:</label>
-                <div id="container-horarios" class="grid-horarios"></div>
+                <label>4. Horários Disponíveis</label>
+                <div id="wrapper-turnos-grade">
+                    </div>
 
-                <label for="pagamento">Meio de Pagamento:</label>
-                <select id="pagamento">
-                    <option value="Pix">Pix (Pontos em Dobro)</option>
-                    <option value="Dinheiro">Dinheiro Físico</option>
-                    <option value="Cartão">Cartão Débito/Crédito</option>
-                </select>
+                <label>5. Forma de Pagamento</label>
+                <div id="stack-pagamentos" class="cards-selection-stack">
+                    </div>
 
-                <button class="btn-gold" id="btnConfirmar" style="margin-top: 20px;">Reservar Horário</button>
-                <div id="mensagem-status" style="text-align: center; margin-top: 15px; font-weight: bold;"></div>
+                <button class="btn-gold" id="btnConfirmar" style="margin-top: 30px;">Confirmar Agendamento</button>
+                <div id="mensagem-status" style="text-align: center; margin-top: 20px; font-weight: 700;"></div>
             </div>
         </section>
 
         <section id="aba-estilo" class="escondido">
             <h3>Meu Estilo</h3>
             <div class="card">
-                <h4>📐 Ficha Clínica Capilar</h4>
-                <p id="txt-prontuario" style="font-size: 14px; color: var(--text-muted); line-height: 1.5;">Nenhuma anotação técnica registrada para este perfil.</p>
+                <h4 style="margin-bottom: 10px;">📐 Ficha Clínica Capilar</h4>
+                <p id="txt-prontuario" style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 15px;">Nenhuma anotação técnica registrada para este perfil.</p>
                 <div id="tags-estilo-container">
                     <span class="tag-estilo">Degradê Navalhado</span>
                     <span class="tag-estilo">Pomada Matte</span>
-                    <span class="tag-estilo">Perfil Reservado</span>
+                    <span class="tag-estilo">Atendimento Silencioso</span>
                 </div>
             </div>
         </section>
@@ -164,20 +180,20 @@
         <section id="aba-fidelidade" class="escondido">
             <h3>Fidelidade & Vantagens</h3>
             <div class="card" style="text-align: center;">
-                <h4>🏆 Pontuação Acumulada</h4>
-                <p style="font-size: 14px; color: var(--text-muted);">Você possui <span id="txt-pontos" style="color: var(--accent-color); font-weight: bold; font-size: 20px;">0</span> pontos.</p>
+                <h4 style="margin-bottom: 5px;">🏆 Pontuação Acumulada</h4>
+                <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">Você possui <span id="txt-pontos" class="gold-text" style="font-weight: 800; font-size: 24px;">0</span> pontos.</p>
                 <div class="barra-progresso"><div id="progresso-fidelidade" class="progresso-preenchido"></div></div>
-                <p style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">Junte 20 pontos para trocar por um serviço ou produto premium!</p>
+                <p style="font-size: 13px; color: var(--text-muted); margin-top: 15px; line-height: 1.5;">A cada 20 pontos acumulados, você ganha 1 corte inteiramente gratuito pelo clube!</p>
             </div>
         </section>
 
         <section id="aba-barbeiro" class="escondido">
-            <h2 id="txt-welcome-barbeiro">Painel do Profissional</h2>
+            <h2 id="txt-welcome-barbeiro" style="font-size: 22px;">Painel do Profissional</h2>
             <div class="metrics-grid">
                 <div class="metric-block"><span id="b-meta-agendamentos">0</span><label>Agendamentos Hoje</label></div>
-                <div class="metric-block"><span id="b-meta-faturamento">R$ 0</span><label>Sua Comissão (Estimada)</label></div>
+                <div class="metric-block"><span id="b-meta-faturamento" class="gold-text">R$ 0</span><label>Sua Comissão</label></div>
             </div>
-            <h3>Fila de Atendimento do Dia</h3>
+            <h3 style="font-size: 18px; margin-bottom: 15px;">Fila de Atendimento do Dia</h3>
             <div id="kanban-agenda-barbeiro"></div>
         </section>
 
@@ -185,14 +201,14 @@
             <h2>Cockpit Corporativo (Dono)</h2>
             <div class="metrics-grid">
                 <div class="metric-block"><span id="adm-faturamento">R$ 0</span><label>Faturamento Mensal</label></div>
-                <div class="metric-block"><span id="adm-ticket">R$ 0</span><label>Ticket Médio</label></div>
+                <div class="metric-block"><span id="adm-ticket" class="gold-text">R$ 0</span><label>Ticket Médio</label></div>
             </div>
             <div class="metrics-grid">
                 <div class="metric-block"><span id="adm-ocupacao">0%</span><label>Taxa de Ocupação</label></div>
                 <div class="metric-block"><span id="adm-noshow" style="color:var(--danger-color)">0%</span><label>Índice No-Show</label></div>
             </div>
             <div class="card">
-                <h4>📦 Alertas de Insumos Críticos</h4>
+                <h4 style="margin-bottom: 12px;">📦 Alertas de Insumos Críticos</h4>
                 <div id="estoque-alerta-container" style="font-size: 13px; color: var(--text-muted);">Monitorando níveis de estoque em tempo real...</div>
             </div>
         </section>
