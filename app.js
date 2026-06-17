@@ -10,10 +10,10 @@ let pagamentoSelecionado = null;
 let precoServico = 0;
 
 const ESTRUTURA_SERVICOS = [
-    { id: "corte", nome: "Corte Simples", preco: 40.00, sub: "Duração: 30 min", img: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=150" },
-    { id: "corte_sob", nome: "Corte + Sobrancelha", preco: 55.00, sub: "Duração: 45 min", img: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=150" },
-    { id: "barba", nome: "Barba Completa", preco: 35.00, sub: "Duração: 30 min", img: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?q=80&w=150" },
-    { id: "combo", nome: "Combo Premium", preco: 85.00, sub: "Corte + Barba + Sobrancelha", img: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=150" }
+    { id: "corte", nome: "Corte Simples", preco: 40.00, sub: "Duração: 30 min" },
+    { id: "corte_sob", nome: "Corte + Sobrancelha", preco: 55.00, sub: "Duração: 45 min" },
+    { id: "barba", nome: "Barba Completa", preco: 35.00, sub: "Duração: 30 min" },
+    { id: "combo", nome: "Combo Premium", preco: 85.00, sub: "Corte + Barba + Sobrancelha" }
 ];
 
 const ESTRUTURA_BARBEIROS = [
@@ -21,178 +21,317 @@ const ESTRUTURA_BARBEIROS = [
     { id: "lucas", nome: "Lucas Barber", avaliacao: "★ 4.8 (96 avaliações)" }
 ];
 
-const ESTRUTURA_PAGAMENTOS = [
-    { id: "pix", nome: "Pix", sub: "Ganha Pontos em Dobro" },
-    { id: "cartao", nome: "Cartão", sub: "Crédito ou Débito" }
-];
-
 const HORARIOS_PADRAO = [
-    { turno: "☀️ Turno da Manhã", horas: ["09:00", "09:30", "11:00", "11:30"] },
-    { turno: "🌤️ Turno da Tarde", horas: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "16:00", "16:30", "17:00", "17:30"] },
-    { turno: "🌙 Turno da Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
+    { turno: "☀️ Manhã", horas: ["09:00", "09:30", "11:00", "11:30"] },
+    { turno: "🌤️ Tarde", horas: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "16:00", "16:30", "17:00", "17:30"] },
+    { turno: "🌙 Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
 ];
 
-// Login com Controle de Acesso (RBAC)
-document.getElementById('btn-entrar').addEventListener('click', () => {
-    const login = document.getElementById('login-usuario').value.trim().toLowerCase();
-    if (!login) return alert("Por favor, preencha o login.");
-
-    usuarioLogado = login;
+// Alternador visual do formulário de autenticação
+function alternarAbasAuth(aba) {
+    document.getElementById('tab-login').classList.remove('active');
+    document.getElementById('tab-cadastro').classList.remove('active');
+    document.getElementById('form-login').classList.add('escondido');
+    document.getElementById('form-cadastro').classList.add('escondido');
     
-    // Configuração de Nível de Permissão Estrita
-    if (login === 'gabriel') {
-        perfilLogado = 'admin'; // Acesso estratégico completo
-    } else if (login === 'lucas') {
-        perfilLogado = 'barbeiro'; // Vê apenas recepção/agenda básica
+    if(aba === 'login') {
+        document.getElementById('tab-login').classList.add('active');
+        document.getElementById('form-login').classList.remove('escondido');
     } else {
-        perfilLogado = 'cliente'; // Interface de compras e reservas
-    }
-
-    document.getElementById('tela-login').classList.add('escondido');
-    document.getElementById('conteudo-app').classList.remove('escondido');
-
-    montarMenuNavegacao(perfilLogado);
-    direcionarFluxoInicial(perfilLogado);
-});
-
-function direcionarFluxoInicial(perfil) {
-    if (perfil === 'admin') {
-        alternarTela('adm-dash');
-        carregarDadosEstrategicosDoNeon();
-    } else if (perfil === 'barbeiro') {
-        alternarTela('adm-recepcao');
-        carregarModoRecepcaoKanban();
-    } else {
-        alternarTela('home');
-        document.getElementById('boas-vistas-cliente').innerText = `Olá, ${usuarioLogado.charAt(0).toUpperCase() + usuarioLogado.slice(1)}!`;
-        renderizarFormularioCliente();
-        carregarMeusAgendamentosDoBanco();
+        document.getElementById('tab-cadastro').classList.add('active');
+        document.getElementById('form-cadastro').classList.remove('escondido');
     }
 }
 
-// ================= PROCESSAMENTO DE INTELIGÊNCIA DE NEGÓCIO (NEON) =================
+// Fluxo de Cadastro de Usuário no Banco
+document.getElementById('btn-cadastrar').addEventListener('click', async () => {
+    const nome = document.getElementById('cad-nome').value.trim();
+    const login = document.getElementById('cad-login').value.trim();
+    const celular = document.getElementById('cad-celular').value.trim();
+    const plano = document.getElementById('cad-plano').value;
+    const senha = document.getElementById('cad-senha').value;
+    const confirmar = document.getElementById('cad-confirmar-senha').value;
+
+    if(!nome || !login || !celular || !senha) return alert("Por favor, preencha todos os campos!");
+    if(senha !== confirmar) return alert("As senhas informadas não coincidem!");
+
+    try {
+        const res = await fetch(`${API_URL}/usuarios/cadastro`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ login, senha, nome, celular, plano_assinatura: plano })
+        });
+        
+        if(res.ok) {
+            alert("✨ Conta criada com sucesso! Você já pode realizar o login.");
+            alternarAbasAuth('login');
+        } else {
+            const err = await res.json();
+            alert(err.detail || "Erro ao efetuar cadastro.");
+        }
+    } catch(e) {
+        alert("Erro ao conectar com o servidor.");
+    }
+});
+
+// Fluxo de Login com Nível de Permissão Real
+document.getElementById('btn-entrar').addEventListener('click', async () => {
+    const login = document.getElementById('login-usuario').value.trim();
+    const senha = document.getElementById('login-senha').value;
+
+    if(!login || !senha) return alert("Preencha os campos de acesso.");
+
+    try {
+        const res = await fetch(`${API_URL}/usuarios/login`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ login, senha })
+        });
+
+        if(res.ok) {
+            const user = await res.json();
+            usuarioLogado = user.login;
+            perfilLogado = user.perfil;
+
+            document.getElementById('tela-autenticacao').classList.add('escondido');
+            document.getElementById('conteudo-app').classList.remove('escondido');
+
+            montarMenuNavegacao(perfilLogado);
+            
+            if(perfilLogado === 'admin') {
+                alternarTela('adm-dash');
+            } else {
+                alternarTela('home');
+                document.getElementById('boas-vistas-cliente').innerText = `Olá, ${user.nome}!`;
+                renderizarFormularioCliente();
+                carregarMeusAgendamentosDoBanco();
+            }
+        } else {
+            alert("Acesso negado. Verifique os dados.");
+        }
+    } catch(e) {
+        alert("Falha de conexão com o banco Neon.");
+    }
+});
+
+// ================= PROCESSAMENTO DE MÉTRICAS OPERACIONAIS REAIS =================
 async function carregarDadosEstrategicosDoNeon() {
     try {
-        const resposta = await fetch(`${API_URL}/agendamentos`);
-        if (!resposta.ok) return;
-        const agendamentos = await resposta.json();
+        const res = await fetch(`${API_URL}/agendamentos`);
+        if(!res.ok) return;
+        const agendamentos = await res.json();
 
         let faturamentoTotal = 0;
+        let finalizados = 0;
+        let faltas = 0;
         let comissaoGabriel = 0;
         let comissaoLucas = 0;
 
         agendamentos.forEach(a => {
-            // Encontra o valor bruto do serviço para processar métricas reais
             const serv = ESTRUTURA_SERVICOS.find(s => s.nome === a.servico);
             const valor = serv ? serv.preco : 40.00;
 
-            faturamentoTotal += valor;
-
-            // Split de pagamento automatizado
-            if (String(a.barbeiro).toLowerCase().includes('gabriel')) {
-                comissaoGabriel += (valor * 0.50); // Gabriel ganha 50%
+            if(a.status !== 'Falta') {
+                faturamentoTotal += valor;
+                finalizados++;
+                if (String(a.barbeiro).toLowerCase().includes('gabriel')) {
+                    comissaoGabriel += (valor * 0.50);
+                } else {
+                    comissaoLucas += (valor * 0.40);
+                }
             } else {
-                comissaoLucas += (valor * 0.40); // Lucas ganha 40%
+                faltas++;
             }
         });
 
-        // Atualiza os indicadores visuais do Dono da Barbearia
         document.getElementById('kpi-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
         
-        const tMedio = agendamentos.length > 0 ? (faturamentoTotal / agendamentos.length) : 0;
+        const tMedio = finalizados > 0 ? (faturamentoTotal / finalizados) : 0;
         document.getElementById('kpi-ticket').innerText = `R$ ${tMedio.toFixed(2)}`;
+
+        // Ocupação real baseada na quantidade total de horários comerciais padrão (ex: 18 horários padrão)
+        const taxaOcupacao = agendamentos.length > 0 ? Math.min(Math.round((agendamentos.length / 18) * 100), 100) : 0;
+        document.getElementById('kpi-ocupacao').innerText = `${taxaOcupacao}%`;
+
+        // Taxa de No-Show real baseada nas faltas registradas pelos botões
+        const taxaNoShow = agendamentos.length > 0 ? ((faltas / agendamentos.length) * 100).toFixed(1) : 0;
+        document.getElementById('kpi-noshow').innerText = `${taxaNoShow}%`;
 
         document.getElementById('split-gabriel').innerText = `R$ ${comissaoGabriel.toFixed(2)}`;
         document.getElementById('split-lucas').innerText = `R$ ${comissaoLucas.toFixed(2)}`;
 
-    } catch (e) {
-        console.error("Erro ao puxar métricas estratégicas do Neon.", e);
+    } catch(e) {
+        console.error("Erro ao processar inteligência do Neon", e);
     }
 }
 
-// Visão estilo Kanban da Recepção
-async function carregarModoRecepcaoKanban() {
-    const container = document.getElementById('container-kanban-recepcao');
-    if (!container) return;
-    container.innerHTML = "<p style='color:var(--text-muted);'>Sincronizando cadeiras...</p>";
+// CRM de Marketing Real e Dinâmico
+async function carregarListaMarketingReal() {
+    const container = document.getElementById('lista-marketing-clientes');
+    if(!container) return;
 
     try {
-        const resposta = await fetch(`${API_URL}/agendamentos`);
-        if (!resposta.ok) return;
-        const lista = await resposta.json();
+        const resUsers = await fetch(`${API_URL}/usuarios`);
+        if(!resUsers.ok) return;
+        const usuarios = await resUsers.json();
 
         container.innerHTML = "";
-        if(lista.length === 0) {
-            container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Nenhum cliente em atendimento hoje.</p>";
-            return;
-        }
+        let assinantes = 0;
+        let faturamentoRecorrente = 0;
 
-        lista.slice(0, 5).forEach(item => {
+        usuarios.forEach(u => {
+            if(u.perfil === 'admin') return;
+
+            if(u.plano_assinatura && u.plano_assinatura !== 'Nenhum') {
+                assinantes++;
+                faturamentoRecorrente += u.plano_assinatura.includes('Gold') ? 150 : 80;
+            }
+
             const div = document.createElement('div');
             div.className = "item-backoffice";
-            div.style.borderLeft = "4px solid var(--accent-color)";
             div.innerHTML = `
                 <div>
-                    <strong>👤 ${item.cliente}</strong><br>
-                    <span style="font-size:12px; color:var(--text-muted);">${item.servico} com ${item.barbeiro}</span>
+                    <strong>${u.nome}</strong><br>
+                    <span style="font-size:11px; color:var(--text-muted);">Cel: ${u.celular} | Plano: ${u.plano_assinatura}</span>
                 </div>
-                <span style="background:#cc9933; color:black; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:700;">${item.hora}</span>
+                <button class="btn-status" style="background:var(--accent-color); color:black;" onclick="dispararWppCliente('${u.celular}', '${u.nome}')">Mandar Cupom</button>
             `;
             container.appendChild(div);
         });
-    } catch(err) {
-        container.innerHTML = "<p style='color:var(--danger-color);'>Erro ao renderizar o Kanban da recepção.</p>";
+
+        document.getElementById('mkt-total-assinantes').innerText = assinantes;
+        document.getElementById('mkt-faturamento-recorrente').innerText = `R$ ${faturamentoRecorrente.toFixed(2)}`;
+    } catch(e) {
+        container.innerHTML = "<p>Erro ao ler lista do CRM.</p>";
     }
 }
 
-// FILTRAGEM RESTRETA DE HORÁRIOS DISPONÍVEIS
-document.getElementById('data').addEventListener('change', renderizarGradeHorariosReais);
+function dispararWppCliente(celular, nome) {
+    const msg = `Olá ${nome}! Sentimos sua falta na Prosperar Club. Use o cupom PROSPERAR15 e ganhe 15% de desconto no seu próximo corte! Agende pelo app.`;
+    window.open(`https://api.whatsapp.com/send?phone=55${celular}&text=${encodeURIComponent(msg)}`, '_blank');
+}
 
-async function renderizarGradeHorariosReais() {
-    const container = document.getElementById('container-horarios');
-    if (!container) return;
-
-    if (!barbeiroSelecionado) {
-        container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; text-align:center;'>⚠️ Escolha o profissional para abrir os horários livres.</p>";
-        return;
-    }
-
-    const dataSelecionada = document.getElementById('data').value;
-    let agendamentosOcupados = [];
+// Kanban Real e Operacional com Controle de Status
+async function carregarModoRecepcaoKanban() {
+    const container = document.getElementById('container-kanban-recepcao');
+    if(!container) return;
 
     try {
-        const resposta = await fetch(`${API_URL}/agendamentos`);
-        if (resposta.ok) {
-            const todosAgendamentos = await resposta.json();
-            agendamentosOcupados = todosAgendamentos
-                .filter(a => {
-                    const bancoBarbeiro = String(a.barbeiro).toLowerCase();
-                    const selecionadoBarbeiro = String(barbeiroSelecionado).toLowerCase();
-                    return a.data === dataSelecionada && bancoBarbeiro.includes(selecionadoBarbeiro);
-                })
+        const res = await fetch(`${API_URL}/agendamentos`);
+        if(!res.ok) return;
+        const dados = await res.json();
+
+        container.innerHTML = "";
+        if(dados.length === 0) {
+            container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Nenhum cliente agendado.</p>";
+            return;
+        }
+
+        dados.forEach(item => {
+            const div = document.createElement('div');
+            div.className = "item-backoffice";
+            
+            let corBorda = "var(--accent-color)";
+            if(item.status === 'Concluído') corBorda = "var(--success-color)";
+            if(item.status === 'Falta') corBorda = "var(--danger-color)";
+
+            div.style.borderLeft = `4px solid ${corBorda}`;
+            div.innerHTML = `
+                <div>
+                    <strong>👤 ${item.cliente} (${item.status})</strong><br>
+                    <span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${item.hora}</span>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
+                    <button class="btn-status" style="background:var(--danger-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Falta')">✖</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    } catch(e) {
+        container.innerHTML = "<p>Erro ao carregar monitor.</p>";
+    }
+}
+
+async function mudarStatusAgendamento(id, novoStatus) {
+    try {
+        await fetch(`${API_URL}/agendamentos/${id}/status`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ status: novoStatus })
+        });
+        carregarModoRecepcaoKanban();
+    } catch(e) {
+        alert("Erro ao mudar status.");
+    }
+}
+
+// Execução Real do Encaixe Manual (Walk-in)
+document.getElementById('btn-executar-encaixe').addEventListener('click', async () => {
+    const nome = document.getElementById('encaixe-nome').value.trim();
+    const servico = document.getElementById('encaixe-servico').value;
+    const barbeiro = document.getElementById('encaixe-barbeiro').value;
+    const hora = document.getElementById('encaixe-hora').value;
+
+    if(!nome) return alert("Insira o nome do cliente para fazer o encaixe manual.");
+
+    const payload = {
+        cliente: `WALK-IN: ${nome.toUpperCase()}`,
+        servico: servico,
+        barbeiro: barbeiro,
+        data: new Date().toISOString().split('T')[0],
+        hora: hora,
+        pagamento: "Balcão (Dinheiro/Maquininha)"
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/agendamentos`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        if(res.ok) {
+            alert("⚡ Encaixe manual registrado com sucesso no banco de dados!");
+            document.getElementById('encaixe-nome').value = "";
+            carregarModoRecepcaoKanban();
+        }
+    } catch(e) {
+        alert("Falha ao registrar encaixe.");
+    }
+});
+
+// --- SISTEMA CORE DE AGENDAMENTO (CLIENTE) ---
+async function renderizarGradeHorariosReais() {
+    const container = document.getElementById('container-horarios');
+    if (!container || !barbeiroSelecionado) return;
+
+    const dataSelecionada = document.getElementById('data').value;
+    let ocupados = [];
+
+    try {
+        const res = await fetch(`${API_URL}/agendamentos`);
+        if (res.ok) {
+            const todos = await res.json();
+            ocupados = todos
+                .filter(a => a.data === dataSelecionada && String(a.barbeiro).toLowerCase().includes(barbeiroSelecionado) && a.status !== 'Falta')
                 .map(a => String(a.hora).trim());
         }
-    } catch (erro) {
-        console.error("Erro na leitura das datas do Neon.", erro);
-    }
+    } catch (e) {}
 
     container.innerHTML = "";
-    HORARIOS_PADRAO.forEach(grupo => {
-        const turnoDiv = document.createElement('div');
-        const label = document.createElement('div');
-        label.className = "turno-title";
-        label.innerText = grupo.turno;
-        turnoDiv.appendChild(label);
-
+    HORARIOS_PADRAO.forEach(g => {
+        const box = document.createElement('div');
+        box.innerHTML = `<div class="turno-title">${g.turno}</div>`;
         const grid = document.createElement('div');
         grid.className = "grid-horarios";
 
-        grupo.horas.forEach(hora => {
+        g.horas.forEach(h => {
             const btn = document.createElement('button');
             btn.className = "btn-horario";
-            btn.innerText = hora;
+            btn.innerText = h;
 
-            if (agendamentosOcupados.includes(hora.trim())) {
+            if (ocupados.includes(h.trim())) {
                 btn.disabled = true;
                 btn.innerText = "Ocupado";
             } else {
@@ -200,36 +339,28 @@ async function renderizarGradeHorariosReais() {
                     e.preventDefault();
                     document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado'));
                     btn.classList.add('selecionado');
-                    horarioSelecionado = hora;
+                    horarioSelecionado = h;
                 };
             }
             grid.appendChild(btn);
         });
-        turnoDiv.appendChild(grid);
-        container.appendChild(turnoDiv);
+        box.appendChild(grid);
+        container.appendChild(box);
     });
 }
 
-// MODAL DE DUPLA CONFIRMAÇÃO
 document.getElementById('btnPreAgendar').addEventListener('click', () => {
     if (!servicoSelecionado || !barbeiroSelecionado || !horarioSelecionado || !pagamentoSelecionado) {
-        alert("Por favor, preencha todos os campos do agendamento!");
+        alert("Selecione todos os parâmetros para agendar.");
         return;
     }
-
     document.getElementById('modal-resumo-detalhes').innerHTML = `
-        <strong>💇‍♂️ Procedimento:</strong> ${servicoSelecionado}<br>
-        <strong>💈 Barbeiro:</strong> ${barbeiroSelecionado.toUpperCase()}<br>
-        <strong>📅 Data:</strong> ${document.getElementById('data').value}<br>
-        <strong>⏰ Horário:</strong> ${horarioSelecionado}<br>
-        <strong>💳 Pagamento:</strong> ${pagamentoSelecionado}<br>
-        <span style="color:var(--success-color); font-weight:bold;">💵 Valor total: R$ ${precoServico.toFixed(2)}</span>
+        <strong>Procedimento:</strong> ${servicoSelecionado}<br>
+        <strong>Profissional:</strong> ${barbeiroSelecionado.toUpperCase()}<br>
+        <strong>Data/Hora:</strong> ${document.getElementById('data').value} às ${horarioSelecionado}<br>
+        <span style="color:var(--success-color); font-weight:bold;">Valor: R$ ${precoServico.toFixed(2)}</span>
     `;
     document.getElementById('modal-confirmacao').classList.remove('escondido');
-});
-
-document.getElementById('btn-modal-voltar').addEventListener('click', () => {
-    document.getElementById('modal-confirmacao').classList.add('escondido');
 });
 
 document.getElementById('btn-modal-gravar').addEventListener('click', async () => {
@@ -243,130 +374,90 @@ document.getElementById('btn-modal-gravar').addEventListener('click', async () =
     };
 
     try {
-        const enviar = await fetch(`${API_URL}/agendamentos`, {
+        const res = await fetch(`${API_URL}/agendamentos`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        if (enviar.ok) {
+        if (res.ok) {
             document.getElementById('modal-confirmacao').classList.add('escondido');
-            alert("✅ Agendamento gravado de forma definitiva no banco Neon!");
-            enviarMensagemWhatsApp(payload);
+            alert("Agendamento gravado com sucesso!");
             renderizarGradeHorariosReais();
             carregarMeusAgendamentosDoBanco();
-        } else {
-            alert("Erro ao salvar o agendamento na API.");
         }
     } catch (e) {
-        alert("O servidor de banco de dados não respondeu.");
+        alert("Erro ao gravar.");
     }
 });
 
-function enviarMensagemWhatsApp(dados) {
-    const texto = `👋 Olá! Segue a confirmação do meu agendamento na Prosperar Club:\n\n👤 Cliente: ${dados.cliente}\n💇‍♂️ Procedimento: ${dados.servico}\n💈 Profissional: ${dados.barbeiro}\n📅 Data: ${dados.data}\n⏰ Horário: ${dados.hora}\n💳 Meio de Pagamento: ${dados.pagamento}\n\nObrigado!`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
-}
-
-// RENDER DE CLIENTES FIXOS E CANCELAMENTO DIRETO NO NEON
 async function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos');
     if (!container) return;
-    container.innerHTML = "<p style='color:var(--text-muted);'>Carregando...</p>";
-
     try {
-        const resposta = await fetch(`${API_URL}/agendamentos`);
-        if (resposta.ok) {
-            const lista = await resposta.json();
-            const meusAgendamentos = lista.filter(a => a.cliente.toUpperCase() === usuarioLogado.toUpperCase());
+        const res = await fetch(`${API_URL}/agendamentos`);
+        if (res.ok) {
+            const lista = await res.json();
+            const meus = lista.filter(a => a.cliente.toUpperCase() === usuarioLogado.toUpperCase());
 
-            if (meusAgendamentos.length === 0) {
-                container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Você não possui reservas pendentes.</p>";
-                return;
-            }
-
-            container.innerHTML = "";
-            meusAgendamentos.forEach(item => {
+            container.innerHTML = meus.length === 0 ? "<p>Nenhum agendamento ativo.</p>" : "";
+            meus.forEach(item => {
                 const div = document.createElement('div');
                 div.className = "card";
-                div.style.border = "1px solid #3a1a1a";
                 div.innerHTML = `
-                    <div style="font-weight:700; font-size:16px; margin-bottom: 8px;" class="gold-text">${item.servico}</div>
-                    <div style="font-size:14px; color: var(--text-muted); line-height:1.6;">
-                        <strong>Barbeiro:</strong> ${item.barbeiro}<br>
-                        <strong>Data/Hora:</strong> ${item.data} às ${item.hora}
-                    </div>
-                    <button class="btn-danger" onclick="cancelarAgendamentoDoBanco(${item.id})">❌ Cancelar Horário</button>
+                    <strong class="gold-text">${item.servico} (${item.status})</strong><br>
+                    <span>${item.barbeiro} - ${item.data} às ${item.hora}</span>
+                    <button class="btn-danger" onclick="cancelarAgendamento(${item.id})">Cancelar Reserva</button>
                 `;
                 container.appendChild(div);
             });
         }
-    } catch (err) {
-        container.innerHTML = "<p style='color:var(--danger-color);'>Erro ao buscar dados do banco Neon.</p>";
-    }
+    } catch (e) {}
 }
 
-async function cancelarAgendamentoDoBanco(id) {
-    if (!confirm("Tem certeza que deseja apagar esse registro permanentemente?")) return;
-    try {
-        const deletar = await fetch(`${API_URL}/agendamentos/${id}`, { method: 'DELETE' });
-        if (deletar.ok) {
-            alert("Excluído com sucesso do banco de dados!");
-            renderizarGradeHorariosReais();
-            carregarMeusAgendamentosDoBanco();
-        }
-    } catch (e) {
-        alert("Erro na requisição.");
-    }
+async function cancelarAgendamento(id) {
+    if(!confirm("Deseja cancelar?")) return;
+    await fetch(`${API_URL}/agendamentos/${id}`, { method: 'DELETE' });
+    carregarMeusAgendamentosDoBanco();
 }
 
 function renderizarFormularioCliente() {
-    const boxServicos = document.getElementById('container-servicos');
-    boxServicos.innerHTML = "";
+    const box = document.getElementById('container-servicos'); box.innerHTML = "";
     ESTRUTURA_SERVICOS.forEach(s => {
-        const div = document.createElement('div');
-        div.className = "modern-card";
-        div.style.backgroundImage = `linear-gradient(rgba(26,27,30,0.9), rgba(26,27,30,0.95)), url('${s.img}')`;
-        div.innerHTML = `<div class="info-block"><div class="title">${s.nome}</div><div class="subtitle">${s.sub}</div></div><div class="price">R$ ${s.preco.toFixed(2)}</div>`;
+        const div = document.createElement('div'); div.className = "modern-card";
+        div.innerHTML = `<div><div class="title">${s.nome}</div><div class="subtitle">${s.sub}</div></div><div class="price">R$ ${s.preco.toFixed(2)}</div>`;
         div.onclick = () => {
             document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected'));
-            div.classList.add('selected');
-            servicoSelecionado = s.nome; precoServico = s.preco;
+            div.classList.add('selected'); servicoSelecionado = s.nome; precoServico = s.preco;
         };
-        boxServicos.appendChild(div);
+        box.appendChild(div);
     });
 
-    const boxBarbeiros = document.getElementById('container-barbeiros');
-    boxBarbeiros.innerHTML = "";
+    const boxB = document.getElementById('container-barbeiros'); boxB.innerHTML = "";
     ESTRUTURA_BARBEIROS.forEach(b => {
-        const div = document.createElement('div');
-        div.className = "modern-card";
-        div.innerHTML = `<div class="info-block"><div class="title">${b.nome}</div><div class="subtitle">${b.avaliacao}</div></div>`;
+        const div = document.createElement('div'); div.className = "modern-card";
+        div.innerHTML = `<div><div class="title">${b.nome}</div><div class="subtitle">${b.avaliacao}</div></div>`;
         div.onclick = () => {
             document.querySelectorAll('#container-barbeiros .modern-card').forEach(c => c.classList.remove('selected'));
-            div.classList.add('selected');
-            barbeiroSelecionado = b.id; renderizarGradeHorariosReais();
+            div.classList.add('selected'); barbeiroSelecionado = b.id; renderizarGradeHorariosReais();
         };
-        boxBarbeiros.appendChild(div);
+        boxB.appendChild(div);
     });
 
-    const boxPagos = document.getElementById('container-pagamentos');
-    boxPagos.innerHTML = "";
-    ESTRUTURA_PAGAMENTOS.forEach(p => {
-        const div = document.createElement('div');
-        div.className = "modern-card";
-        div.innerHTML = `<div class="info-block"><div class="title">${p.nome}</div><div class="subtitle">${p.sub}</div></div>`;
+    const boxP = document.getElementById('container-pagamentos'); boxP.innerHTML = "";
+    ["Pix", "Cartão de Crédito/Débito"].forEach(p => {
+        const div = document.createElement('div'); div.className = "modern-card";
+        div.innerHTML = `<div class="title">${p}</div>`;
         div.onclick = () => {
             document.querySelectorAll('#container-pagamentos .modern-card').forEach(c => c.classList.remove('selected'));
-            div.classList.add('selected');
-            pagamentoSelecionado = p.nome;
+            div.classList.add('selected'); pagamentoSelecionado = p;
         };
-        boxPagos.appendChild(div);
+        boxP.appendChild(div);
     });
     document.getElementById('data').value = new Date().toISOString().split('T')[0];
 }
 
-// ALTERNADOR E SELETOR DE NAVEGAÇÃO DINÂMICA (SPA)
+// Navegação Dinâmica SPA
 function montarMenuNavegacao(role) {
     const nav = document.getElementById('menu-navegacao');
     if (!nav) return;
@@ -376,14 +467,12 @@ function montarMenuNavegacao(role) {
             <button class="nav-item ativo" onclick="alternarTela('adm-dash')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 14H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2z"/></svg>Finanças</button>
             <button class="nav-item" onclick="alternarTela('adm-estoque')"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 12H4v-2h11v2zm0-4H4v-2h11v2zm5-4H4V6h16v2z"/></svg>Estoque</button>
             <button class="nav-item" onclick="alternarTela('adm-mkt')"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>Marketing</button>
-            <button class="nav-item" onclick="alternarTela('adm-recepcao')"><svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>Cadeiras</button>
+            <button class="nav-item" onclick="alternarTela('adm-recepcao')"><svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>Monitor</button>
         `;
-    } else if (role === 'barbeiro') {
-        nav.innerHTML = `<button class="nav-item ativo" onclick="alternarTela('adm-recepcao')"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>Minha Agenda</button>`;
     } else {
         nav.innerHTML = `
             <button class="nav-item ativo" onclick="alternarTela('home')"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Agendar</button>
-            <button class="nav-item" onclick="alternarTela('estilo')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>Meus Horários</button>
+            <button class="nav-item" onclick="alternarTela('estilo')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>Reservas</button>
         `;
     }
     nav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()"><svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59z"/></svg>Sair</button>`;
@@ -397,10 +486,7 @@ function alternarTela(idAba) {
     const abaAlvo = document.getElementById(`aba-${idAba}`);
     if (abaAlvo) abaAlvo.classList.remove('escondido');
 
-    document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('ativo'));
-    if (window.event && window.event.currentTarget) window.event.currentTarget.classList.add('ativo');
-
-    // Gatilhos para recarregar dados específicos ao alternar abas
-    if (idAba === 'adm-dash') carregarDadosEstrategicosDoNeon();
-    if (idAba === 'adm-recepcao') carregarModoRecepcaoKanban();
+    if(idAba === 'adm-dash') carregarDadosEstrategicosDoNeon();
+    if(idAba === 'adm-mkt') carregarListaMarketingReal();
+    if(idAba === 'adm-recepcao') carregarModoRecepcaoKanban();
 }
