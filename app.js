@@ -60,11 +60,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if(btnCadastrar) btnCadastrar.addEventListener('click', executarCadastro);
 
     const btnEntrar = document.getElementById('btn-entrar');
-    if(btnEntrar) btnEntrar.addEventListener('click', executingLogin);
+    // CORRIGIDO: Alterado de 'executingLogin' para 'executarLogin' para bater com o nome da função real
+    if(btnEntrar) btnEntrar.addEventListener('click', executarLogin);
     
     // Inicializar inputs de data do filtro de período com os valores de hoje
-    document.getElementById('filtro-data-inicio').value = dataFiltroInicio;
-    document.getElementById('filtro-data-fim').value = dataFiltroFim;
+    const filtroInicio = document.getElementById('filtro-data-inicio');
+    const filtroFim = document.getElementById('filtro-data-fim');
+    if(filtroInicio) filtroInicio.value = dataFiltroInicio;
+    if(filtroFim) filtroFim.value = dataFiltroFim;
     
     console.log("Sistema Prosperar Financeiro carregado. Mock pronto.");
 });
@@ -132,8 +135,14 @@ async function executarCadastro() {
 }
 
 async function executarLogin() {
-    const login = document.getElementById('login-usuario').value.trim().toLowerCase();
-    const senha = document.getElementById('login-senha').value;
+    // Captura os elementos de forma segura
+    const inputUsuario = document.getElementById('login-usuario');
+    const inputSenha = document.getElementById('login-senha');
+
+    if(!inputUsuario || !inputSenha) return;
+
+    const login = inputUsuario.value.trim().toLowerCase();
+    const senha = inputSenha.value;
 
     if(!login || !senha) return alert("Preencha os campos de acesso.");
 
@@ -150,6 +159,7 @@ async function executarLogin() {
             perfilLogado = user.perfil;
             nomeUsuarioLogado = user.nome;
 
+             Realizar a transição de telas
             document.getElementById('tela-autenticacao').classList.add('escondido');
             document.getElementById('conteudo-app').classList.remove('escondido');
 
@@ -157,24 +167,36 @@ async function executarLogin() {
             direcionarFluxoInicial(perfilLogado, user.nome);
             inicializarListenersPosLogin();
         } else {
+            // Fallback imediato caso as credenciais locais padrão do admin sejam inseridas
             if(login === "admin" && senha === "admin") {
-                usuarioLogado = "admin"; perfilLogado = "admin"; nomeUsuarioLogado = "Gabriel Admin";
-                document.getElementById('tela-autenticacao').classList.add('escondido');
-                document.getElementById('conteudo-app').classList.remove('escondido');
-                montarMenuNavegacao(perfilLogado); direcionarFluxoInicial(perfilLogado, "Gabriel Admin");
-                inicializarListenersPosLogin();
+                ativarModoContingenciaAdmin();
             } else {
                 alert("Acesso negado. Verifique os dados.");
             }
         }
     } catch(e) {
-        alert("Modo de contingência local ativado (Admin).");
-        usuarioLogado = "admin"; perfilLogado = "admin"; nomeUsuarioLogado = "Gabriel Admin";
-        document.getElementById('tela-autenticacao').classList.add('escondido');
-        document.getElementById('conteudo-app').classList.remove('escondido');
-        montarMenuNavegacao(perfilLogado); direcionarFluxoInicial(perfilLogado, "Gabriel Admin");
-        inicializarListenersPosLogin();
+        // Se o servidor estiver fora do ar, ativa o modo local se for o Admin para testes
+        if(login === "admin" && senha === "admin") {
+            alert("Modo de contingência local ativado (Admin).");
+            ativarModoContingenciaAdmin();
+        } else {
+            alert("Erro ao conectar com o servidor. Verifique sua conexão.");
+        }
     }
+}
+
+// Auxiliar para limpar e centralizar a ativação de Contingência do Admin
+function ativarModoContingenciaAdmin() {
+    usuarioLogado = "admin"; 
+    perfilLogado = "admin"; 
+    nomeUsuarioLogado = "Gabriel Admin";
+    
+    document.getElementById('tela-autenticacao').classList.add('escondido');
+    document.getElementById('conteudo-app').classList.remove('escondido');
+    
+    montarMenuNavegacao(perfilLogado); 
+    direcionarFluxoInicial(perfilLogado, "Gabriel Admin");
+    inicializarListenersPosLogin();
 }
 
 function inicializarListenersPosLogin() {
