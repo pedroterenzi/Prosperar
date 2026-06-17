@@ -1,4 +1,4 @@
-   import streamlit as st
+import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
@@ -548,7 +548,7 @@ else:
             agora_b = datetime.utcnow() - timedelta(hours=3)
             hora_atual_str = agora_b.strftime("%H:%M")
             
-            df_proximos = df_b_hoje[(df_b_hoje['status'] == 'Agendado') & (df_b_hoje['horario'] >= hora_atual_str)]
+            df_proximos = df_b_hoje[(df_b_hoje['status'] == 'Agendado' ) & (df_b_hoje['horario'] >= hora_atual_str)]
             
             if not df_proximos.empty:
                 prox_c = df_proximos.iloc[0]
@@ -716,12 +716,12 @@ else:
                 st.table(dre_df)
 
                 st.markdown("<br><div class='section-barber'>🔄 INTELIGÊNCIA DE MERCADO: PACE DE RETORNO (RECORRÊNCIA)</div>", unsafe_allow_html=True)
-                st.metric(label="Média de Retorno do Cliente à Cadeira", value="24 dias", delta="Pace Saudável de Fidelidade (Ideal: <28 dias)")
+                st.metric(label="Média de Retorno do Cliente à Cadeira", value="24 dias", delta="Pace Healthy de Fidelidade (Ideal: <28 dias)")
                 
                 st.markdown("<br>#### ⚡ Central de Gatilhos de Marketing CRM")
                 col_m1, col_m2 = st.columns(2)
                 with col_m1:
-                    st.markdown("<div style='background:#1e2028; padding:15px; border-radius:10px; border-left:4px solid #ef4444;'>⚡ <b>Leads Inativos (+45 dias)</b><br>Gatilho identifies 14 clientes aptos a reativação. Deseja auditar a lista antes do disparo?</div>", unsafe_allow_html=True)
+                    st.markdown("<div style='background:#1e2028; padding:15px; border-radius:10px; border-left:4px solid #ef4444;'>⚡ <b>Leads Inativos (+45 dias)</b><br>Gatilho identifica 14 clientes aptos a reativação. Deseja auditar a lista antes do disparo?</div>", unsafe_allow_html=True)
                     if st.button("🔍 Abrir e Auditar Lista de Disparo", use_container_width=True):
                         mostrar_modal_marketing("Clientes Ausentes", ["alexandre_guerra", "danilo_santos", "luciano_souza", "paulo_higuchi"])
 
