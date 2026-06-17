@@ -53,10 +53,6 @@ def hash_senha(senha):
 # 📱 FUNÇÃO DE INTEGRAÇÃO COM WHATSAPP
 # =========================================================
 def enviar_notificacao_whatsapp(barbeiro, cliente, data, horario, servico, valor, acao="agendamento"):
-    """
-    Gera uma URL de redirecionamento para o WhatsApp informando o barbeiro sobre o status da vaga.
-    De acordo com o pedido, ambos os barbeiros estão vinculados temporariamente ao celular fornecido.
-    """
     celular_barbeiro = "5519971374936" 
     
     if acao == "agendamento":
@@ -323,6 +319,7 @@ else:
         df_cli = pd.read_sql_query(text("SELECT * FROM usuarios_barber WHERE login = :u"), engine, params={"u": st.session_state['user']}).iloc[0]
         agora_brasil = datetime.utcnow() - timedelta(hours=3)
         hora_atual_str = agora_brasil.strftime("%H:%M")
+        data_hoje_str = agora_brasil.strftime("%Y-%m-%d")
         
         if agora_brasil.hour < 12: saudacao = "Bom dia"
         elif agora_brasil.hour < 18: saudacao = "Boa tarde"
@@ -338,8 +335,18 @@ else:
                 st.session_state["barb_fluxo"] = last_r['barbeiro_nome']
                 st.toast("🎯 Preferências salvas! Selecione a data e o horário na linha do tempo abaixo.")
 
-        df_meus_cards = pd.read_sql_query(text("SELECT id, barbeiro_nome, data, horario, servico, valor FROM agendamentos WHERE cliente_login = :u AND status = 'Agendado' ORDER BY data ASC, horario ASC"), engine, params={"u": st.session_state['user']})
+        # --- 🛠️ CORREÇÃO DE SYNC CRUCIAL: FILTRO REAL DE AGENDAMENTO CLIENTE (image_889767.jpg) ---
+        df_meus_cards = pd.read_sql_query(text("""
+            SELECT id, barbeiro_nome, data, horario, servico, valor 
+            FROM agendamentos 
+            WHERE cliente_login = :u AND status = 'Agendado' AND data >= :hoje
+            ORDER BY data ASC, horario ASC
+        """), engine, params={"u": st.session_state['user'], "hoje": data_hoje_str})
         
+        # Filtragem secundária dinâmica para expirar horários que já passaram no dia de hoje
+        if not df_meus_cards.empty:
+            df_meus_cards = df_meus_cards[~((df_meus_cards['data'] == data_hoje_str) & (df_meus_cards['horario'] < hora_atual_str))]
+
         if not df_meus_cards.empty:
             prox = df_meus_cards.iloc[0]
             st.markdown(f"""
@@ -442,9 +449,9 @@ else:
                 if st.button("🗑️ CANCELAR HORÁRIOS SELECIONADOS", type="primary", use_container_width=True):
                     linhas_para_cancelar = df_editado[df_editado["Selecionar para Cancelar"] == True]
                     
-                    if not linhas_para_cancelar.empty:
+                    if not lines_para_cancelar.empty:
                         with engine.begin() as conn:
-                            for idx_c, row_c in linhas_para_cancelar.iterrows():
+                            for idx_c, row_c in lines_para_cancelar.iterrows():
                                 conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(row_c['id'])})
                                 
                                 data_formatada = datetime.strptime(row_c['data'], '%Y-%m-%d').strftime('%d/%m/%Y')
@@ -522,6 +529,7 @@ else:
         if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)" or st.session_state['perfil'] == 'barbeiro':
             barbeiro_ativo = "Gabriel" if st.session_state['perfil'] == 'admin' else st.session_state['nome_usuario']
             
+            # Captura base de dados
             with engine.connect() as conn:
                 df_b_hoje = pd.read_sql_query(text("""
                     SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, a.status,
@@ -534,13 +542,26 @@ else:
             faturamento_cadeira = df_b_hoje['valor'].sum()
             comissao_b_acumulada = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_b_hoje.iterrows() if r['servico'] in SERVICOS])
             
-            df_proximos = df_b_hoje[df_b_hoje['status'] == 'Agendado']
+            # --- 🛠️ CORREÇÃO DE SYNC CRUCIAL: FILTRO REAL DE BANNER DO BARBEIRO (image_8890a2.jpg) ---
+            agora_b = datetime.utcnow() - timedelta(hours=3)
+            hora_atual_str = agora_b.strftime("%H:%M")
+            data_hoje_str = agora_b.strftime("%Y-%m-%d")
+            
+            df_proximos = df_b_hoje[(df_b_hoje['status'] == 'Agendado') & (df_b_hoje['horario'] >= hora_atual_str)]
+            
             if not df_proximos.empty:
                 prox_c = df_proximos.iloc[0]
                 st.markdown(f"""
                     <div class='bancada-alert-banner'>
-                        <div>🚨 PROXIMO ATENDIMENTO: <b>{prox_c['cliente_nome']}</b> às <b>{prox_c['horario']}</b> ({prox_c['servico']})</div>
-                        <div style='background:#6366f1; font-size:0.75rem; padding:2px 8px; border-radius:4px;'>EM BREVE</div>
+                        <div>🚨 PRÓXIMO ATENDIMENTO: <b>{prox_c['cliente_nome']}</b> às <b>{prox_c['horario']}</b> ({prox_c['servico']})</div>
+                        <div style='background:#10b981; font-size:0.75rem; padding:2px 8px; border-radius:4px; font-weight:800;'>EM BREVE</div>
+                    </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                    <div class='bancada-alert-banner' style='background: #1e2028; border-color: #2a2d3a;'>
+                        <div>💈 NENHUM ATENDIMENTO COMPROMISSADO RESTANTE PARA HOJE.</div>
+                        <div style='background:#4b5563; font-size:0.75rem; padding:2px 8px; border-radius:4px; font-weight:800;'>LIVRE</div>
                     </div>
                 """, unsafe_allow_html=True)
             
@@ -623,7 +644,6 @@ else:
                                     conn_bl.execute(text("INSERT INTO agendamentos (cliente_login, barbeiro_nome, data, horario, servico, valor, status) VALUES ('bloqueio_manual', :b, :d, :h, 'Bloqueio Preventivo', 0, 'Bloqueado')"), {"b": barbeiro_ativo, "d": str(date.today()), "h": h_slot})
                                 st.rerun()
 
-            # --- ABA 2: MEU EXTRATO & COMISSÕES ---
             with b_pilar2:
                 st.markdown("### 💰 Extrato Financeiro & Gestão de Comissões")
                 tempo_filtro = st.radio("Selecione o Intervalo de Auditoria:", ["Hoje", "Esta Semana", "Este Mês"], horizontal=True)
