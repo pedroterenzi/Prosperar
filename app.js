@@ -43,7 +43,7 @@ function alternarAbasAuth(aba) {
     }
 }
 
-// Fluxo de Cadastro de Usuário no Banco
+// Fluxo de Cadastro de Usuário no Banco Neon
 document.getElementById('btn-cadastrar').addEventListener('click', async () => {
     const nome = document.getElementById('cad-nome').value.trim();
     const login = document.getElementById('cad-login').value.trim();
@@ -76,7 +76,7 @@ document.getElementById('btn-cadastrar').addEventListener('click', async () => {
 
 // Fluxo de Login com Nível de Permissão Real
 document.getElementById('btn-entrar').addEventListener('click', async () => {
-    const login = document.getElementById('login-usuario').value.trim();
+    const login = document.getElementById('login-usuario').value.trim().toLowerCase();
     const senha = document.getElementById('login-senha').value;
 
     if(!login || !senha) return alert("Preencha os campos de acesso.");
@@ -97,15 +97,7 @@ document.getElementById('btn-entrar').addEventListener('click', async () => {
             document.getElementById('conteudo-app').classList.remove('escondido');
 
             montarMenuNavegacao(perfilLogado);
-            
-            if(perfilLogado === 'admin') {
-                alternarTela('adm-dash');
-            } else {
-                alternarTela('home');
-                document.getElementById('boas-vistas-cliente').innerText = `Olá, ${user.nome}!`;
-                renderizarFormularioCliente();
-                carregarMeusAgendamentosDoBanco();
-            }
+            direcionarFluxoInicial(perfilLogado, user.nome);
         } else {
             alert("Acesso negado. Verifique os dados.");
         }
@@ -113,6 +105,19 @@ document.getElementById('btn-entrar').addEventListener('click', async () => {
         alert("Falha de conexão com o banco Neon.");
     }
 });
+
+function direcionarFluxoInicial(perfil, nomeUsuario) {
+    if(perfil === 'admin') {
+        alternarTela('adm-dash');
+    } else if(perfil === 'barbeiro') {
+        alternarTela('adm-recepcao');
+    } else {
+        alternarTela('home');
+        document.getElementById('boas-vistas-cliente').innerText = `Olá, ${nomeUsuario}!`;
+        renderizarFormularioCliente();
+        carregarMeusAgendamentosDoBanco();
+    }
+}
 
 // ================= PROCESSAMENTO DE MÉTRICAS OPERACIONAIS REAIS =================
 async function carregarDadosEstrategicosDoNeon() {
@@ -149,11 +154,9 @@ async function carregarDadosEstrategicosDoNeon() {
         const tMedio = finalizados > 0 ? (faturamentoTotal / finalizados) : 0;
         document.getElementById('kpi-ticket').innerText = `R$ ${tMedio.toFixed(2)}`;
 
-        // Ocupação real baseada na quantidade total de horários comerciais padrão (ex: 18 horários padrão)
         const taxaOcupacao = agendamentos.length > 0 ? Math.min(Math.round((agendamentos.length / 18) * 100), 100) : 0;
         document.getElementById('kpi-ocupacao').innerText = `${taxaOcupacao}%`;
 
-        // Taxa de No-Show real baseada nas faltas registradas pelos botões
         const taxaNoShow = agendamentos.length > 0 ? ((faltas / agendamentos.length) * 100).toFixed(1) : 0;
         document.getElementById('kpi-noshow').innerText = `${taxaNoShow}%`;
 
@@ -349,21 +352,25 @@ async function renderizarGradeHorariosReais() {
     });
 }
 
-document.getElementById('btnPreAgendar').addEventListener('click', () => {
+document.getElementById('btnPreAgendar').addEventListener('click', (e) => {
+    e.preventDefault();
     if (!servicoSelecionado || !barbeiroSelecionado || !horarioSelecionado || !pagamentoSelecionado) {
-        alert("Selecione todos os parâmetros para agendar.");
+        alert("Por favor, selecione todos os parâmetros antes de avançar.");
         return;
     }
     document.getElementById('modal-resumo-detalhes').innerHTML = `
         <strong>Procedimento:</strong> ${servicoSelecionado}<br>
-        <strong>Profissional:</strong> ${barbeiroSelecionado.toUpperCase()}<br>
+        <strong>Profissional:</strong> ${barbeiroSelecionado === 'gabriel' ? 'Gabriel (Proprietário)' : 'Lucas Barber'}<br>
         <strong>Data/Hora:</strong> ${document.getElementById('data').value} às ${horarioSelecionado}<br>
         <span style="color:var(--success-color); font-weight:bold;">Valor: R$ ${precoServico.toFixed(2)}</span>
     `;
     document.getElementById('modal-confirmacao').classList.remove('escondido');
 });
 
-document.getElementById('btn-modal-gravar').addEventListener('click', async () => {
+// EVENTO DE CONFIRMAÇÃO DO POP-UP OPERACIONALIZADO
+document.getElementById('btn-confirmar-modal').addEventListener('click', async (e) => {
+    e.preventDefault();
+    
     const payload = {
         cliente: usuarioLogado.toUpperCase(),
         servico: servicoSelecionado,
@@ -382,7 +389,10 @@ document.getElementById('btn-modal-gravar').addEventListener('click', async () =
 
         if (res.ok) {
             document.getElementById('modal-confirmacao').classList.add('escondido');
-            alert("Agendamento gravado com sucesso!");
+            alert("✨ Agendamento gravado com sucesso no Banco Neon!");
+            
+            enviarMensagemWhatsApp(payload);
+            horarioSelecionado = null;
             renderizarGradeHorariosReais();
             carregarMeusAgendamentosDoBanco();
         }
@@ -390,6 +400,11 @@ document.getElementById('btn-modal-gravar').addEventListener('click', async () =
         alert("Erro ao gravar.");
     }
 });
+
+function enviarMensagemWhatsApp(dados) {
+    const texto = `👋 Olá! Segue a confirmação do meu agendamento na Prosperar Club:\n\n👤 Cliente: ${dados.cliente}\n💇‍♂️ Procedimento: ${dados.servico}\n💈 Profissional: ${dados.barbeiro}\n📅 Data: ${dados.data}\n⏰ Horário: ${dados.hora}\n💳 Meio de Pagamento: ${dados.pagamento}\n\nObrigado!`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
+}
 
 async function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos');
@@ -457,7 +472,6 @@ function renderizarFormularioCliente() {
     document.getElementById('data').value = new Date().toISOString().split('T')[0];
 }
 
-// Navegação Dinâmica SPA
 function montarMenuNavegacao(role) {
     const nav = document.getElementById('menu-navegacao');
     if (!nav) return;
@@ -467,7 +481,7 @@ function montarMenuNavegacao(role) {
             <button class="nav-item ativo" onclick="alternarTela('adm-dash')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 14H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2z"/></svg>Finanças</button>
             <button class="nav-item" onclick="alternarTela('adm-estoque')"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 12H4v-2h11v2zm0-4H4v-2h11v2zm5-4H4V6h16v2z"/></svg>Estoque</button>
             <button class="nav-item" onclick="alternarTela('adm-mkt')"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>Marketing</button>
-            <button class="nav-item" onclick="alternarTela('adm-recepcao')"><svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>Monitor</button>
+            <button class="nav-item" onclick="alternarTela('adm-recepcao')"><svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>Monitor</button>
         `;
     } else {
         nav.innerHTML = `
