@@ -10,6 +10,9 @@ let horarioSelecionado = null;
 let pagamentoSelecionado = null;
 let precoServico = 0;
 
+// Filtro de tempo global para o painel financeiro (padrão: mes_atual)
+let filtroTempoAtual = 'mes_atual'; 
+
 const ESTRUTURA_SERVICOS = [
     { id: "corte", nome: "Corte Simples", preco: 40.00, sub: "Duração: 30 min" },
     { id: "corte_sob", nome: "Corte + Sobrancelha", preco: 55.00, sub: "Duração: 45 min" },
@@ -28,9 +31,8 @@ const HORARIOS_PADRAO = [
     { turno: "🌙 Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
 ];
 
-// 🔥 CORREÇÃO 1: ESCUTADOR DE EVENTO DA DATA CORRIGIDO PARA ATUALIZAÇÃO IMEDIATA
+// Listener para mudança de data com atualização reativa e instantânea
 document.getElementById('data').addEventListener('change', () => {
-    // Só renderiza se o barbeiro já tiver sido escolhido, evitando erros na tela
     if (barbeiroSelecionado) {
         renderizarGradeHorariosReais();
     }
@@ -129,14 +131,52 @@ function direcionarFluxoInicial(perfil, nomeUsuario) {
     }
 }
 
-// ================= PROCESSAMENTO DE MÉTRICAS OPERACIONAIS REAIS =================
+// Helper para filtragem temporal de datas
+function filtrarPorPeriodo(dataString, periodo) {
+    const dataAtendimento = new Date(dataString + 'T00:00:00');
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+    
+    if (periodo === 'hoje') {
+        return dataAtendimento.getTime() === hoje.getTime();
+    }
+    if (periodo === 'ontem') {
+        const ontem = new Date(hoje);
+        ontem.setDate(hoje.getDate() - 1);
+        return dataAtendimento.getTime() === ontem.getTime();
+    }
+    if (periodo === '7dias') {
+        const seteDiasAtras = new Date(hoje);
+        seteDiasAtras.setDate(hoje.getDate() - 7);
+        return dataAtendimento >= seteDiasAtras && dataAtendimento <= hoje;
+    }
+    if (periodo === 'mes_atual') {
+        return dataAtendimento.getMonth() === hoje.getMonth() && dataAtendimento.getFullYear() === hoje.getFullYear();
+    }
+    return true;
+}
+
+// Alterar filtro de tempo na aba Finanças
+function mudarFiltroFinancas(periodo) {
+    filtroTempoAtual = periodo;
+    document.querySelectorAll('.btn-filtro-tempo').forEach(b => b.classList.remove('ativo'));
+    event.target.classList.add('ativo');
+    carregarDadosEstrategicosDoNeon();
+}
+
+// ================= PROCESSAMENTO DE MÉTRICAS OPERACIONAIS REAIS (FINANÇAS) =================
 async function carregarDadosEstrategicosDoNeon() {
     try {
         const res = await fetch(`${API_URL}/agendamentos`);
         if(!res.ok) return;
-        const agendamentos = await res.json();
+        const todosAgendamentos = await res.json();
+
+        // Aplicando o filtro dinâmico temporal
+        const agendamentos = todosAgendamentos.filter(a => filtrarPorPeriodo(a.data, filtroTempoAtual));
 
         let faturamentoTotal = 0;
+        let faturamentoServicos = 0;
+        let faturamentoProdutos = 0;
         let finalizados = 0;
         let faltas = 0;
         let comissaoGabriel = 0;
@@ -144,27 +184,43 @@ async function carregarDadosEstrategicosDoNeon() {
 
         agendamentos.forEach(a => {
             const serv = ESTRUTURA_SERVICOS.find(s => s.nome === a.servico);
-            const valor = serv ? serv.preco : 40.00;
+            const valorServico = serv ? serv.preco : 40.00;
+            const valorProd = parseFloat(a.valor_produtos || 0);
+            const valorGorjeta = parseFloat(a.valor_gorjeta || 0);
+            
+            // Regra de negócio: Cartões deduzem 2.5% de taxa operacional antes do Split
+            const forma = String(a.pagamento || 'Pix').toLowerCase();
+            const taxaMaquininha = (forma.includes('cartao') || forma.includes('credito') || forma.includes('debito')) ? 0.025 : 0;
+            const taxaDeduzida = valorServico * taxaMaquininha;
 
-            if(a.status !== 'Falta') {
-                faturamentoTotal += valor;
+            const valorServicoLiquido = valorServico - taxaDeduzida;
+
+            if(a.status !== 'Falta' && a.status !== 'cancelado') {
+                faturamentoServicos += valorServico;
+                faturamentoProdutos += valorProd;
+                faturamentoTotal += (valorServico + valorProd + valorGorjeta);
                 finalizados++;
+                
+                // Repasse Inteligente Dinâmico
                 if (String(a.barbeiro).toLowerCase().includes('gabriel')) {
-                    comissaoGabriel += (valor * 0.50);
+                    // Gabriel ganha 50% do serviço líquido + 10% de produtos + 100% da sua gorjeta
+                    comissaoGabriel += (valorServicoLiquido * 0.50) + (valorProd * 0.10) + valorGorjeta;
                 } else {
-                    comissaoLucas += (valor * 0.40);
+                    // Lucas ganha 40% do serviço líquido + 10% de produtos + 100% da sua gorjeta
+                    comissaoLucas += (valorServicoLiquido * 0.40) + (valorProd * 0.10) + valorGorjeta;
                 }
-            } else {
+            } else if (a.status === 'Falta' || a.status === 'no_show') {
                 faltas++;
             }
         });
 
+        // Atualização da UI do Dashboard Administrativo
         document.getElementById('kpi-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
         
-        const tMedio = finalizados > 0 ? (faturamentoTotal / finalizados) : 0;
+        const tMedio = finalizados > 0 ? (faturamentoServicos / finalizados) : 0;
         document.getElementById('kpi-ticket').innerText = `R$ ${tMedio.toFixed(2)}`;
 
-        const taxaOcupacao = agendamentos.length > 0 ? Math.min(Math.round((agendamentos.length / 18) * 100), 100) : 0;
+        const taxaOcupacao = agendamentos.length > 0 ? Math.min(Math.round((agendamentos.length / 24) * 100), 100) : 0;
         document.getElementById('kpi-ocupacao').innerText = `${taxaOcupacao}%`;
 
         const taxaNoShow = agendamentos.length > 0 ? ((faltas / agendamentos.length) * 100).toFixed(1) : 0;
@@ -173,41 +229,75 @@ async function carregarDadosEstrategicosDoNeon() {
         document.getElementById('split-gabriel').innerText = `R$ ${comissaoGabriel.toFixed(2)}`;
         document.getElementById('split-lucas').innerText = `R$ ${comissaoLucas.toFixed(2)}`;
 
+        // Adiciona detalhamento extra se houver os elementos em tela
+        if(document.getElementById('detalhe-produtos')) {
+            document.getElementById('detalhe-produtos').innerText = `Produtos: R$ ${faturamentoProdutos.toFixed(2)}`;
+            document.getElementById('detalhe-servicos').innerText = `Serviços: R$ ${faturamentoServicos.toFixed(2)}`;
+        }
+
     } catch(e) {
-        console.error("Erro ao processar inteligência do Neon", e);
+        console.error("Erro ao processar inteligência financeira", e);
     }
 }
 
-// CRM de Marketing Real e Dinâmico
+// ================= CRM DE MARKETING COMPORTAMENTAL (RETENÇÃO CHURN) =================
 async function carregarListaMarketingReal() {
     const container = document.getElementById('lista-marketing-clientes');
     if(!container) return;
 
     try {
         const resUsers = await fetch(`${API_URL}/usuarios`);
-        if(!resUsers.ok) return;
+        const resAgendamentos = await fetch(`${API_URL}/agendamentos`);
+        if(!resUsers.ok || !resAgendamentos.ok) return;
+        
         const usuarios = await resUsers.json();
+        const agendamentos = await resAgendamentos.json();
 
         container.innerHTML = "";
         let assinantes = 0;
         let faturamentoRecorrente = 0;
+        const hoje = new Date();
 
         usuarios.forEach(u => {
-            if(u.perfil === 'admin') return;
+            if(u.perfil === 'admin' || u.perfil === 'barbeiro') return;
 
             if(u.plano_assinatura && u.plano_assinatura !== 'Nenhum') {
                 assinantes++;
                 faturamentoRecorrente += u.plano_assinatura.includes('Gold') ? 150 : 80;
             }
 
+            // Identificar Clientes Sumidos (Inativos há mais de 30 dias)
+            const atendimentosDoCliente = agendamentos.filter(a => 
+                a.cliente.toUpperCase() === u.nome.toUpperCase() && a.status === 'Concluído'
+            );
+
+            let statusFidelidade = "Ativo";
+            let classeBadge = "badge-sucesso";
+
+            if (atendimentosDoCliente.length > 0) {
+                // Pega a data do último atendimento realizado
+                const datas = atendimentosDoCliente.map(a => new Date(a.data + 'T00:00:00'));
+                const ultimaData = new Date(Math.max(...datas));
+                const diferencaDias = Math.floor((hoje - ultimaData) / (1000 * 60 * 60 * 24));
+
+                if (diferencaDias > 30) {
+                    statusFidelidade = `Sumido (${diferencaDias} dias)`;
+                    classeBadge = "badge-perigo";
+                }
+            } else {
+                statusFidelidade = "Sem histórico";
+                classeBadge = "badge-alerta";
+            }
+
             const div = document.createElement('div');
             div.className = "item-backoffice";
             div.innerHTML = `
                 <div>
-                    <strong>${u.nome}</strong><br>
+                    <strong>${u.nome}</strong> 
+                    <span class="badge ${classeBadge}" style="font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px;">${statusFidelidade}</span><br>
                     <span style="font-size:11px; color:var(--text-muted);">Cel: ${u.celular} | Plano: ${u.plano_assinatura}</span>
                 </div>
-                <button class="btn-status" style="background:var(--accent-color); color:black;" onclick="dispararWppCliente('${u.celular}', '${u.nome}')">Mandar Cupom</button>
+                <button class="btn-status" style="background:var(--accent-color); color:black;" onclick="dispararWppCliente('${u.celular}', '${u.nome}', '${statusFidelidade}')">Resgatar Cliente</button>
             `;
             container.appendChild(div);
         });
@@ -215,12 +305,17 @@ async function carregarListaMarketingReal() {
         document.getElementById('mkt-total-assinantes').innerText = assinantes;
         document.getElementById('mkt-faturamento-recorrente').innerText = `R$ ${faturamentoRecorrente.toFixed(2)}`;
     } catch(e) {
-        container.innerHTML = "<p>Erro ao ler lista do CRM.</p>";
+        container.innerHTML = "<p>Erro ao ler lista do CRM dinâmico.</p>";
     }
 }
 
-function dispararWppCliente(celular, nome) {
-    const msg = `Olá ${nome}! Sentimos sua falta na Prosperar Club. Use o cupom PROSPERAR15 e ganhe 15% de desconto no seu próximo corte! Agende pelo app.`;
+function dispararWppCliente(celular, nome, status) {
+    let msg = `Olá ${nome}! Passando para te dar um alô da Prosperar Club. `;
+    if(status.includes('Sumido')) {
+        msg += `Notamos que faz mais de um mês que você não passa aqui para dar aquele tapa no visual. Que tal renovar o corte essa semana? Use o cupom VOLTOU10 e garanta 10% de desconto! Agende direto pelo nosso app.`;
+    } else {
+        msg += `Gostaríamos de agradecer a sua preferência de sempre! Que tal deixar seu próximo horário reservado para evitar filas? Acesse o app e escolha seu barbeiro preferido.`;
+    }
     window.open(`https://api.whatsapp.com/send?phone=55${celular}&text=${encodeURIComponent(msg)}`, '_blank');
 }
 
@@ -294,7 +389,8 @@ document.getElementById('btn-executar-encaixe').addEventListener('click', async 
         barbeiro: barbeiro,
         data: new Date().toISOString().split('T')[0],
         hora: hora,
-        pagamento: "Balcão (Dinheiro/Maquininha)"
+        pagamento: "Balcão (Dinheiro)",
+        status: "Concluído"
     };
 
     try {
@@ -305,7 +401,7 @@ document.getElementById('btn-executar-encaixe').addEventListener('click', async 
         });
 
         if(res.ok) {
-            alert("⚡ Encaixe manual registrado com sucesso no banco dados!");
+            alert("⚡ Encaixe manual registrado e finalizado com sucesso!");
             document.getElementById('encaixe-nome').value = "";
             carregarModoRecepcaoKanban();
         }
@@ -314,12 +410,74 @@ document.getElementById('btn-executar-encaixe').addEventListener('click', async 
     }
 });
 
+// ================= 📊 NOVA SESSÃO: BUSINESS INTELLIGENCE & ANALYTICS =================
+async function carregarPainelAnalytics() {
+    const containerMapa = document.getElementById('analytics-heatmap');
+    const containerRetencao = document.getElementById('analytics-retencao');
+    if(!containerMapa) return;
+
+    try {
+        const res = await fetch(`${API_URL}/agendamentos`);
+        if(!res.ok) return;
+        const agendamentos = await res.json();
+
+        // 1. Construção do Mapa de Calor (Agrupamento por Turno/Horas)
+        const turnosContagem = { "Manhã": 0, "Tarde": 0, "Noite": 0 };
+        
+        agendamentos.forEach(a => {
+            const hora = parseInt(String(a.hora).split(':')[0]);
+            if(hora >= 9 && hora < 12) turnosContagem["Manhã"]++;
+            else if(hora >= 12 && hora < 18) turnosContagem["Tarde"]++;
+            else if(hora >= 18) turnosContagem["Noite"]++;
+        });
+
+        containerMapa.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 10px; background: #111; padding: 15px; border-radius: 8px;">
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:5px;">Fluxo de clientes por Turno (Previsão de Janelas Ociosas):</p>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>🌅 Turno da Manhã:</span> 
+                    <strong style="color: ${turnosContagem['Manhã'] > 5 ? '#f59e0b' : '#666'}">${turnosContagem['Manhã']} cortes</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>🌤️ Turno da Tarde (Pico):</span> 
+                    <strong style="color: #f59e0b">${turnosContagem['Tarde']} cortes</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>🌙 Turno da Noite:</span> 
+                    <strong style="color: ${turnosContagem['Noite'] > 5 ? '#f59e0b' : '#666'}">${turnosContagem['Noite']} cortes</strong>
+                </div>
+            </div>
+        `;
+
+        // 2. Cálculo de Retenção de Clientes Simplificado (Fidelidade)
+        const clientesUnicos = [...new Set(agendamentos.map(a => a.cliente))];
+        let recorrentes = 0;
+
+        clientesUnicos.forEach(c => {
+            const contagem = agendamentos.filter(a => a.cliente === c).length;
+            if(contagem > 1) recorrentes++;
+        });
+
+        const taxaRetencao = clientesUnicos.length > 0 ? Math.round((recorrentes / clientesUnicos.length) * 100) : 0;
+        if(containerRetencao) {
+            containerRetencao.innerHTML = `
+                <div class="card" style="text-align:center;">
+                    <div style="font-size: 28px; font-weight: bold; color: var(--accent-color);">${taxaRetencao}%</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top:5px;">Taxa de Retenção de Clientes Geral</div>
+                </div>
+            `;
+        }
+
+    } catch(e) {
+        console.error("Erro ao montar BI", e);
+    }
+}
+
 // --- SISTEMA CORE DE AGENDAMENTO (CLIENTE) ---
 async function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios');
     if (!container) return;
     
-    // 🔥 CORREÇÃO 2: Se o barbeiro sumiu ou mudou de aba, limpa e avisa para evitar carregar dados fantasmas
     if (!barbeiroSelecionado) {
         container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; text-align:center;'>⚠️ Escolha o profissional acima para abrir os horários livres.</p>";
         return;
@@ -333,7 +491,7 @@ async function renderizarGradeHorariosReais() {
         if (res.ok) {
             const todos = await res.json();
             ocupados = todos
-                .filter(a => a.data === dataSelecionada && String(a.barbeiro).toLowerCase().includes(barbeiroSelecionado) && a.status !== 'Falta')
+                .filter(a => a.data === dataSelecionada && String(a.barbeiro).toLowerCase().includes(barbeiroSelecionado) && a.status !== 'Falta' && a.status !== 'cancelado')
                 .map(a => String(a.hora).trim());
         }
     } catch (e) {
@@ -385,10 +543,8 @@ document.getElementById('btnPreAgendar').addEventListener('click', (e) => {
     document.getElementById('modal-confirmacao').classList.remove('escondido');
 });
 
-// EVENTO DE CONFIRMAÇÃO DO POP-UP OPERACIONALIZADO
 document.getElementById('btn-confirmar-modal').addEventListener('click', async (e) => {
     e.preventDefault();
-    
     const nomeCliente = nomeUsuarioLogado ? nomeUsuarioLogado.toUpperCase() : "CLIENTE_ANONIMO";
     
     const payload = {
@@ -397,7 +553,10 @@ document.getElementById('btn-confirmar-modal').addEventListener('click', async (
         barbeiro: barbeiroSelecionado === 'gabriel' ? 'Gabriel (Proprietário)' : 'Lucas Barber',
         data: document.getElementById('data').value,
         hora: horarioSelecionado,
-        pagamento: pagamentoSelecionado || "Balcão"
+        pagamento: pagamentoSelecionado || "Pix",
+        status: "agendado",
+        valor_produtos: 0.00,
+        valor_gorjeta: 0.00
     };
 
     const botao = document.getElementById('btn-confirmar-modal');
@@ -417,20 +576,16 @@ document.getElementById('btn-confirmar-modal').addEventListener('click', async (
             
             try {
                 enviarMensagemWhatsApp(payload);
-            } catch(wppErr) {
-                console.error("WhatsApp bloqueado:", wppErr);
-            }
+            } catch(wppErr) {}
 
             horarioSelecionado = null;
             renderizarGradeHorariosReais();
             carregarMeusAgendamentosDoBanco();
         } else {
-            const erroServidor = await res.json();
-            alert(`Erro no servidor: ${erroServidor.detail || "Erro desconhecido"}`);
+            alert("Erro ao gravar agendamento.");
         }
     } catch (e) {
-        console.error("Erro na requisição:", e);
-        alert("Erro ao conectar com o servidor. Verifique sua API.");
+        alert("Erro de conexão.");
     } finally {
         botao.innerText = "Confirmar";
         botao.disabled = false;
@@ -438,7 +593,7 @@ document.getElementById('btn-confirmar-modal').addEventListener('click', async (
 });
 
 function enviarMensagemWhatsApp(dados) {
-    const texto = `👋 Olá! Segue a confirmação do meu agendamento na Prosperar Club:\n\n👤 Cliente: ${dados.cliente}\n💇‍♂️ Procedimento: ${dados.servico}\n💈 Profissional: ${dados.barbeiro}\n📅 Data: ${dados.data}\n⏰ Horário: ${dados.hora}\n💳 Meio de Pagamento: ${dados.pagamento}\n\nObrigado!`;
+    const texto = `👋 Olá! Segue a confirmação do meu agendamento na Prosperar Club:\n\n👤 Cliente: ${dados.cliente}\n💇‍♂️ Procedimento: ${dados.servico}\n💈 Profissional: ${dados.barbeiro}\n📅 Data: ${dados.data}\n⏰ Horário: ${dados.hora}\n\nObrigado!`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
 }
 
@@ -504,7 +659,7 @@ function renderizarFormularioCliente() {
     });
 
     const boxP = document.getElementById('container-pagamentos'); boxP.innerHTML = "";
-    ["Pix", "Cartão de Crédito/Débito"].forEach(p => {
+    ["Pix", "Cartão de Crédito", "Cartão de Débito"].forEach(p => {
         const div = document.createElement('div'); div.className = "modern-card";
         div.innerHTML = `<div class="title">${p}</div>`;
         div.onclick = () => {
@@ -514,7 +669,6 @@ function renderizarFormularioCliente() {
         boxP.appendChild(div);
     });
     
-    // Injeta a data de hoje por padrão
     document.getElementById('data').value = new Date().toISOString().split('T')[0];
 }
 
@@ -524,22 +678,22 @@ function montarMenuNavegacao(role) {
 
     if (role === 'admin') {
         nav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('adm-dash')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 14H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2z"/></svg>Finanças</button>
-            <button class="nav-item" onclick="alternarTela('adm-estoque')"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 12H4v-2h11v2zm0-4H4v-2h11v2zm5-4H4V6h16v2z"/></svg>Estoque</button>
-            <button class="nav-item" onclick="alternarTela('adm-mkt')"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>Marketing</button>
-            <button class="nav-item" onclick="alternarTela('adm-recepcao')"><svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>Monitor</button>
+            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
+            <button class="nav-item" onclick="alternarTela('adm-mkt')">📢 Marketing</button>
+            <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
+            <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 Analytics</button>
         `;
     } else {
         nav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('home')"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Agendar</button>
-            <button class="nav-item" onclick="alternarTela('estilo')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>Reservas</button>
+            <button class="nav-item ativo" onclick="alternarTela('home')">📅 Agendar</button>
+            <button class="nav-item" onclick="alternarTela('estilo')">🗂️ Minhas Reservas</button>
         `;
     }
-    nav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()"><svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59z"/></svg>Sair</button>`;
+    nav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()">🚪 Sair</button>`;
 }
 
 function alternarTela(idAba) {
-    ['home', 'estilo', 'adm-dash', 'adm-estoque', 'adm-mkt', 'adm-recepcao'].forEach(id => {
+    ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-analytics'].forEach(id => {
         const el = document.getElementById(`aba-${id}`);
         if (el) el.classList.add('escondido');
     });
@@ -549,4 +703,5 @@ function alternarTela(idAba) {
     if(idAba === 'adm-dash') carregarDadosEstrategicosDoNeon();
     if(idAba === 'adm-mkt') carregarListaMarketingReal();
     if(idAba === 'adm-recepcao') carregarModoRecepcaoKanban();
+    if(idAba === 'adm-analytics') carregarPainelAnalytics();
 }
