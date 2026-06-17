@@ -7,7 +7,7 @@ from psycopg2.extras import RealDictCursor
 
 app = FastAPI()
 
-# Libera o acesso para que o Front-end hospedado na Vercel acesse a API no Render
+# Libera o acesso para o front-end hospedado na Vercel
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,7 +20,7 @@ app.add_middleware(
 DATABASE_URL = "postgresql://neondb_owner:npg_FB5WRUfgniD9@ep-calm-grass-ah0b366i.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
 def inicializar_banco():
-    """Garante a existência da tabela com a estrutura mapeada para o Front-end"""
+    """Garante a existência da tabela operacional no Neon"""
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
@@ -38,14 +38,12 @@ def inicializar_banco():
         conn.commit()
         cursor.close()
         conn.close()
-        print("⚡ Banco Neon conectado e tabela mapeada com sucesso!")
+        print("⚡ Banco Neon conectado e sincronizado com sucesso!")
     except Exception as e:
-        print(f"❌ Erro ao conectar no Neon durante a inicialização: {str(e)}")
+        print(f"❌ Erro na inicialização do banco: {str(e)}")
 
-# Executa na inicialização do servidor
 inicializar_banco()
 
-# Esquema de dados validado pelo Pydantic
 class ModeloAgendamento(BaseModel):
     cliente: str
     servico: str
