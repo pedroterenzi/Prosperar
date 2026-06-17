@@ -1,5 +1,6 @@
 /**
  * ARQUITETURA CORE DE FINANÇAS E FLUXOS CLIENTE - PROSPERAR CLUB
+ * VERSÃO CORRIGIDA: REGRAS DE ACESSO MASTER E FEEDBACK DE SELEÇÃO VISUAL
  */
 
 const API_URL = "https://prosperar.onrender.com";
@@ -64,7 +65,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if(btnCadastrar) btnCadastrar.addEventListener('click', executarCadastro);
 
     const btnEntrar = document.getElementById('btn-entrar');
-    // CORREÇÃO: Mapeamento de chamada ortográfica exata para destravar o formulário de entrada
     if(btnEntrar) btnEntrar.addEventListener('click', executarLogin);
     
     const inputInicio = document.getElementById('filtro-data-inicio');
@@ -162,6 +162,7 @@ async function incluirBarbeiroSistema() {
     const jaExiste = ESTRUTURA_BARBEIROS.some(b => b.login === login || b.nome.toLowerCase() === nome.toLowerCase());
     if(jaExiste) return alert("Erro: Login ou profissional já existente!");
 
+    // SOLUÇÃO: Forçando explicitamente a propriedade de perfil para o backend e cache local
     const payload = { login, senha, nome, celular, perfil: "barbeiro", plano_assinatura: "Nenhum" };
 
     try {
@@ -172,7 +173,8 @@ async function incluirBarbeiroSistema() {
         });
 
         const novaId = "barber_" + Date.now();
-        ESTRUTURA_BARBEIROS.push({ id: novaId, login, senha, nome, celular, comissao });
+        // Salvando os atributos cruciais para que o login condicional reconheça este usuário
+        ESTRUTURA_BARBEIROS.push({ id: novaId, login, senha, nome, celular, comissao, perfil: "barbeiro" });
         localStorage.setItem("PROSPERAR_EQUIPE", JSON.stringify(ESTRUTURA_BARBEIROS));
         
         alert(`✨ Profissional ${nome} cadastrado com sucesso e salvo no banco de dados!`);
@@ -197,7 +199,7 @@ function removerBarbeiroSistema(id) {
     recarregarAbaAtivaAdm();
 }
 
-async function executarCadastro() {
+async function ejecutarCadastro() {
     const nome = document.getElementById('cad-nome').value.trim();
     const login = document.getElementById('cad-login').value.trim().toLowerCase();
     const celular = document.getElementById('cad-celular').value.trim();
@@ -226,20 +228,25 @@ async function executarLogin() {
 
     if(!login || !senha) return alert("Preencha os campos de acesso.");
 
+    // SOLUÇÃO 1: Verificação profunda de regras e bloqueio de redirecionamento incorreto
     const barbeiroAlvo = ESTRUTURA_BARBEIROS.find(b => b.login === login);
     if(barbeiroAlvo) {
-        if(barbeiroAlvo.id === 'gabriel') {
+        if(barbeiroAlvo.senha && barbeiroAlvo.senha !== senha) return alert("Senha incorreta.");
+        
+        // Garante mapeamento correto para o Gabriel ou qualquer outro barbeiro cadastrado
+        if(barbeiroAlvo.id === 'gabriel' || login === 'admin') {
             perfilLogado = 'admin';
         } else {
-            if(barbeiroAlvo.senha && barbeiroAlvo.senha !== senha) return alert("Senha incorreta.");
             perfilLogado = 'barbeiro';
         }
+        
         usuarioLogado = barbeiroAlvo.login;
         nomeUsuarioLogado = barbeiroAlvo.nome;
         ativarAcessoAoPainelProfissional();
         return;
     }
 
+    // Se não for mapeado em ESTRUTURA_BARBEIROS, assume o papel padrão de cliente
     usuarioLogado = login;
     perfilLogado = "cliente";
     nomeUsuarioLogado = login.toUpperCase();
@@ -499,23 +506,31 @@ async function renderizarGradeHorariosReais() {
         
         g.horas.forEach(h => {
             const btn = document.createElement('button'); 
+            const horaTratada = h.trim();
             btn.className = "btn-horario"; 
-            btn.innerText = h;
+            btn.innerText = horaTratada;
             
-            if (isSlotPast(dataSel, h.trim())) { 
+            // SOLUÇÃO 2: Verificação de estado ativo para feedback de clique visual
+            if (horaTratada === horarioSelecionado) {
+                btn.classList.add('selected');
+            }
+            
+            if (isSlotPast(dataSel, horaTratada)) { 
                 btn.disabled = true; 
                 btn.style.opacity = "0.3"; 
                 btn.innerText = "Expirado"; 
-            } else if (ocupados.includes(h.trim())) { 
+            } else if (ocupados.includes(horaTratada)) { 
                 btn.disabled = true; 
                 btn.style.opacity = "0.4";
                 btn.innerText = "Ocupado"; 
             } else { 
                 btn.onclick = (e) => { 
                     e.preventDefault();
+                    // Limpa a seleção visual de todos os outros botões de horário da tela
                     document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selected')); 
+                    // Aplica imediatamente a classe visual no botão clicado
                     btn.classList.add('selected'); 
-                    horarioSelecionado = h.trim(); 
+                    horarioSelecionado = horaTratada; 
                 }; 
             }
             grid.appendChild(btn);
@@ -576,8 +591,8 @@ async function carregarMeusAgendamentosDoBanco() {
 
 function filtrarAgendamentoPorRegraGlobal(a) {
     if(filtroBarbeiroAlvo !== 'todos') {
-        const profissionalAlvo = ESTRUTURA_BARBEIROS.find(b => b.id === filtroBarbeiroAlvo);
-        if(!profissionalAlvo || a.barbeiro !== profissionalAlvo.nome) return false;
+        const profesionalAlvo = ESTRUTURA_BARBEIROS.find(b => b.id === filtroBarbeiroAlvo);
+        if(!profesionalAlvo || a.barbeiro !== profesionalAlvo.nome) return false;
     }
 
     const dataAtendimento = new Date(a.data + 'T00:00:00');
