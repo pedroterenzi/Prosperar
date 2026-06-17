@@ -60,15 +60,31 @@ document.addEventListener("DOMContentLoaded", () => {
     if(btnCadastrar) btnCadastrar.addEventListener('click', executarCadastro);
 
     const btnEntrar = document.getElementById('btn-entrar');
-    if(btnEntrar) btnEntrar.addEventListener('click', executarLogin);
+    if(btnEntrar) btnEntrar.addEventListener('click', executingLogin);
     
     // Inicializar inputs de data do filtro de período com os valores de hoje
     document.getElementById('filtro-data-inicio').value = dataFiltroInicio;
     document.getElementById('filtro-data-fim').value = dataFiltroFim;
     
-    // Injeção opcional do mock se a API demorar ou falhar para validação imediata da UI
     console.log("Sistema Prosperar Financeiro carregado. Mock pronto.");
 });
+
+/**
+ * ENGINE DE VALIDAÇÃO TEMPORAL - EXPERIÊNCIA DO CLIENTE
+ * Compara a data selecionada e a hora do slot com o momento exato atual da execução.
+ */
+function isSlotPast(dateStr, timeStr) {
+    const agora = new Date();
+    
+    // Divide os componentes evitando distorções de fuso horário por string isolada
+    const [ano, mes, dia] = dateStr.split('-').map(Number);
+    const [hora, minuto] = timeStr.split(':').map(Number);
+    
+    // Constrói o objeto de data no contexto local exato do navegador do cliente
+    const dataDoSlot = new Date(ano, mes - 1, dia, hora, minuto, 0, 0);
+    
+    return dataDoSlot < agora;
+}
 
 function alternarAbasAuth(aba) {
     document.getElementById('tab-login').classList.remove('active');
@@ -141,7 +157,6 @@ async function executarLogin() {
             direcionarFluxoInicial(perfilLogado, user.nome);
             inicializarListenersPosLogin();
         } else {
-            // Fallback para ambiente de teste/demonstração local de admin
             if(login === "admin" && senha === "admin") {
                 usuarioLogado = "admin"; perfilLogado = "admin"; nomeUsuarioLogado = "Gabriel Admin";
                 document.getElementById('tela-autenticacao').classList.add('escondido');
@@ -178,10 +193,19 @@ function inicializarListenersPosLogin() {
                 alert("Selecione todos os parâmetros antes de avançar.");
                 return;
             }
+            
+            // Validação de segurança extra antes de abrir o modal de confirmação do cliente
+            const dataSelecionada = document.getElementById('data').value;
+            if (isSlotPast(dataSelecionada, horarioSelecionado)) {
+                alert("Atenção: Este horário acabou de expirar. Escolha um horário futuro.");
+                renderizarGradeHorariosReais();
+                return;
+            }
+
             document.getElementById('modal-resumo-detalhes').innerHTML = `
                 <strong>Procedimento:</strong> ${servicoSelecionado}<br>
                 <strong>Profissional:</strong> ${barbeiroSelecionado === 'gabriel' ? 'Gabriel (Proprietário)' : 'Lucas Barber'}<br>
-                <strong>Data/Hora:</strong> ${document.getElementById('data').value} às ${horarioSelecionado}<br>
+                <strong>Data/Hora:</strong> ${dataSelecionada} às ${horarioSelecionado}<br>
                 <span style="color:var(--success-color); font-weight:bold;">Valor: R$ ${precoServico.toFixed(2)}</span>
             `;
             document.getElementById('modal-confirmacao').classList.remove('escondido');
@@ -193,12 +217,21 @@ function inicializarListenersPosLogin() {
         btnConfirmarModal.addEventListener('click', async (e) => {
             e.preventDefault();
             const nomeCliente = nomeUsuarioLogado ? nomeUsuarioLogado.toUpperCase() : "CLIENTE_ANONIMO";
+            const dataSelecionada = document.getElementById('data').value;
+
+            // Trava lógica final de barreira no submit do formulário frontend
+            if (isSlotPast(dataSelecionada, horarioSelecionado)) {
+                alert("Operação bloqueada. Não é possível salvar agendamentos retroativos.");
+                document.getElementById('modal-confirmacao').classList.add('escondido');
+                renderizarGradeHorariosReais();
+                return;
+            }
             
             const payload = {
                 cliente: nomeCliente,
                 servico: servicoSelecionado || "Não Informado",
                 barbeiro: barbeiroSelecionado === 'gabriel' ? 'Gabriel (Proprietário)' : 'Lucas Barber',
-                data: document.getElementById('data').value,
+                data: dataSelecionada,
                 hora: horarioSelecionado,
                 pagamento: pagamentoSelecionado || "Pix",
                 status: "agendado",
@@ -291,10 +324,6 @@ function direcionarFluxoInicial(perfil, nomeUsuario) {
     }
 }
 
-/**
- * MOTOR DE VALIDAÇÃO TEMPORAL AVANÇADA (Date Filter Engine)
- * Compara strings de datas no formato ISO YYYY-MM-DD prevenindo distorções de fuso horário UTC.
- */
 function filtrarPorPeriodoGlobal(dataString) {
     const dataAtendimento = new Date(dataString + 'T00:00:00');
     const hoje = new Date();
@@ -346,7 +375,6 @@ function atualizarFiltroDataRange() {
     dataFiltroInicio = document.getElementById('filtro-data-inicio').value;
     dataFiltroFim = document.getElementById('filtro-data-fim').value;
     
-    // Dispara a recomputação se ambas as datas estiverem preenchidas
     if (dataFiltroInicio && dataFiltroFim) {
         recarregarAbaAtivaAdm();
     }
@@ -369,9 +397,6 @@ function recarregarAbaAtivaAdm() {
     if(abaAtiva === 'adm-analytics') carregarPainelAnalytics();
 }
 
-/**
- * RECOMPUTAÇÃO MATEMÁTICA DO SPLIT E MÉTRICAS EM TEMPO REAL
- */
 async function carregarDadosEstrategicosDoNeon() {
     try {
         let todosAgendamentos = [];
@@ -379,11 +404,9 @@ async function carregarDadosEstrategicosDoNeon() {
             const res = await fetch(`${API_URL}/agendamentos`);
             if(res.ok) todosAgendamentos = await res.json();
         } catch(e) {
-            // Em caso de falha de conexão, opera com mock persistente local
             todosAgendamentos = MOCK_AGENDAMENTOS_TESTE;
         }
 
-        // Filtra os dados no escopo temporal do filtro/período selecionado
         const agendamentos = todosAgendamentos.filter(a => filtrarPorPeriodoGlobal(a.data));
 
         let faturamentoTotal = 0;
@@ -392,7 +415,6 @@ async function carregarDadosEstrategicosDoNeon() {
         let atendimentosFinalizados = 0;
         let totalFaltasNoShow = 0;
 
-        // Estrutura de Split de Comissões Segregada por Barbeiro
         let splitGabriel = { servico: 0, produto: 0, gorjeta: 0, total: 0 };
         let splitLucas = { servico: 0, produto: 0, gorjeta: 0, total: 0 };
 
@@ -402,10 +424,9 @@ async function carregarDadosEstrategicosDoNeon() {
             const valorProd = parseFloat(a.valor_produtos || 0);
             const valorGorjeta = parseFloat(a.valor_gorjeta || 0);
             
-            // Regra 3: Dedução Operacional baseada na forma de pagamento
             const forma = String(a.pagamento || 'Pix').toLowerCase();
             const eCartao = (forma.includes('cartao') || forma.includes('credito') || forma.includes('debito'));
-            const taxaMaquininha = eCartao ? 0.025 : 0.00; // Taxa fixa de 2.5% se for cartão
+            const taxaMaquininha = eCartao ? 0.025 : 0.00;
             
             const taxaDeduzida = valorServico * taxaMaquininha;
             const valorServicoLiquido = valorServico - taxaDeduzida;
@@ -414,44 +435,37 @@ async function carregarDadosEstrategicosDoNeon() {
                 faturamentoServicosBrutos += valorServico;
                 faturamentoProdutosBrutos += valorProd;
                 
-                // O faturamento total engloba tudo o que entrou no caixa (Serviço Bruto + Produto Bruto + Gorjetas)
                 faturamentoTotal += (valorServico + valorProd + valorGorjeta);
                 atendimentosFinalizados++;
                 
-                // Separação de Repasse e Split Comercial
                 if (String(a.barbeiro).toLowerCase().includes('gabriel')) {
-                    splitGabriel.servico += (valorServicoLiquido * 0.50); // 50% do Líquido
-                    splitGabriel.produto += (valorProd * 0.10);          // 10% de taxa padrão de produtos
-                    splitGabriel.gorjeta += valorGorjeta;                // 100% Repassado ao barbeiro
+                    splitGabriel.servico += (valorServicoLiquido * 0.50);
+                    splitGabriel.produto += (valorProd * 0.10);
+                    splitGabriel.gorjeta += valorGorjeta;
                 } else {
-                    splitLucas.servico += (valorServicoLiquido * 0.40);   // 40% do Líquido
-                    splitLucas.produto += (valorProd * 0.10);            // 10% de taxa de produtos
-                    splitLucas.gorjeta += valorGorjeta;                  // 100% Repassado ao barbeiro
+                    splitLucas.servico += (valorServicoLiquido * 0.40);
+                    splitLucas.produto += (valorProd * 0.10);
+                    splitLucas.gorjeta += valorGorjeta;
                 }
             } else if (a.status === 'Falta' || a.status === 'no_show') {
                 totalFaltasNoShow++;
             }
         });
 
-        // Cálculo de somas absolutas finais dos repasses
         splitGabriel.total = splitGabriel.servico + splitGabriel.produto + splitGabriel.gorjeta;
         splitLucas.total = splitLucas.servico + splitLucas.produto + splitLucas.gorjeta;
 
-        // Renderização Dinâmica dos KPIs
         document.getElementById('kpi-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
         
-        // Ticket Médio = Faturamento Bruto de Serviços / Número de Atendimentos Realizados
         const ticketMedio = atendimentosFinalizados > 0 ? (faturamentoServicosBrutos / atendimentosFinalizados) : 0;
         document.getElementById('kpi-ticket').innerText = `R$ ${ticketMedio.toFixed(2)}`;
         
-        // Ocupação de cadeiras baseada em capacidade base diária ponderada (ex: 24 slots padrão)
         const taxaOcupacao = agendamentos.length > 0 ? Math.min(Math.round((agendamentos.length / 24) * 100), 100) : 0;
         document.getElementById('kpi-ocupacao').innerText = `${taxaOcupacao}%`;
         
         const taxaNoShow = agendamentos.length > 0 ? ((totalFaltasNoShow / agendamentos.length) * 100) : 0;
         document.getElementById('kpi-noshow').innerText = `${taxaNoShow.toFixed(1)}%`;
 
-        // Renderização da seção de Split e Divisão de Repasse Líquido Visual
         document.getElementById('detalhe-servicos').innerText = `Serviços Brutos: R$ ${faturamentoServicosBrutos.toFixed(2)}`;
         document.getElementById('detalhe-produtos').innerText = `Produtos Brutos: R$ ${faturamentoProdutosBrutos.toFixed(2)}`;
 
@@ -503,7 +517,7 @@ async function carregarListaMarketingReal() {
                 faturamentoRecorrente += u.plano_assinatura.includes('Gold') ? 150 : 80;
             }
 
-            const atendimentosDoCliente = todosAgendamentos.filter(a => 
+            const atendimentosDoCliente = todosAgendamentos.filter(a =>  
                 a.cliente.toUpperCase() === u.nome.toUpperCase() && a.status === 'Concluído'
             );
 
@@ -698,6 +712,10 @@ async function carregarPainelAnalytics() {
     }
 }
 
+/**
+ * REFACTOR: VISÃO DO CLIENTE - TRAVA AUTOMÁTICA DE HORÁRIOS EXPIRADOS
+ * Mapeia os botões e desabilita automaticamente slots passados no dia atual.
+ */
 async function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios');
     if (!container) return;
@@ -736,7 +754,20 @@ async function renderizarGradeHorariosReais() {
             btn.className = "btn-horario";
             btn.innerText = h;
 
-            if (ocupados.includes(h.trim())) {
+            // 1. Validação de Regra de Negócio: O horário já passou do minuto atual?
+            const jaPassou = isSlotPast(dataSelecionada, h.trim());
+            
+            // 2. Validação secundária: O horário já está reservado no banco de dados?
+            const jaOcupado = ocupados.includes(h.trim());
+
+            if (jaPassou) {
+                btn.disabled = true;
+                btn.classList.add('expirado'); // Permite estilizar com opacidade ou risco no seu arquivo CSS
+                btn.innerText = "Expirado";
+                btn.style.opacity = "0.4";
+                btn.style.cursor = "not-allowed";
+                btn.style.textDecoration = "line-through";
+            } else if (jaOcupado) {
                 btn.disabled = true;
                 btn.innerText = "Ocupado";
             } else {
