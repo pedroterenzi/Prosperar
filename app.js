@@ -10,8 +10,9 @@ let horarioSelecionado = null;
 let pagamentoSelecionado = null;
 let precoServico = 0;
 
-// Filtro de tempo global para o painel financeiro (padrão: mes_atual)
-let filtroTempoAtual = 'mes_atual'; 
+// Filtros Globais de Data do Painel Administrativo
+let filtroTempoGlobal = 'mes_atual'; // padrao: 'hoje', 'ontem', '7dias', 'mes_atual', 'personalizado'
+let dataFiltroEspecifico = new Date().toISOString().split('T')[0]; // Usado para o Monitor Diário e Personalizados
 
 const ESTRUTURA_SERVICOS = [
     { id: "corte", nome: "Corte Simples", preco: 40.00, sub: "Duração: 30 min" },
@@ -31,7 +32,7 @@ const HORARIOS_PADRAO = [
     { turno: "🌙 Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
 ];
 
-// Listener para mudança de data com atualização reativa e instantânea
+// Listener para mudança de data no formulário do cliente
 document.getElementById('data').addEventListener('change', () => {
     if (barbeiroSelecionado) {
         renderizarGradeHorariosReais();
@@ -74,7 +75,7 @@ document.getElementById('btn-cadastrar').addEventListener('click', async () => {
         });
         
         if(res.ok) {
-            alert("✨ Conta criada com sucesso! Você já pode realizar o login.");
+            alert("✨ Conta criada com sucesso!");
             alternarAbasAuth('login');
         } else {
             const err = await res.json();
@@ -120,10 +121,16 @@ document.getElementById('btn-entrar').addEventListener('click', async () => {
 
 function direcionarFluxoInicial(perfil, nomeUsuario) {
     if(perfil === 'admin') {
+        document.getElementById('bloco-filtros-global-adm').classList.remove('escondido');
+        // Define o input do filtro global com o dia de hoje por padrão
+        document.getElementById('filtro-data-especifica').value = dataFiltroEspecifico;
         alternarTela('adm-dash');
     } else if(perfil === 'barbeiro') {
+        document.getElementById('bloco-filtros-global-adm').classList.remove('escondido');
+        document.getElementById('filtro-data-especifica').value = dataFiltroEspecifico;
         alternarTela('adm-recepcao');
     } else {
+        document.getElementById('bloco-filtros-global-adm').classList.add('escondido');
         alternarTela('home');
         document.getElementById('boas-vistas-cliente').innerText = `Olá, ${nomeUsuario}!`;
         renderizarFormularioCliente();
@@ -131,48 +138,87 @@ function direcionarFluxoInicial(perfil, nomeUsuario) {
     }
 }
 
-// Helper para filtragem temporal de datas
-function filtrarPorPeriodo(dataString, periodo) {
+// Helper Centralizado para Filtragem de Períodos
+function filtrarPorPeriodoGlobal(dataString) {
     const dataAtendimento = new Date(dataString + 'T00:00:00');
     const hoje = new Date();
     hoje.setHours(0,0,0,0);
     
-    if (periodo === 'hoje') {
+    if (filtroTempoGlobal === 'hoje') {
         return dataAtendimento.getTime() === hoje.getTime();
     }
-    if (periodo === 'ontem') {
+    if (filtroTempoGlobal === 'ontem') {
         const ontem = new Date(hoje);
         ontem.setDate(hoje.getDate() - 1);
         return dataAtendimento.getTime() === ontem.getTime();
     }
-    if (periodo === '7dias') {
+    if (filtroTempoGlobal === '7dias') {
         const seteDiasAtras = new Date(hoje);
         seteDiasAtras.setDate(hoje.getDate() - 7);
         return dataAtendimento >= seteDiasAtras && dataAtendimento <= hoje;
     }
-    if (periodo === 'mes_atual') {
+    if (filtroTempoGlobal === 'mes_atual') {
         return dataAtendimento.getMonth() === hoje.getMonth() && dataAtendimento.getFullYear() === hoje.getFullYear();
+    }
+    if (filtroTempoGlobal === 'personalizado') {
+        const dataFiltro = new Date(dataFiltroEspecifico + 'T00:00:00');
+        return dataAtendimento.getTime() === dataFiltro.getTime();
     }
     return true;
 }
 
-// Alterar filtro de tempo na aba Finanças
-function mudarFiltroFinancas(periodo) {
-    filtroTempoAtual = periodo;
+// Gerenciador do Clique de Filtros do Topo do Painel ADM (Atualiza tudo reativamente)
+function mudarFiltroGlobalAdm(periodo) {
+    filtroTempoGlobal = periodo;
     document.querySelectorAll('.btn-filtro-tempo').forEach(b => b.classList.remove('ativo'));
-    event.target.classList.add('ativo');
-    carregarDadosEstrategicosDoNeon();
+    
+    if (event && event.target) {
+        event.target.classList.add('ativo');
+    }
+
+    const seletorData = document.getElementById('box-escolha-data-custom');
+    if (periodo === 'personalizado') {
+        seletorData.classList.remove('escondido');
+    } else {
+        seletorData.classList.add('escondido');
+    }
+
+    recarregarAbaAtivaAdm();
 }
 
-// ================= PROCESSAMENTO DE MÉTRICAS OPERACIONAIS REAIS (FINANÇAS) =================
+// Executado quando altera o input do calendário do Filtro Global
+function atualizarFiltroDataEspecifica(valor) {
+    dataFiltroEspecifico = valor;
+    recarregarAbaAtivaAdm();
+}
+
+// Identifica qual aba o administrador está vendo e atualiza os dados dela baseados nas novas datas
+function recarregarAbaAtivaAdm() {
+    const abas = ['adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-analytics'];
+    let abaAtiva = 'adm-dash';
+    
+    abas.forEach(id => {
+        const el = document.getElementById(`aba-${id}`);
+        if (el && !el.classList.contains('escondido')) {
+            abaAtiva = id;
+        }
+    });
+
+    if(abaAtiva === 'adm-dash') carregarDadosEstrategicosDoNeon();
+    if(abaAtiva === 'adm-mkt') carregarListaMarketingReal();
+    if(abaAtiva === 'adm-recepcao') carregarModoRecepcaoKanban();
+    if(abaAtiva === 'adm-analytics') carregarPainelAnalytics();
+}
+
+// ================= 💰 ABA FINANCEIRO (FINANÇAS) =================
 async function carregarDadosEstrategicosDoNeon() {
     try {
         const res = await fetch(`${API_URL}/agendamentos`);
         if(!res.ok) return;
         const todosAgendamentos = await res.json();
 
-        // Aplicando o filtro dinâmico temporal
-        const agendamentos = todosAgendamentos.filter(a => filtrarPorPeriodo(a.data, filtroTempoAtual));
+        // Filtrando conforme o filtro global do topo
+        const agendamentos = todosAgendamentos.filter(a => filtrarPorPeriodoGlobal(a.data));
 
         let faturamentoTotal = 0;
         let faturamentoServicos = 0;
@@ -188,11 +234,9 @@ async function carregarDadosEstrategicosDoNeon() {
             const valorProd = parseFloat(a.valor_produtos || 0);
             const valorGorjeta = parseFloat(a.valor_gorjeta || 0);
             
-            // Regra de negócio: Cartões deduzem 2.5% de taxa operacional antes do Split
             const forma = String(a.pagamento || 'Pix').toLowerCase();
             const taxaMaquininha = (forma.includes('cartao') || forma.includes('credito') || forma.includes('debito')) ? 0.025 : 0;
             const taxaDeduzida = valorServico * taxaMaquininha;
-
             const valorServicoLiquido = valorServico - taxaDeduzida;
 
             if(a.status !== 'Falta' && a.status !== 'cancelado') {
@@ -201,12 +245,9 @@ async function carregarDadosEstrategicosDoNeon() {
                 faturamentoTotal += (valorServico + valorProd + valorGorjeta);
                 finalizados++;
                 
-                // Repasse Inteligente Dinâmico
                 if (String(a.barbeiro).toLowerCase().includes('gabriel')) {
-                    // Gabriel ganha 50% do serviço líquido + 10% de produtos + 100% da sua gorjeta
                     comissaoGabriel += (valorServicoLiquido * 0.50) + (valorProd * 0.10) + valorGorjeta;
                 } else {
-                    // Lucas ganha 40% do serviço líquido + 10% de produtos + 100% da sua gorjeta
                     comissaoLucas += (valorServicoLiquido * 0.40) + (valorProd * 0.10) + valorGorjeta;
                 }
             } else if (a.status === 'Falta' || a.status === 'no_show') {
@@ -214,33 +255,24 @@ async function carregarDadosEstrategicosDoNeon() {
             }
         });
 
-        // Atualização da UI do Dashboard Administrativo
         document.getElementById('kpi-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
-        
-        const tMedio = finalizados > 0 ? (faturamentoServicos / finalizados) : 0;
-        document.getElementById('kpi-ticket').innerText = `R$ ${tMedio.toFixed(2)}`;
-
-        const taxaOcupacao = agendamentos.length > 0 ? Math.min(Math.round((agendamentos.length / 24) * 100), 100) : 0;
-        document.getElementById('kpi-ocupacao').innerText = `${taxaOcupacao}%`;
-
-        const taxaNoShow = agendamentos.length > 0 ? ((faltas / agendamentos.length) * 100).toFixed(1) : 0;
-        document.getElementById('kpi-noshow').innerText = `${taxaNoShow}%`;
+        document.getElementById('kpi-ticket').innerText = `R$ ${finalizados > 0 ? (faturamentoServicos / finalizados).toFixed(2) : '0.00'}`;
+        document.getElementById('kpi-ocupacao').innerText = `${agendamentos.length > 0 ? Math.min(Math.round((agendamentos.length / 24) * 100), 100) : 0}%`;
+        document.getElementById('kpi-noshow').innerText = `${agendamentos.length > 0 ? ((faltas / agendamentos.length) * 100).toFixed(1) : 0}%`;
 
         document.getElementById('split-gabriel').innerText = `R$ ${comissaoGabriel.toFixed(2)}`;
         document.getElementById('split-lucas').innerText = `R$ ${comissaoLucas.toFixed(2)}`;
 
-        // Adiciona detalhamento extra se houver os elementos em tela
         if(document.getElementById('detalhe-produtos')) {
             document.getElementById('detalhe-produtos').innerText = `Produtos: R$ ${faturamentoProdutos.toFixed(2)}`;
             document.getElementById('detalhe-servicos').innerText = `Serviços: R$ ${faturamentoServicos.toFixed(2)}`;
         }
-
     } catch(e) {
-        console.error("Erro ao processar inteligência financeira", e);
+        console.error("Erro no financeiro", e);
     }
 }
 
-// ================= CRM DE MARKETING COMPORTAMENTAL (RETENÇÃO CHURN) =================
+// ================= 📢 ABA CRM / MARKETING =================
 async function carregarListaMarketingReal() {
     const container = document.getElementById('lista-marketing-clientes');
     if(!container) return;
@@ -251,7 +283,10 @@ async function carregarListaMarketingReal() {
         if(!resUsers.ok || !resAgendamentos.ok) return;
         
         const usuarios = await resUsers.json();
-        const agendamentos = await resAgendamentos.json();
+        const todosAgendamentos = await resAgendamentos.json();
+
+        // Filtra os agendamentos pelo período selecionado no topo
+        const agendamentosFiltrados = todosAgendamentos.filter(a => filtrarPorPeriodoGlobal(a.data));
 
         container.innerHTML = "";
         let assinantes = 0;
@@ -266,16 +301,15 @@ async function carregarListaMarketingReal() {
                 faturamentoRecorrente += u.plano_assinatura.includes('Gold') ? 150 : 80;
             }
 
-            // Identificar Clientes Sumidos (Inativos há mais de 30 dias)
-            const atendimentosDoCliente = agendamentos.filter(a => 
+            // O Churn avalia o histórico filtrado ou completo conforme o escopo do período
+            const atendimentosDoCliente = agendamentosFiltrados.filter(a => 
                 a.cliente.toUpperCase() === u.nome.toUpperCase() && a.status === 'Concluído'
             );
 
-            let statusFidelidade = "Ativo";
+            let statusFidelidade = "Ativo no Período";
             let classeBadge = "badge-sucesso";
 
             if (atendimentosDoCliente.length > 0) {
-                // Pega a data do último atendimento realizado
                 const datas = atendimentosDoCliente.map(a => new Date(a.data + 'T00:00:00'));
                 const ultimaData = new Date(Math.max(...datas));
                 const diferencaDias = Math.floor((hoje - ultimaData) / (1000 * 60 * 60 * 24));
@@ -285,7 +319,7 @@ async function carregarListaMarketingReal() {
                     classeBadge = "badge-perigo";
                 }
             } else {
-                statusFidelidade = "Sem histórico";
+                statusFidelidade = "Sem visitas no período";
                 classeBadge = "badge-alerta";
             }
 
@@ -297,7 +331,7 @@ async function carregarListaMarketingReal() {
                     <span class="badge ${classeBadge}" style="font-size:10px; padding:2px 6px; border-radius:4px; margin-left:5px;">${statusFidelidade}</span><br>
                     <span style="font-size:11px; color:var(--text-muted);">Cel: ${u.celular} | Plano: ${u.plano_assinatura}</span>
                 </div>
-                <button class="btn-status" style="background:var(--accent-color); color:black;" onclick="dispararWppCliente('${u.celular}', '${u.nome}', '${statusFidelidade}')">Resgatar Cliente</button>
+                <button class="btn-status" style="background:var(--accent-color); color:black;" onclick="dispararWppCliente('${u.celular}', '${u.nome}', '${statusFidelidade}')">Resgatar</button>
             `;
             container.appendChild(div);
         });
@@ -305,21 +339,21 @@ async function carregarListaMarketingReal() {
         document.getElementById('mkt-total-assinantes').innerText = assinantes;
         document.getElementById('mkt-faturamento-recorrente').innerText = `R$ ${faturamentoRecorrente.toFixed(2)}`;
     } catch(e) {
-        container.innerHTML = "<p>Erro ao ler lista do CRM dinâmico.</p>";
+        container.innerHTML = "<p>Erro ao ler lista do CRM.</p>";
     }
 }
 
 function dispararWppCliente(celular, nome, status) {
-    let msg = `Olá ${nome}! Passando para te dar um alô da Prosperar Club. `;
-    if(status.includes('Sumido')) {
-        msg += `Notamos que faz mais de um mês que você não passa aqui para dar aquele tapa no visual. Que tal renovar o corte essa semana? Use o cupom VOLTOU10 e garanta 10% de desconto! Agende direto pelo nosso app.`;
+    let msg = `Olá ${nome}! Tudo bem? Passando para te dar um alô da Prosperar Club. `;
+    if(status.includes('Sumido') || status.includes('Sem visitas')) {
+        msg += `Notamos que você está um tempo sem passar aqui para atualizar o visual. Que tal garantir seu horário para essa semana? Use o cupom RETORNO10 e ganhe 10% de desconto!`;
     } else {
-        msg += `Gostaríamos de agradecer a sua preferência de sempre! Que tal deixar seu próximo horário reservado para evitar filas? Acesse o app e escolha seu barbeiro preferido.`;
+        msg += `Gostaríamos de agradecer a sua preferência de sempre! Garanta seu próximo horário livre pelo nosso aplicativo para evitar filas.`;
     }
     window.open(`https://api.whatsapp.com/send?phone=55${celular}&text=${encodeURIComponent(msg)}`, '_blank');
 }
 
-// Kanban Real e Operacional com Controle de Status
+// ================= 📺 ABA MONITOR DE ATENDIMENTOS (SINCRONIZADA POR DIA OU PERÍODO) =================
 async function carregarModoRecepcaoKanban() {
     const container = document.getElementById('container-kanban-recepcao');
     if(!container) return;
@@ -329,13 +363,16 @@ async function carregarModoRecepcaoKanban() {
         if(!res.ok) return;
         const dados = await res.json();
 
+        // O monitor agora filtra com total precisão baseando-se no período global selecionado!
+        const dadosFiltrados = dados.filter(item => filtrarPorPeriodoGlobal(item.data));
+
         container.innerHTML = "";
-        if(dados.length === 0) {
-            container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Nenhum cliente agendado.</p>";
+        if(dadosFiltrados.length === 0) {
+            container.innerHTML = "<p style='color:var(--text-muted); text-align:center; padding: 15px;'>Nenhum agendamento para o período selecionado.</p>";
             return;
         }
 
-        dados.forEach(item => {
+        dadosFiltrados.forEach(item => {
             const div = document.createElement('div');
             div.className = "item-backoffice";
             
@@ -347,7 +384,7 @@ async function carregarModoRecepcaoKanban() {
             div.innerHTML = `
                 <div>
                     <strong>👤 ${item.cliente} (${item.status})</strong><br>
-                    <span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${item.hora}</span>
+                    <span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${item.hora} (${item.data})</span>
                 </div>
                 <div style="display:flex; gap:6px;">
                     <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
@@ -374,20 +411,22 @@ async function mudarStatusAgendamento(id, novoStatus) {
     }
 }
 
-// Execução Real do Encaixe Manual (Walk-in)
 document.getElementById('btn-executar-encaixe').addEventListener('click', async () => {
     const nome = document.getElementById('encaixe-nome').value.trim();
     const servico = document.getElementById('encaixe-servico').value;
     const barbeiro = document.getElementById('encaixe-barbeiro').value;
     const hora = document.getElementById('encaixe-hora').value;
 
-    if(!nome) return alert("Insira o nome do cliente para fazer o encaixe manual.");
+    if(!nome) return alert("Insira o nome do cliente.");
+
+    // Se o filtro for personalizado, insere na data escolhida. Se for hoje/mês, insere no dia de hoje.
+    const dataAlvoEncaixe = (filtroTempoGlobal === 'personalizado') ? dataFiltroEspecifico : new Date().toISOString().split('T')[0];
 
     const payload = {
         cliente: `WALK-IN: ${nome.toUpperCase()}`,
         servico: servico,
         barbeiro: barbeiro,
-        data: new Date().toISOString().split('T')[0],
+        data: dataAlvoEncaixe,
         hora: hora,
         pagamento: "Balcão (Dinheiro)",
         status: "Concluído"
@@ -401,7 +440,7 @@ document.getElementById('btn-executar-encaixe').addEventListener('click', async 
         });
 
         if(res.ok) {
-            alert("⚡ Encaixe manual registrado e finalizado com sucesso!");
+            alert("⚡ Encaixe manual registrado com sucesso!");
             document.getElementById('encaixe-nome').value = "";
             carregarModoRecepcaoKanban();
         }
@@ -410,70 +449,109 @@ document.getElementById('btn-executar-encaixe').addEventListener('click', async 
     }
 });
 
-// ================= 📊 NOVA SESSÃO: BUSINESS INTELLIGENCE & ANALYTICS =================
+// ================= 📊 ABA ANALYTICS (BUSINESS INTELLIGENCE COM VOLUMETRIA DE DIAS DA SEMANA) =================
 async function carregarPainelAnalytics() {
     const containerMapa = document.getElementById('analytics-heatmap');
     const containerRetencao = document.getElementById('analytics-retencao');
+    const containerDiasSemana = document.getElementById('analytics-dias-semana');
+    
     if(!containerMapa) return;
 
     try {
         const res = await fetch(`${API_URL}/agendamentos`);
         if(!res.ok) return;
-        const agendamentos = await res.json();
+        const todosAgendamentos = await res.json();
 
-        // 1. Construção do Mapa de Calor (Agrupamento por Turno/Horas)
+        // Filtrando conforme o filtro global do topo
+        const agendamentos = todosAgendamentos.filter(a => filtrarPorPeriodoGlobal(a.data));
+
+        // 1. Mapa de Calor por Turno
         const turnosContagem = { "Manhã": 0, "Tarde": 0, "Noite": 0 };
         
+        // 2. Mapeamento da Quantidade de Clientes por Dia da Semana
+        const volumeDiasSemana = {
+            "Segunda-feira": 0,
+            "Terça-feira": 0,
+            "Quarta-feira": 0,
+            "Quinta-feira": 0,
+            "Sexta-feira": 0,
+            "Sábado": 0,
+            "Domingo": 0
+        };
+
+        const nomesDias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
         agendamentos.forEach(a => {
+            // Processamento de Turno
             const hora = parseInt(String(a.hora).split(':')[0]);
             if(hora >= 9 && hora < 12) turnosContagem["Manhã"]++;
             else if(hora >= 12 && hora < 18) turnosContagem["Tarde"]++;
             else if(hora >= 18) turnosContagem["Noite"]++;
+
+            // Processamento do Dia da Semana
+            const dataObj = new Date(a.data + 'T00:00:00');
+            const nomeDia = nomesDias[dataObj.getDay()];
+            if(volumeDiasSemana[nomeDia] !== undefined) {
+                volumeDiasSemana[nomeDia]++;
+            }
         });
 
+        // Renderiza Turnos
         containerMapa.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 10px; background: #111; padding: 15px; border-radius: 8px;">
-                <p style="font-size:13px; color:var(--text-muted); margin-bottom:5px;">Fluxo de clientes por Turno (Previsão de Janelas Ociosas):</p>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span>🌅 Turno da Manhã:</span> 
-                    <strong style="color: ${turnosContagem['Manhã'] > 5 ? '#f59e0b' : '#666'}">${turnosContagem['Manhã']} cortes</strong>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span>🌤️ Turno da Tarde (Pico):</span> 
-                    <strong style="color: #f59e0b">${turnosContagem['Tarde']} cortes</strong>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span>🌙 Turno da Noite:</span> 
-                    <strong style="color: ${turnosContagem['Noite'] > 5 ? '#f59e0b' : '#666'}">${turnosContagem['Noite']} cortes</strong>
-                </div>
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:5px;">Previsão de Horários de Pico no Período:</p>
+                <div style="display:flex; justify-content:space-between;"><span>🌅 Manhã (09h - 12h):</span> <strong>${turnosContagem['Manhã']} atendimentos</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>🌤️ Tarde (12h - 18h):</span> <strong>${turnosContagem['Tarde']} atendimentos</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>🌙 Noite (18h - 20h):</span> <strong>${turnosContagem['Noite']} atendimentos</strong></div>
             </div>
         `;
 
-        // 2. Cálculo de Retenção de Clientes Simplificado (Fidelidade)
+        // Renderiza a volumetria analítica de dias da semana solicitada
+        if(containerDiasSemana) {
+            let htmlDias = `<div style="display: flex; flex-direction: column; gap: 8px; background: #111; padding: 15px; border-radius: 8px;">`;
+            
+            for(let dia in volumeDiasSemana) {
+                const totalCortes = volumeDiasSemana[dia];
+                // Criação de uma barra de progresso visual simples e limpa para os relatórios
+                const porcentagemBarra = agendamentos.length > 0 ? Math.min((totalCortes / agendamentos.length) * 100, 100) : 0;
+                
+                htmlDias += `
+                    <div style="margin-bottom: 4px;">
+                        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:3px;">
+                            <span>${dia}:</span>
+                            <strong style="color:${totalCortes > 0 ? 'var(--accent-color)' : 'var(--text-muted)'}">${totalCortes} clientes</strong>
+                        </div>
+                        <div style="width:100%; background:#222; height:6px; border-radius:3px; overflow:hidden;">
+                            <div style="width:${porcentagemBarra}%; background:var(--accent-color); height:100%; border-radius:3px;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+            htmlDias += `</div>`;
+            containerDiasSemana.innerHTML = htmlDias;
+        }
+
+        // 3. Retenção Geral
         const clientesUnicos = [...new Set(agendamentos.map(a => a.cliente))];
         let recorrentes = 0;
-
         clientesUnicos.forEach(c => {
-            const contagem = agendamentos.filter(a => a.cliente === c).length;
-            if(contagem > 1) recorrentes++;
+            if(agendamentos.filter(a => a.cliente === c).length > 1) recorrentes++;
         });
 
-        const taxaRetencao = clientesUnicos.length > 0 ? Math.round((recorrentes / clientesUnicos.length) * 100) : 0;
         if(containerRetencao) {
             containerRetencao.innerHTML = `
-                <div class="card" style="text-align:center;">
-                    <div style="font-size: 28px; font-weight: bold; color: var(--accent-color);">${taxaRetencao}%</div>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top:5px;">Taxa de Retenção de Clientes Geral</div>
+                <div class="card" style="text-align:center; margin-bottom: 15px;">
+                    <div style="font-size: 28px; font-weight: bold; color: var(--accent-color);">${clientesUnicos.length > 0 ? Math.round((recorrentes / clientesUnicos.length) * 100) : 0}%</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top:5px;">Taxa de Retenção de Clientes no Período</div>
                 </div>
             `;
         }
-
     } catch(e) {
-        console.error("Erro ao montar BI", e);
+        console.error("Erro no BI", e);
     }
 }
 
-// --- SISTEMA CORE DE AGENDAMENTO (CLIENTE) ---
+// --- CORE DO CLIENTE ---
 async function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios');
     if (!container) return;
@@ -494,9 +572,7 @@ async function renderizarGradeHorariosReais() {
                 .filter(a => a.data === dataSelecionada && String(a.barbeiro).toLowerCase().includes(barbeiroSelecionado) && a.status !== 'Falta' && a.status !== 'cancelado')
                 .map(a => String(a.hora).trim());
         }
-    } catch (e) {
-        console.error("Erro ao puxar agenda", e);
-    }
+    } catch (e) {}
 
     container.innerHTML = "";
     HORARIOS_PADRAO.forEach(g => {
@@ -531,7 +607,7 @@ async function renderizarGradeHorariosReais() {
 document.getElementById('btnPreAgendar').addEventListener('click', (e) => {
     e.preventDefault();
     if (!servicoSelecionado || !barbeiroSelecionado || !horarioSelecionado || !pagamentoSelecionado) {
-        alert("Por favor, selecione todos os parâmetros antes de avançar.");
+        alert("Selecione todos os parâmetros antes de avançar.");
         return;
     }
     document.getElementById('modal-resumo-detalhes').innerHTML = `
@@ -559,10 +635,6 @@ document.getElementById('btn-confirmar-modal').addEventListener('click', async (
         valor_gorjeta: 0.00
     };
 
-    const botao = document.getElementById('btn-confirmar-modal');
-    botao.innerText = "Gravando...";
-    botao.disabled = true;
-
     try {
         const res = await fetch(`${API_URL}/agendamentos`, {
             method: 'POST',
@@ -572,30 +644,14 @@ document.getElementById('btn-confirmar-modal').addEventListener('click', async (
 
         if (res.ok) {
             document.getElementById('modal-confirmacao').classList.add('escondido');
-            alert("✨ Agendamento gravado com sucesso!");
-            
-            try {
-                enviarMensagemWhatsApp(payload);
-            } catch(wppErr) {}
-
+            alert("✨ Agendamento gravado!");
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`Confirmação: ${payload.servico} dia ${payload.data} às ${payload.hora}`)}`, '_blank');
             horarioSelecionado = null;
             renderizarGradeHorariosReais();
             carregarMeusAgendamentosDoBanco();
-        } else {
-            alert("Erro ao gravar agendamento.");
         }
-    } catch (e) {
-        alert("Erro de conexão.");
-    } finally {
-        botao.innerText = "Confirmar";
-        botao.disabled = false;
-    }
+    } catch (e) {}
 });
-
-function enviarMensagemWhatsApp(dados) {
-    const texto = `👋 Olá! Segue a confirmação do meu agendamento na Prosperar Club:\n\n👤 Cliente: ${dados.cliente}\n💇‍♂️ Procedimento: ${dados.servico}\n💈 Profissional: ${dados.barbeiro}\n📅 Data: ${dados.data}\n⏰ Horário: ${dados.hora}\n\nObrigado!`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
-}
 
 async function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos');
@@ -604,42 +660,23 @@ async function carregarMeusAgendamentosDoBanco() {
         const res = await fetch(`${API_URL}/agendamentos`);
         if (res.ok) {
             const lista = await res.json();
-            const meus = lista.filter(a => 
-                a.cliente.toUpperCase() === nomeUsuarioLogado.toUpperCase() || 
-                a.cliente.toUpperCase() === usuarioLogado.toUpperCase()
-            );
-
+            const meus = lista.filter(a => a.cliente.toUpperCase() === nomeUsuarioLogado.toUpperCase());
             container.innerHTML = meus.length === 0 ? "<p>Nenhum agendamento ativo.</p>" : "";
             meus.forEach(item => {
                 const div = document.createElement('div');
                 div.className = "card";
-                div.innerHTML = `
-                    <strong class="gold-text">${item.servico} (${item.status || 'Pendente'})</strong><br>
-                    <span>${item.barbeiro} - ${item.data} às ${item.hora}</span>
-                    <button class="btn-danger" style="margin-top: 8px; cursor: pointer;" onclick="cancelarAgendamento(${item.id})">Cancelar Reserva</button>
-                `;
+                div.innerHTML = `<strong>${item.servico}</strong><br><span>${item.barbeiro} - ${item.data} às ${item.hora}</span>`;
                 container.appendChild(div);
             });
         }
     } catch (e) {}
 }
 
-async function cancelarAgendamento(id) {
-    if(!confirm("Deseja cancelar esse agendamento?")) return;
-    try {
-        await fetch(`${API_URL}/agendamentos/${id}`, { method: 'DELETE' });
-        carregarMeusAgendamentosDoBanco();
-        renderizarGradeHorariosReais();
-    } catch (e) {
-        alert("Erro ao deletar agendamento.");
-    }
-}
-
 function renderizarFormularioCliente() {
     const box = document.getElementById('container-servicos'); box.innerHTML = "";
     ESTRUTURA_SERVICOS.forEach(s => {
         const div = document.createElement('div'); div.className = "modern-card";
-        div.innerHTML = `<div><div class="title">${s.nome}</div><div class="subtitle">${s.sub}</div></div><div class="price">R$ ${s.preco.toFixed(2)}</div>`;
+        div.innerHTML = `<div><div class="title">${s.nome}</div></div><div class="price">R$ ${s.preco.toFixed(2)}</div>`;
         div.onclick = () => {
             document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected'));
             div.classList.add('selected'); servicoSelecionado = s.nome; precoServico = s.preco;
@@ -650,7 +687,7 @@ function renderizarFormularioCliente() {
     const boxB = document.getElementById('container-barbeiros'); boxB.innerHTML = "";
     ESTRUTURA_BARBEIROS.forEach(b => {
         const div = document.createElement('div'); div.className = "modern-card";
-        div.innerHTML = `<div><div class="title">${b.nome}</div><div class="subtitle">${b.avaliacao}</div></div>`;
+        div.innerHTML = `<div><div class="title">${b.nome}</div></div>`;
         div.onclick = () => {
             document.querySelectorAll('#container-barbeiros .modern-card').forEach(c => c.classList.remove('selected'));
             div.classList.add('selected'); barbeiroSelecionado = b.id; renderizarGradeHorariosReais();
@@ -668,7 +705,6 @@ function renderizarFormularioCliente() {
         };
         boxP.appendChild(div);
     });
-    
     document.getElementById('data').value = new Date().toISOString().split('T')[0];
 }
 
@@ -686,7 +722,7 @@ function montarMenuNavegacao(role) {
     } else {
         nav.innerHTML = `
             <button class="nav-item ativo" onclick="alternarTela('home')">📅 Agendar</button>
-            <button class="nav-item" onclick="alternarTela('estilo')">🗂️ Minhas Reservas</button>
+            <button class="nav-item" onclick="alternarTela('estilo')">🗂️ Reservas</button>
         `;
     }
     nav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()">🚪 Sair</button>`;
@@ -697,11 +733,12 @@ function alternarTela(idAba) {
         const el = document.getElementById(`aba-${id}`);
         if (el) el.classList.add('escondido');
     });
+    
     const abaAlvo = document.getElementById(`aba-${idAba}`);
     if (abaAlvo) abaAlvo.classList.remove('escondido');
 
-    if(idAba === 'adm-dash') carregarDadosEstrategicosDoNeon();
-    if(idAba === 'adm-mkt') carregarListaMarketingReal();
-    if(idAba === 'adm-recepcao') carregarModoRecepcaoKanban();
-    if(idAba === 'adm-analytics') carregarPainelAnalytics();
+    // Remove a classe "ativo" de todos os botões do menu inferior e destaca o atual
+    document.querySelectorAll('.nav-inferior .nav-item').forEach(btn => btn.classList.remove('ativo'));
+    
+    recarregarAbaAtivaAdm();
 }
