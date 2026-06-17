@@ -55,6 +55,11 @@
         .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
         .kpi-card .kpi-val { font-size: 20px; font-weight: 800; margin-top: 4px; }
 
+        /* Estilo para a barra de filtros temporais */
+        .filtros-tempo-container { display: flex; gap: 6px; margin-bottom: 20px; background: #1a1b1e; padding: 4px; border-radius: 10px; border: 1px solid var(--border-color); }
+        .btn-filtro-tempo { flex: 1; background: none; border: none; color: var(--text-muted); padding: 8px 4px; font-size: 11px; font-weight: 700; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+        .btn-filtro-tempo.ativo { background: var(--accent-color); color: #000; }
+
         .lista-backoffice { display: flex; flex-direction: column; gap: 10px; }
         .item-backoffice { background: #222428; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
         
@@ -78,14 +83,12 @@
 
 <div class="app-container">
 
-    <!-- 🔐 RE-ESTRUTURAÇÃO DO PAINEL DE AUTENTICAÇÃO -->
     <div id="tela-autenticacao" class="card" style="margin-top: 30px;">
         <div class="toggle-auth">
             <button id="tab-login" class="active" onclick="alternarAbasAuth('login')">ENTRAR</button>
             <button id="tab-cadastro" onclick="alternarAbasAuth('cadastro')">CRIAR CONTA</button>
         </div>
 
-        <!-- Formulário de Login Corrigido -->
         <div id="form-login">
             <div class="form-group">
                 <label>Usuário / Login:</label>
@@ -98,7 +101,6 @@
             <button class="btn-gold" id="btn-entrar" style="margin-top: 10px;">Entrar no Sistema</button>
         </div>
 
-        <!-- Formulário de Cadastro Corrigido -->
         <div id="form-cadastro" class="escondido">
             <div class="form-group">
                 <label>Nome Completo:</label>
@@ -132,10 +134,8 @@
         </div>
     </div>
 
-    <!-- 🚪 CONTEÚDO DO APLICATIVO -->
     <div id="conteudo-app" class="escondido">
         
-        <!-- ================= ABA CLIENTE: AGENDAR ================= -->
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 20px;">
                 <h2 id="boas-vistas-cliente" style="font-size: 22px; margin-bottom: 4px;">Olá!</h2>
@@ -157,16 +157,21 @@
             </div>
         </section>
 
-        <!-- ================= ABA CLIENTE: MEUS AGENDAMENTOS ================= -->
         <section id="aba-estilo" class="escondido">
             <h3>Meus Agendamentos</h3>
             <div id="container-meus-agendamentos"></div>
         </section>
 
-        <!-- ================= VISÃO ADM: FINANCEIRO & RELATÓRIOS NEON ================= -->
         <section id="aba-adm-dash" class="escondido">
             <h2 class="gold-text" style="margin-bottom: 4px;">Métricas Reais de Negócio</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Indicadores extraídos em tempo real do Neon:</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores extraídos em tempo real do Neon:</p>
+            
+            <div class="filtros-tempo-container">
+                <button class="btn-filtro-tempo" onclick="mudarFiltroFinancas('hoje')">Hoje</button>
+                <button class="btn-filtro-tempo" onclick="mudarFiltroFinancas('ontem')">Ontem</button>
+                <button class="btn-filtro-tempo" onclick="mudarFiltroFinancas('7dias')">7 Dias</button>
+                <button class="btn-filtro-tempo ativo" onclick="mudarFiltroFinancas('mes_atual')">Mês Atual</button>
+            </div>
             
             <div class="grid-indicadores">
                 <div class="kpi-card">
@@ -189,6 +194,10 @@
 
             <div class="card">
                 <h3>Divisão Automática de Comissão (Split Real)</h3>
+                <div style="display: flex; gap: 15px; margin-bottom: 15px; font-size: 12px; color: var(--text-muted); font-weight: 600;">
+                    <div id="detalhe-servicos">Serviços: R$ 0,00</div>
+                    <div id="detalhe-produtos">Produtos: R$ 0,00</div>
+                </div>
                 <div class="lista-backoffice">
                     <div class="item-backoffice">
                         <div><strong>Gabriel (Proprietário)</strong><br><span style="font-size:12px; color:var(--text-muted);">Comissão: 50%</span></div>
@@ -202,7 +211,6 @@
             </div>
         </section>
 
-        <!-- ================= VISÃO ADM: BACKOFFICE / ESTOQUE ================= -->
         <section id="aba-adm-estoque" class="escondido">
             <h3>Controle de Estoque Backoffice</h3>
             <div class="card">
@@ -220,7 +228,6 @@
             </div>
         </section>
 
-        <!-- ================= VISÃO ADM: MARKETING CRM E WHATSAPP ================= -->
         <section id="aba-adm-mkt" class="escondido">
             <h3>CRM e Comunicação Ativa</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Envie mensagens reais para os celulares cadastrados no banco Neon:</p>
@@ -228,8 +235,7 @@
             <div class="card" style="margin-bottom:15px;">
                 <h4>Filtro: Carteira de Clientes Cadastrados</h4>
                 <div class="lista-backoffice" id="lista-marketing-clientes" style="margin-bottom:15px; max-height:200px; overflow-y:auto;">
-                    <!-- Preenchido via JS -->
-                </div>
+                    </div>
             </div>
 
             <div class="card">
@@ -245,7 +251,6 @@
             </div>
         </section>
 
-        <!-- ================= VISÃO ADM: MONITOR DE ATENDIMENTOS & ENCAIXE ================= -->
         <section id="aba-adm-recepcao" class="escondido">
             <h3>Monitor de Atendimentos Geral</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Gerencie o fluxo operacional da barbearia:</p>
@@ -282,12 +287,22 @@
             </div>
         </section>
 
-        <!-- BARRA DE NAVEGAÇÃO SUPERIOR -->
+        <section id="aba-adm-analytics" class="escondido">
+            <h2 class="gold-text" style="margin-bottom: 4px;">Análise Avançada de Performance</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Predição de ociosidade e inteligência de retenção:</p>
+            
+            <div id="analytics-retencao" style="margin-bottom: 20px;"></div>
+            
+            <div class="card">
+                <h3>📊 Janelas Dinâmicas e Fluxo de Pico</h3>
+                <div id="analytics-heatmap" style="margin-top: 10px;"></div>
+            </div>
+        </section>
+
         <nav class="nav-inferior" id="menu-navegacao"></nav>
     </div>
 </div>
 
-<!-- 📦 CORREÇÃO DO POP-UP MODAL DE DUPLA CONFIRMAÇÃO (IDbtn-confirmar-modal) -->
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
         <h3 class="gold-text">Conferir Agendamento</h3>
