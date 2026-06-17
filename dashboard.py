@@ -96,7 +96,7 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
     if st.session_state["ultimo_horario_salvo"] == hora:
         st.markdown(f"""
             <div style="background-color:#10b98115; border:1px solid #10b981; color:#34d399; padding:15px; border-radius:10px; font-weight:bold; text-align:center; margin-top:15px; margin-bottom:15px;">
-                🎉 Agendado com sucesso no sistema para as {hora}!
+                🎉 Agendamento registrado no sistema e notificação enviada!
             </div>
         """, unsafe_allow_html=True)
         if st.button("Concluir e Atualizar Tela", use_container_width=True, type="primary"):
@@ -121,8 +121,10 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                     
                     conn.execute(text("UPDATE usuarios_barber SET pontos_fidelidade = pontos_fidelidade + :f WHERE login = :u"), {"f": fator_pontos, "u": st.session_state['user']})
                 
+                # Armazena o estado para indicar sucesso no modal
                 st.session_state["ultimo_horario_salvo"] = hora
                 
+                # --- CORREÇÃO: Disparo seguro do WhatsApp antes do encerramento da interface ---
                 enviar_notificacao_whatsapp(
                     barbeiro=barbeiro, 
                     cliente=st.session_state['nome_usuario'], 
@@ -132,7 +134,6 @@ def mostrar_popup_confirmacao(hora, barbeiro, servico, preco, data):
                     valor=preco, 
                     acao="agendamento"
                 )
-                
                 st.balloons()
                 st.rerun()
         with col_pop2:
@@ -335,7 +336,6 @@ else:
                 st.session_state["barb_fluxo"] = last_r['barbeiro_nome']
                 st.toast("🎯 Preferências salvas! Selecione a data e o horário na linha do tempo abaixo.")
 
-        # --- 🛠️ CORREÇÃO DE SYNC CRUCIAL: FILTRO REAL DE AGENDAMENTO CLIENTE (image_889767.jpg) ---
         df_meus_cards = pd.read_sql_query(text("""
             SELECT id, barbeiro_nome, data, horario, servico, valor 
             FROM agendamentos 
@@ -343,7 +343,6 @@ else:
             ORDER BY data ASC, horario ASC
         """), engine, params={"u": st.session_state['user'], "hoje": data_hoje_str})
         
-        # Filtragem secundária dinâmica para expirar horários que já passaram no dia de hoje
         if not df_meus_cards.empty:
             df_meus_cards = df_meus_cards[~((df_meus_cards['data'] == data_hoje_str) & (df_meus_cards['horario'] < hora_atual_str))]
 
@@ -449,9 +448,9 @@ else:
                 if st.button("🗑️ CANCELAR HORÁRIOS SELECIONADOS", type="primary", use_container_width=True):
                     linhas_para_cancelar = df_editado[df_editado["Selecionar para Cancelar"] == True]
                     
-                    if not lines_para_cancelar.empty:
+                    if not linhas_para_cancelar.empty:
                         with engine.begin() as conn:
-                            for idx_c, row_c in lines_para_cancelar.iterrows():
+                            for idx_c, row_c in linhas_para_cancelar.iterrows():
                                 conn.execute(text("UPDATE agendamentos SET status = 'Cancelado' WHERE id = :id"), {"id": int(row_c['id'])})
                                 
                                 data_formatada = datetime.strptime(row_c['data'], '%Y-%m-%d').strftime('%d/%m/%Y')
@@ -529,7 +528,6 @@ else:
         if modo_visao == "📅 Minha Agenda na Cadeira (Gabriel)" or st.session_state['perfil'] == 'barbeiro':
             barbeiro_ativo = "Gabriel" if st.session_state['perfil'] == 'admin' else st.session_state['nome_usuario']
             
-            # Captura base de dados
             with engine.connect() as conn:
                 df_b_hoje = pd.read_sql_query(text("""
                     SELECT a.id, a.cliente_login, a.barbeiro_nome, a.data, a.horario, a.servico, a.valor, a.status,
@@ -542,10 +540,9 @@ else:
             faturamento_cadeira = df_b_hoje['valor'].sum()
             comissao_b_acumulada = sum([r['valor'] * SERVICOS[r['servico']]['comissao'] for _, r in df_b_hoje.iterrows() if r['servico'] in SERVICOS])
             
-            # --- 🛠️ CORREÇÃO DE SYNC CRUCIAL: FILTRO REAL DE BANNER DO BARBEIRO (image_8890a2.jpg) ---
+            # --- 🛠️ CORREÇÃO DE SYNC: FILTRO DE HORÁRIO REAL DO BANNER DO BARBEIRO (image_8890a2.jpg) ---
             agora_b = datetime.utcnow() - timedelta(hours=3)
             hora_atual_str = agora_b.strftime("%H:%M")
-            data_hoje_str = agora_b.strftime("%Y-%m-%d")
             
             df_proximos = df_b_hoje[(df_b_hoje['status'] == 'Agendado') & (df_b_hoje['horario'] >= hora_atual_str)]
             
