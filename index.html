@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbearia Prosperidade - Agendamento</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --accent-color: #cc9933; /* Dourado Barbearia */
+            --text-color: #ffffff;
+            --text-muted: #aaaaaa;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        h2 { text-align: center; color: var(--accent-color); margin-bottom: 25px; }
+        label { display: block; margin: 15px 0 5px; font-weight: bold; color: var(--text-muted); }
+        
+        select, input {
+            width: 100%;
+            padding: 12px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        /* Grade de Horários Dinâmica */
+        .grid-horarios {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-horario {
+            background: #2d2d2d;
+            color: white;
+            border: 1px solid #444;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-horario:hover { border-color: var(--accent-color); }
+        .btn-horario.selecionado { background: var(--accent-color); color: black; border-color: var(--accent-color); }
+
+        .btn-marcar {
+            width: 100%;
+            background: var(--accent-color);
+            color: black;
+            border: none;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 30px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-marcar:hover { background: #b38628; }
+        .mensagem { text-align: center; margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Agende seu Horário</h2>
+    
+    <label for="servico">1. Escolha o Serviço:</label>
+    <select id="servico">
+        <option value="Corte Simples">Corte Simples - R$ 40,00</option>
+        <option value="Corte + Sobrancelha">Corte + Sobrancelha - R$ 55,00</option>
+        <option value="Barba Completa">Barba Completa - R$ 35,00</option>
+        <option value="Combo Premium (Corte + Barba + Sobrancelha)">Combo Premium - R$ 85,00</option>
+        <option value="Luzes / Nevou">Luzes / Nevou - R$ 90,00</option>
+    </select>
+
+    <label for="barbeiro">2. Escolha o Profissional:</label>
+    <select id="barbeiro">
+        <option value="Gabriel (Proprietário)">Gabriel (Proprietário)</option>
+        <option value="Lucas Barber">Lucas Barber</option>
+    </select>
+
+    <label for="data">3. Selecione o Dia:</label>
+    <input type="date" id="data">
+
+    <label>4. Horários Disponíveis:</label>
+    <div id="container-horarios" class="grid-horarios">
+        </div>
+
+    <label for="pagamento">5. Forma de Pagamento:</label>
+    <select id="pagamento">
+        <option value="Pix">Pix (Ganha o dobro de pontos!)</option>
+        <option value="Dinheiro">Dinheiro</option>
+        <option value="Cartão de Crédito/Débito">Cartão</option>
+    </select>
+
+    <button class="btn-marcar" id="btnConfirmar">Confirmar Agendamento</button>
+    <div id="mensagem-status" class="mensagem"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
