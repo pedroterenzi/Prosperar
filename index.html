@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prosperar Club - Dashboard & Agendamentos</title>
+    <title>Prosperar Club - Painel Corporativo</title>
     <style>
         :root {
             --bg-color: #111214;
@@ -19,113 +19,123 @@
             --blue-color: #3b82f6;
         }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            padding-bottom: 100px;
-        }
-
-        .app-container { 
-            width: 100%; 
-            max-width: 480px; 
-            padding: 20px; 
-            box-sizing: border-box; 
-        }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: '-apple-system', BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; display: flex; justify-content: center; padding-bottom: 100px; }
+        .app-container { width: 100%; max-width: 480px; padding: 20px; box-sizing: border-box; }
         
-        .card { 
-            background: var(--card-bg); 
-            border: 1px solid var(--border-color); 
-            padding: 24px; 
-            border-radius: 20px; 
-            margin-bottom: 20px; 
-            box-shadow: 0 8px 32px rgba(0,0,0,0.4); 
-        }
-
-        .login-form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; width: 100%; box-sizing: border-box; }
-        .login-form-group label { font-size: 14px; font-weight: 600; color: var(--text-muted); }
-        .login-form-group input { width: 100%; padding: 14px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 24px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; box-sizing: border-box; }
+        .form-group label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+        .form-group input, .form-group select { width: 100%; padding: 14px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 15px; box-sizing: border-box; }
         
         h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
         .gold-text { color: var(--accent-color); }
         
-        .step-label { display: block; margin: 24px 0 12px; font-weight: 700; color: #ffffff; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
-        input[type="date"], select { width: 100%; padding: 16px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box; }
+        .step-label { display: block; margin: 24px 0 12px; font-weight: 700; color: #ffffff; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        input[type="date"] { width: 100%; padding: 14px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 15px; box-sizing: border-box; }
 
         .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
         .btn-gold:hover { background: var(--accent-hover); }
-        .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 12px; }
+        .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
 
-        .cards-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
-        
-        .modern-card {
-            background: linear-gradient(rgba(26, 27, 30, 0.85), rgba(26, 27, 30, 0.95)), url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=120') no-repeat right center;
-            background-size: contain; border: 1px solid var(--border-color); padding: 18px; border-radius: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-        }
+        .cards-container { display: flex; flex-direction: column; gap: 10px; }
+        .modern-card { background: #1a1b1e; border: 1px solid var(--border-color); padding: 16px; border-radius: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.08); }
-        .modern-card .info-block { flex: 1; }
-        .modern-card .title { font-weight: 700; font-size: 16px; color: #fff; }
-        .modern-card .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-        .modern-card .price { font-weight: 800; font-size: 16px; color: var(--success-color); }
+        .modern-card .title { font-weight: 700; font-size: 15px; color: #fff; }
+        .modern-card .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+        .modern-card .price { font-weight: 800; font-size: 15px; color: var(--success-color); }
 
-        .turno-title { font-size: 13px; font-weight: 700; color: var(--accent-color); margin: 18px 0 8px; text-transform: uppercase; }
-        .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .btn-horario { background: #222428; color: white; border: 1px solid var(--border-color); padding: 12px 4px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; }
-        .btn-horario.selecionado { background: var(--accent-color); color: black; border-color: var(--accent-color); font-weight: 700; }
-        .btn-horario:disabled { opacity: 0.2; cursor: not-allowed; background: #151618; border-color: #1f2023; color: #ff4444; }
+        .turno-title { font-size: 12px; font-weight: 700; color: var(--accent-color); margin: 16px 0 6px; text-transform: uppercase; }
+        .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+        .btn-horario { background: #222428; color: white; border: 1px solid var(--border-color); padding: 10px 2px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
+        .btn-horario.selecionado { background: var(--accent-color); color: black; font-weight: 700; }
+        .btn-horario:disabled { opacity: 0.2; color: var(--danger-color); background: #151618; }
 
-        /* Estilos do Dashboard Executivo */
         .grid-indicadores { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
-        .kpi-card { background: #1a1b1e; border: 1px solid var(--border-color); padding: 16px; border-radius: 14px; text-align: left; }
+        .kpi-card { background: #1a1b1e; border: 1px solid var(--border-color); padding: 16px; border-radius: 14px; }
         .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
-        .kpi-card .kpi-val { font-size: 20px; font-weight: 800; margin-top: 6px; color: #fff; }
+        .kpi-card .kpi-val { font-size: 20px; font-weight: 800; margin-top: 4px; }
         .kpi-card .kpi-badge { font-size: 11px; margin-top: 4px; font-weight: 700; }
 
-        /* Lista de Estoque e Comissões */
-        .lista-backoffice { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .lista-backoffice { display: flex; flex-direction: column; gap: 10px; }
         .item-backoffice { background: #222428; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+        
+        .toggle-auth { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .toggle-auth button { flex:1; background:none; border:none; color:var(--text-muted); font-weight:700; padding:8px; cursor:pointer; }
+        .toggle-auth button.active { color: var(--accent-color); border-bottom: 2px solid var(--accent-color); }
 
-        /* Modal Overlay */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
-        .modal-buttons { display: flex; gap: 12px; margin-top: 20px; }
-        .btn-modal-cancel { flex: 1; background: #333; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }
-
-        .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(26, 27, 30, 0.9); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px 8px; border-radius: 24px; z-index: 999; }
-        .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; font-weight: 600; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; }
+        
+        .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(26, 27, 30, 0.95); backdrop-filter: blur(10px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px 4px; border-radius: 24px; z-index: 999; }
+        .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; }
         .nav-item.ativo { color: var(--accent-color); }
-        .nav-item svg { width: 20px; height: 20px; fill: currentColor; }
+        .nav-item svg { width: 18px; height: 18px; fill: currentColor; }
         
         .escondido { display: none !important; }
+        .btn-status { padding: 6px 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
 
-    <div id="tela-login" class="card" style="margin-top: 40px;">
-        <h2 style="text-align: center; font-size: 24px; margin-bottom: 24px;" class="gold-text">Acessar Conta</h2>
-        <div class="login-form-group">
-            <label>Usuário / WhatsApp:</label>
-            <input type="text" id="login-usuario" placeholder="Ex: gabriel ou cliente">
+    <div id="tela-autenticacao" class="card" style="margin-top: 30px;">
+        <div class="toggle-auth">
+            <button id="tab-login" class="active" onclick="alternarAbasAuth('login')">ENTRAR</button>
+            <button id="tab-cadastro" onclick="alternarAbasAuth('cadastro')">CRIAR CONTA</button>
         </div>
-        <div class="login-form-group">
-            <label>Senha:</label>
-            <input type="password" id="login-senha" placeholder="••••••">
+
+        <div id="form-login">
+            <div class="form-group">
+                <label>Usuário / Login:</label>
+                <input type="text" id="login-usuario" placeholder="Digite seu usuário (Ex: gabriel)">
+            </div>
+            <div class="form-group">
+                <label>Senha:</label>
+                <input type="password" id="login-senha" placeholder="••••••">
+            </div>
+            <button class="btn-gold" id="btn-entrar" style="margin-top: 10px;">Entrar no Sistema</button>
         </div>
-        <button class="btn-gold" id="btn-entrar" style="margin-top: 16px;">Entrar no Sistema</button>
+
+        <div id="form-cadastro" class="escondido">
+            <div class="form-group">
+                <label>Nome Completo:</label>
+                <input type="text" id="cad-nome" placeholder="Ex: Pedro Silva">
+            </div>
+            <div class="form-group">
+                <label>Nome de Usuário (Login):</label>
+                <input type="text" id="cad-login" placeholder="Ex: pedrosilva">
+            </div>
+            <div class="form-group">
+                <label>WhatsApp / Celular:</label>
+                <input type="text" id="cad-celular" placeholder="Ex: 11999999999">
+            </div>
+            <div class="form-group">
+                <label>Plano de Assinatura:</label>
+                <select id="cad-plano">
+                    <option value="Nenhum">Sem Assinatura (Avulso)</option>
+                    <option value="Plano Bronze">Plano Bronze (R$ 80/mês)</option>
+                    <option value="Plano Gold">Plano Gold VIP (R$ 150/mês)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Senha:</label>
+                <input type="password" id="cad-senha" placeholder="Crie uma senha">
+            </div>
+            <div class="form-group">
+                <label>Confirme a Senha:</label>
+                <input type="password" id="cad-confirmar-senha" placeholder="Repita a senha">
+            </div>
+            <button class="btn-gold" id="btn-cadastrar" style="margin-top: 10px;">Salvar Cadastro Oficial</button>
+        </div>
     </div>
 
     <div id="conteudo-app" class="escondido">
         
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 20px;">
-                <h2 id="boas-vistas-cliente" style="font-size: 24px; margin-bottom: 4px;">Olá!</h2>
-                <p style="margin:0; color: var(--text-muted); font-size: 14px;">Bora atualizar seu estilo hoje?</p>
+                <h2 id="boas-vistas-cliente" style="font-size: 22px; margin-bottom: 4px;">Olá!</h2>
+                <p style="margin:0; color: var(--text-muted); font-size: 13px;">Bora atualizar seu estilo hoje?</p>
             </div>
             <div class="card">
                 <h3>Agendar Nova Cadeira</h3>
@@ -139,45 +149,40 @@
                 <div id="container-horarios"></div>
                 <span class="step-label">5. Forma de Pagamento:</span>
                 <div id="container-pagamentos" class="cards-container"></div>
-                <button class="btn-gold" id="btnPreAgendar" style="margin-top: 30px;">Confirmar Agendamento</button>
+                <button class="btn-gold" id="btnPreAgendar" style="margin-top: 25px;">Confirmar Agendamento</button>
             </div>
         </section>
 
         <section id="aba-estilo" class="escondido">
             <h3>Meus Agendamentos</h3>
-            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px; margin-bottom: 20px;">Suas reservas salvas no banco Neon:</p>
             <div id="container-meus-agendamentos"></div>
         </section>
 
         <section id="aba-adm-dash" class="escondido">
-            <h2 class="gold-text" style="margin-bottom: 4px;">Painel de Controle Executivo</h2>
-            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Dados extraídos diretamente do Banco Neon:</p>
+            <h2 class="gold-text" style="margin-bottom: 4px;">Métricas Reais de Negócio</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Indicadores extraídos em tempo real do Neon:</p>
             
             <div class="grid-indicadores">
                 <div class="kpi-card">
-                    <div class="kpi-label">Faturamento (Mês)</div>
-                    <div class="kpi-val" id="kpi-faturamento">R$ 0,00</div>
-                    <div class="kpi-badge" style="color: var(--success-color);">+12.4% vs maio</div>
+                    <div class="kpi-label">Faturamento Total</div>
+                    <div class="kpi-val" id="kpi-faturamento" style="color: var(--success-color);">R$ 0,00</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">Ticket Médio</div>
-                    <div class="kpi-val" id="kpi-ticket">R$ 51,20</div>
-                    <div class="kpi-badge" style="color: var(--success-color);">+4.2% este mês</div>
+                    <div class="kpi-label">Ticket Médio Real</div>
+                    <div class="kpi-val" id="kpi-ticket">R$ 0,00</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label font-weight-bold">Ocupação de Cadeiras</div>
-                    <div class="kpi-val">74%</div>
-                    <div class="kpi-badge" style="color: var(--success-color);">Sinal Verde 🟢</div>
+                    <div class="kpi-label">Ocupação das Cadeiras</div>
+                    <div class="kpi-val" id="kpi-ocupacao">0%</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">Índice No-Show</div>
-                    <div class="kpi-val">2.8%</div>
-                    <div class="kpi-badge" style="color: var(--success-color);">Dentro da meta</div>
+                    <div class="kpi-label">Taxa de No-Show</div>
+                    <div class="kpi-val" id="kpi-noshow" style="color: var(--danger-color);">0%</div>
                 </div>
             </div>
 
             <div class="card">
-                <h3>Divisão Automática de Comissão (Split)</h3>
+                <h3>Divisão Automática de Comissão (Split Real)</h3>
                 <div class="lista-backoffice">
                     <div class="item-backoffice">
                         <div><strong>Gabriel (Proprietário)</strong><br><span style="font-size:12px; color:var(--text-muted);">Comissão: 50%</span></div>
@@ -192,61 +197,78 @@
         </section>
 
         <section id="aba-adm-estoque" class="escondido">
-            <h3>Controle de Estoque Inteligente</h3>
-            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px;">Monitoramento crítico de produtos (Uso vs Venda):</p>
-            
+            <h3>Controle de Estoque Backoffice</h3>
             <div class="card">
-                <h4 class="gold-text">⚠️ Alertas de Nível Crítico</h4>
-                <div class="lista-backoffice" id="container-alertas-estoque">
+                <h4 class="gold-text">⚠️ Níveis Críticos Identificados</h4>
+                <div class="lista-backoffice">
                     <div class="item-backoffice" style="border-left: 4px solid var(--danger-color);">
-                        <div><strong>Pomada Efeito Matte</strong><br><span style="font-size:12px; color:var(--text-muted);">Vitrine de Vendas</span></div>
+                        <div><strong>Pomada Efeito Matte</strong><br><span style="font-size:11px; color:var(--text-muted);">Vitrine</span></div>
                         <div style="color: var(--danger-color); font-weight:700;">Restam 2 un</div>
                     </div>
                     <div class="item-backoffice" style="border-left: 4px solid var(--danger-color);">
-                        <div><strong>Gola Higiênica Roll</strong><br><span style="font-size:12px; color:var(--text-muted);">Uso Interno</span></div>
+                        <div><strong>Gola Higiênica Roll</strong><br><span style="font-size:11px; color:var(--text-muted);">Uso de Bancada</span></div>
                         <div style="color: var(--danger-color); font-weight:700;">Restam 3 un</div>
                     </div>
                 </div>
             </div>
-
-            <div class="card">
-                <h4>Entrada de Mercadoria via Código de Barras</h4>
-                <button class="btn-gold" onclick="alert('Simulando abertura da Câmera Integrada para leitura de NF-e e QR Code...')">📷 Ativar Câmera do Celular</button>
-            </div>
         </section>
 
         <section id="aba-adm-mkt" class="escondido">
-            <h3>Motor de Marketing e CRM Ativo</h3>
-            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px;">Disparos automáticos e segmentados via WhatsApp:</p>
+            <h3>CRM e Comunicação Ativa</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Envie mensagens reais para a carteira de clientes do banco Neon:</p>
 
             <div class="card" style="margin-bottom:15px;">
-                <h4>Clientes Inativos (+30 dias)</h4>
-                <p style="font-size:13px; color:var(--text-muted);">Fazer disparo massivo oferecendo cupom de 15% para trazer o cliente de volta.</p>
-                <button class="btn-gold" style="padding:10px;" onclick="alert('Campanha de Reconexão enviada com sucesso para 48 clientes!')">🚀 Disparar Cupom "Sumido"</button>
+                <h4>Filtro: Carteira de Clientes Cadastrados</h4>
+                <div class="lista-backoffice" id="lista-marketing-clientes" style="margin-bottom:15px; max-height:200px; overflow-y:auto;">
+                    </div>
             </div>
 
             <div class="card">
-                <h4>Clube de Assinatura Mensal</h4>
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <span>Assinantes Ativos:</span>
-                    <strong>34 clientes</strong>
+                <h4>Clube de Assinatura Recorrente</h4>
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <span>Assinantes Ativos no Neon:</span>
+                    <strong id="mkt-total-assinantes">0</strong>
                 </div>
                 <div style="display:flex; justify-content:space-between;">
-                    <span>Receita Recorrente Garantida:</span>
-                    <span style="color: var(--success-color); font-weight:700;">R$ 2.890,00</span>
+                    <span>Receita Mensal em Carteira:</span>
+                    <span style="color: var(--success-color); font-weight:700;" id="mkt-faturamento-recorrente">R$ 0,00</span>
                 </div>
             </div>
         </section>
 
         <section id="aba-adm-recepcao" class="escondido">
-            <h3>Painel Geral de Cadeiras (Modo Recepção)</h3>
-            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px; margin-bottom: 20px;">Visão horizontal estilo Kanban da barbearia:</p>
+            <h3>Monitor de Atendimentos Geral</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Gerencie o fluxo operacional da barbearia:</p>
             
-            <div id="container-kanban-recepcao"></div>
+            <div id="container-kanban-recepcao" style="display:flex; flex-direction:column; gap:10px;"></div>
 
             <div class="card" style="margin-top:20px;">
-                <h4>Encaixe Manual (Cliente de Rua)</h4>
-                <button class="btn-gold" onclick="alert('Abrindo formulário de encaixe Walk-in rápido...')">➕ Encaixar Cliente Sem App</button>
+                <h4>⚡ Registrar Encaixe Manual (Walk-in)</h4>
+                <div class="form-group">
+                    <label>Nome do Cliente da Rua:</label>
+                    <input type="text" id="encaixe-nome" placeholder="Ex: Cliente de Balcão">
+                </div>
+                <div class="form-group">
+                    <label>Serviço Desejado:</label>
+                    <select id="encaixe-servico">
+                        <option value="Corte Simples">Corte Simples (R$ 40,00)</option>
+                        <option value="Corte + Sobrancelha">Corte + Sobrancelha (R$ 55,00)</option>
+                        <option value="Barba Completa">Barba Completa (R$ 35,00)</option>
+                        <option value="Combo Premium">Combo Premium (R$ 85,00)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Profissional:</label>
+                    <select id="encaixe-barbeiro">
+                        <option value="Gabriel (Proprietário)">Gabriel (Proprietário)</option>
+                        <option value="Lucas Barber">Lucas Barber</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Horário de Encaixe:</label>
+                    <input type="time" id="encaixe-hora" value="14:00">
+                </div>
+                <button class="btn-gold" id="btn-executar-encaixe">Gravar e Encaixar na Fila</button>
             </div>
         </section>
 
@@ -256,13 +278,11 @@
 
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
-        <h3 class="gold-text" style="margin-bottom: 12px;">Conferir Agendamento</h3>
-        <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 12px;">Confirme as informações do seu atendimento antes de salvar:</p>
-        <div id="modal-resumo-detalhes" style="background: #222428; padding: 16px; border-radius: 12px; font-size: 14px; line-height: 1.8; border: 1px solid var(--border-color);">
-            </div>
-        <div class="modal-buttons">
-            <button class="btn-modal-cancel" id="btn-modal-voltar">Voltar</button>
-            <button class="btn-gold" id="btn-modal-gravar" style="flex: 1; padding: 0;">Confirmar Tudo</button>
+        <h3 class="gold-text">Conferir Agendamento</h3>
+        <div id="modal-resumo-detalhes" style="background: #222428; padding: 16px; border-radius: 12px; font-size: 14px; line-height: 1.8; margin-bottom:15px;"></div>
+        <div style="display: flex; gap: 10px;">
+            <button style="flex:1; background:#333; color:white; border:none; border-radius:10px; cursor:pointer;" onclick="document.getElementById('modal-confirmacao').classList.add('escondido')">Voltar</button>
+            <button class="btn-gold" id="btn-modal-gravar" style="flex: 1; padding:12px 0;">Confirmar</button>
         </div>
     </div>
 </div>
