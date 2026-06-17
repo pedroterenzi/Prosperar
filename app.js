@@ -15,6 +15,9 @@ let horarioSelecionado = null;
 let pagamentoSelecionado = null;
 let precoServico = 0;
 
+// Estado Global de Agendamentos da API externa (Evita resetar ao dar F5)
+let AGENDAMENTOS_TELA_PRESTADORES = [];
+
 // Configuração unificada de filtros superiores
 let filtroTempoGlobal = 'mes_atual'; 
 let filtroBarbeiroAlvo = 'todos'; 
@@ -61,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if(btnCadastrar) btnCadastrar.addEventListener('click', executarCadastro);
 
     const btnEntrar = document.getElementById('btn-entrar');
-    if(btnEntrar) btnEntrar.addEventListener('click', executarLogin);
+    if(btnEntrar) btnEntrar.addEventListener('click', executingLogin);
     
     const inputInicio = document.getElementById('filtro-data-inicio');
     const inputFim = document.getElementById('filtro-data-fim');
@@ -73,9 +76,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function isSlotPast(dateStr, timeStr) {
     const agora = new Date();
-    const [ano, mes, dia] = dateStr.split('-').map(Number);
-    const [hora, minuto] = timeStr.split(':').map(Number);
-    return new Date(ano, mes - 1, dia, hora, minuto, 0, 0) < agora;
+    
+    const hojeStr = agora.getFullYear() + '-' + 
+                    String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
+                    String(agora.getDate()).padStart(2, '0');
+
+    if (dateStr < hojeStr) return true;
+    if (dateStr > hojeStr) return false;
+
+    const [horaSlot, minutoSlot] = timeStr.split(':').map(Number);
+    const horaAtual = agora.getHours();
+    const minutoAtual = agora.getMinutes();
+
+    if (horaSlot < horaAtual) return true;
+    if (horaSlot === horaAtual && minutoSlot < minutoAtual) return true;
+
+    return false;
 }
 
 function alternarAbasAuth(aba) {
@@ -274,7 +290,6 @@ function ativarAcessoAoPainelProfissional() {
 function inicializarListenersPosLogin() {
     const inputData = document.getElementById('data');
     if(inputData) {
-        // Substituição limpa do listener para evitar acúmulos
         inputData.onchange = () => {
             if (barbeiroSelecionado) renderizarGradeHorariosReais();
         };
@@ -309,7 +324,7 @@ function inicializarListenersPosLogin() {
         };
     }
 
- const btnConfirmarModal = document.getElementById('btn-confirmar-modal');
+    const btnConfirmarModal = document.getElementById('btn-confirmar-modal');
     if(btnConfirmarModal) {
         btnConfirmarModal.onclick = async (e) => {
             e.preventDefault();
@@ -331,11 +346,9 @@ function inicializarListenersPosLogin() {
             };
 
             try {
-                // Altera o botão para mostrar que está salvando
                 btnConfirmarModal.innerText = "Salvando no Banco...";
                 btnConfirmarModal.disabled = true;
 
-                // Envia para o servidor Render do Prosperar Club
                 const res = await fetch(`${API_URL}/agendamentos`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -344,20 +357,17 @@ function inicializarListenersPosLogin() {
 
                 if (!res.ok) throw new Error("Erro no servidor");
 
-                // Atualiza o mock local caso o ADM precise ver sem recarregar
                 MOCK_AGENDAMENTOS_TESTE.push(payload);
                 
                 document.getElementById('modal-confirmacao')?.classList.add('escondido');
                 alert("✨ Cadeira reservada com sucesso e gravada no banco!");
                 
-                // Limpa seleções
                 horarioSelecionado = null;
                 renderizarGradeHorariosReais();
-                carregarMeusAgendamentosDoBanco(); // Recarrega a aba de reservas
+                carregarMeusAgendamentosDoBanco(); 
 
             } catch (error) {
                 console.error("Erro ao salvar agendamento:", error);
-                // Contingência: Se o servidor falhar, salva no local para não perder a venda
                 MOCK_AGENDAMENTOS_TESTE.push(payload);
                 document.getElementById('modal-confirmacao')?.classList.add('escondido');
                 alert("⚠️ Salvo localmente! O servidor está instável, mas seu agendamento foi registrado no app.");
@@ -371,6 +381,7 @@ function inicializarListenersPosLogin() {
             }
         };
     }
+
     const btnExecutarEncaixe = document.getElementById('btn-executar-encaixe');
     if(btnExecutarEncaixe) {
         btnExecutarEncaixe.onclick = () => {
@@ -450,7 +461,7 @@ function renderizarFormularioCliente() {
     }
 }
 
-function renderizarGradeHorariosReais() {
+async function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios'); 
     if (!container) return;
     
@@ -461,19 +472,33 @@ function renderizarGradeHorariosReais() {
     }
     
     const bNome = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome;
-    let ocupados = MOCK_AGENDAMENTOS_TESTE.filter(a => a.data === dataSel && a.barbeiro === bNome && a.status !== 'Falta').map(a => a.hora.trim());
     
-    // Limpa o container completamente antes de começar
+    // Consulta ativa e dinâmica ao Banco de Dados na nuvem
+    try {
+        const res = await fetch(`${API_URL}/agendamentos`);
+        if (res.ok) {
+            AGENDAMENTOS_TELA_PRESTADORES = await res.json();
+        }
+    } catch (e) {
+        console.error("Falha ao sincronizar ocupações em tempo real:", e);
+    }
+
+    // Mescla dados dinâmicos da API com itens em memória local
+    const todosAgendamentos = [...AGENDAMENTOS_TELA_PRESTADORES, ...MOCK_AGENDAMENTOS_TESTE];
+
+    // Mapeia os horários ocupados filtrando faltas e cancelamentos
+    let ocupados = todosAgendamentos
+        .filter(a => a.data === dataSel && a.barbeiro === bNome && a.status !== 'Falta' && a.status !== 'cancelado')
+        .map(a => a.hora.trim());
+    
     container.innerHTML = "";
     
     HORARIOS_PADRAO.forEach(g => {
-        // 1. Cria o título do turno como um elemento real do DOM
         const tituloTurno = document.createElement('div');
         tituloTurno.className = "turno-title";
         tituloTurno.innerText = g.turno;
         container.appendChild(tituloTurno);
 
-        // 2. Cria a grid de horários
         const grid = document.createElement('div'); 
         grid.className = "grid-horarios";
         
@@ -488,9 +513,9 @@ function renderizarGradeHorariosReais() {
                 btn.innerText = "Expirado"; 
             } else if (ocupados.includes(h.trim())) { 
                 btn.disabled = true; 
+                btn.style.opacity = "0.4";
                 btn.innerText = "Ocupado"; 
             } else { 
-                // Agora o clique está blindado e não vai sumir!
                 btn.onclick = (e) => { 
                     e.preventDefault();
                     document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
@@ -501,7 +526,6 @@ function renderizarGradeHorariosReais() {
             grid.appendChild(btn);
         });
         
-        // 3. Adiciona a grid ao container
         container.appendChild(grid);
     });
 }
@@ -515,11 +539,9 @@ async function carregarMeusAgendamentosDoBanco() {
     let agendamentosFinais = [];
 
     try {
-        // Busca os dados reais da API externa
         const res = await fetch(`${API_URL}/agendamentos`);
         if (res.ok) {
             const dadosBanco = await res.json();
-            // Une os dados do banco com o mock local (para garantir que tudo apareça)
             agendamentosFinais = [...dadosBanco, ...MOCK_AGENDAMENTOS_TESTE];
         } else {
             agendamentosFinais = MOCK_AGENDAMENTOS_TESTE;
@@ -529,17 +551,14 @@ async function carregarMeusAgendamentosDoBanco() {
         agendamentosFinais = MOCK_AGENDAMENTOS_TESTE;
     }
 
-    // Filtra para mostrar apenas os agendamentos pertencentes ao cliente logado
     const meus = agendamentosFinais.filter(a => 
         (a.login_cliente && a.login_cliente === usuarioLogado) || 
         (a.cliente === nomeUsuarioLogado?.toUpperCase()) ||
         (a.cliente === usuarioLogado?.toUpperCase())
     );
     
-    // Remove duplicados por ID (evita exibir o mesmo item vindo da API e do Mock)
     const filtradosSemDuplicados = Array.from(new Map(meus.map(item => [item.id, item])).values());
 
-    // Ordena por data e hora (mais recentes ou próximos primeiro)
     filtradosSemDuplicados.sort((a, b) => b.data.localeCompare(a.data) || b.hora.localeCompare(a.hora));
 
     if (filtradosSemDuplicados.length === 0) {
@@ -559,6 +578,7 @@ async function carregarMeusAgendamentosDoBanco() {
             </div>`; 
     });
 }
+
 function filtrarAgendamentoPorRegraGlobal(a) {
     if(filtroBarbeiroAlvo !== 'todos') {
         const profissionalAlvo = ESTRUTURA_BARBEIROS.find(b => b.id === filtroBarbeiroAlvo);
