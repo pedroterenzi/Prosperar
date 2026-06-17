@@ -76,6 +76,11 @@
         
         .escondido { display: none !important; }
         .btn-status { padding: 6px 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
+        
+        /* Badges de Cores Baseadas nas Classes Clientes do CRM */
+        .badge-sucesso { background-color: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .badge-alerta { background-color: rgba(204, 153, 51, 0.2); color: var(--accent-color); }
+        .badge-perigo { background-color: rgba(239, 68, 68, 0.2); color: #ef4444; }
     </style>
 </head>
 <body>
@@ -138,11 +143,11 @@
         <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 14px; border-radius: 16px; border: 1px solid var(--border-color);">
             <h4 style="font-size: 12px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral (Painel):</h4>
             <div class="filtros-tempo-container">
-                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('hoje')">Hoje</button>
-                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('ontem')">Ontem</button>
-                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('7dias')">7 Dias</button>
-                <button class="btn-filtro-tempo ativo" onclick="mudarFiltroGlobalAdm('mes_atual')">Mês Atual</button>
-                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('personalizado')">Escolher Dia</button>
+                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('hoje', this)">Hoje</button>
+                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('ontem', this)">Ontem</button>
+                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('7dias', this)">7 Dias</button>
+                <button class="btn-filtro-tempo ativo" onclick="mudarFiltroGlobalAdm('mes_atual', this)">Mês Atual</button>
+                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('personalizado', this)">Escolher Dia</button>
             </div>
             <div id="box-escolha-data-custom" class="form-group escondido" style="margin-bottom: 0; margin-top: 10px;">
                 <label style="font-size: 11px;">Selecione o Dia para Análise/Monitor:</label>
@@ -221,7 +226,7 @@
         <section id="aba-adm-mkt" class="escondido">
             <h3>CRM e Comunicação Ativa</h3>
             <div class="card" style="margin-bottom:15px;">
-                <h4>Filtro: Carteira de Clientes Cadastrados</h4>
+                <h4>Carteira de Clientes Cadastrados</h4>
                 <div class="lista-backoffice" id="lista-marketing-clientes" style="margin-bottom:15px; max-height:200px; overflow-y:auto;"></div>
             </div>
 
