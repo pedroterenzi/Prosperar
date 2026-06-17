@@ -55,9 +55,9 @@
         .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
         .kpi-card .kpi-val { font-size: 20px; font-weight: 800; margin-top: 4px; }
 
-        /* Estilo para a barra de filtros temporais */
-        .filtros-tempo-container { display: flex; gap: 6px; margin-bottom: 20px; background: #1a1b1e; padding: 4px; border-radius: 10px; border: 1px solid var(--border-color); }
-        .btn-filtro-tempo { flex: 1; background: none; border: none; color: var(--text-muted); padding: 8px 4px; font-size: 11px; font-weight: 700; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+        /* Filtro Global Unificado */
+        .filtros-tempo-container { display: flex; gap: 4px; margin-bottom: 12px; background: #1a1b1e; padding: 4px; border-radius: 10px; border: 1px solid var(--border-color); }
+        .btn-filtro-tempo { flex: 1; background: none; border: none; color: var(--text-muted); padding: 8px 2px; font-size: 11px; font-weight: 700; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
         .btn-filtro-tempo.ativo { background: var(--accent-color); color: #000; }
 
         .lista-backoffice { display: flex; flex-direction: column; gap: 10px; }
@@ -73,7 +73,6 @@
         .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(26, 27, 30, 0.95); backdrop-filter: blur(10px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px 4px; border-radius: 24px; z-index: 999; }
         .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; }
         .nav-item.ativo { color: var(--accent-color); }
-        .nav-item svg { width: 18px; height: 18px; fill: currentColor; }
         
         .escondido { display: none !important; }
         .btn-status { padding: 6px 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
@@ -92,7 +91,7 @@
         <div id="form-login">
             <div class="form-group">
                 <label>Usuário / Login:</label>
-                <input type="text" id="login-usuario" placeholder="Digite seu usuário (Ex: gabriel)">
+                <input type="text" id="login-usuario" placeholder="Digite seu usuário">
             </div>
             <div class="form-group">
                 <label>Senha:</label>
@@ -136,6 +135,21 @@
 
     <div id="conteudo-app" class="escondido">
         
+        <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 14px; border-radius: 16px; border: 1px solid var(--border-color);">
+            <h4 style="font-size: 12px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral (Painel):</h4>
+            <div class="filtros-tempo-container">
+                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('hoje')">Hoje</button>
+                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('ontem')">Ontem</button>
+                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('7dias')">7 Dias</button>
+                <button class="btn-filtro-tempo ativo" onclick="mudarFiltroGlobalAdm('mes_atual')">Mês Atual</button>
+                <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('personalizado')">Escolher Dia</button>
+            </div>
+            <div id="box-escolha-data-custom" class="form-group escondido" style="margin-bottom: 0; margin-top: 10px;">
+                <label style="font-size: 11px;">Selecione o Dia para Análise/Monitor:</label>
+                <input type="date" id="filtro-data-especifica" onchange="atualizarFiltroDataEspecifica(this.value)" style="padding: 10px; font-size: 13px;">
+            </div>
+        </div>
+
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 20px;">
                 <h2 id="boas-vistas-cliente" style="font-size: 22px; margin-bottom: 4px;">Olá!</h2>
@@ -163,15 +177,8 @@
         </section>
 
         <section id="aba-adm-dash" class="escondido">
-            <h2 class="gold-text" style="margin-bottom: 4px;">Métricas Reais de Negócio</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores extraídos em tempo real do Neon:</p>
-            
-            <div class="filtros-tempo-container">
-                <button class="btn-filtro-tempo" onclick="mudarFiltroFinancas('hoje')">Hoje</button>
-                <button class="btn-filtro-tempo" onclick="mudarFiltroFinancas('ontem')">Ontem</button>
-                <button class="btn-filtro-tempo" onclick="mudarFiltroFinancas('7dias')">7 Dias</button>
-                <button class="btn-filtro-tempo ativo" onclick="mudarFiltroFinancas('mes_atual')">Mês Atual</button>
-            </div>
+            <h2 class="gold-text" style="margin-bottom: 4px;">Métricas de Faturamento</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores baseados no período selecionado acima:</p>
             
             <div class="grid-indicadores">
                 <div class="kpi-card">
@@ -211,31 +218,11 @@
             </div>
         </section>
 
-        <section id="aba-adm-estoque" class="escondido">
-            <h3>Controle de Estoque Backoffice</h3>
-            <div class="card">
-                <h4 class="gold-text">⚠️ Níveis Críticos Identificados</h4>
-                <div class="lista-backoffice">
-                    <div class="item-backoffice" style="border-left: 4px solid var(--danger-color);">
-                        <div><strong>Pomada Efeito Matte</strong><br><span style="font-size:11px; color:var(--text-muted);">Vitrine</span></div>
-                        <div style="color: var(--danger-color); font-weight:700;">Restam 2 un</div>
-                    </div>
-                    <div class="item-backoffice" style="border-left: 4px solid var(--danger-color);">
-                        <div><strong>Gola Higiênica Roll</strong><br><span style="font-size:11px; color:var(--text-muted);">Uso de Bancada</span></div>
-                        <div style="color: var(--danger-color); font-weight:700;">Restam 3 un</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <section id="aba-adm-mkt" class="escondido">
             <h3>CRM e Comunicação Ativa</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Envie mensagens reais para os celulares cadastrados no banco Neon:</p>
-
             <div class="card" style="margin-bottom:15px;">
                 <h4>Filtro: Carteira de Clientes Cadastrados</h4>
-                <div class="lista-backoffice" id="lista-marketing-clientes" style="margin-bottom:15px; max-height:200px; overflow-y:auto;">
-                    </div>
+                <div class="lista-backoffice" id="lista-marketing-clientes" style="margin-bottom:15px; max-height:200px; overflow-y:auto;"></div>
             </div>
 
             <div class="card">
@@ -252,8 +239,8 @@
         </section>
 
         <section id="aba-adm-recepcao" class="escondido">
-            <h3>Monitor de Atendimentos Geral</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Gerencie o fluxo operacional da barbearia:</p>
+            <h3>Monitor de Atendimentos</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia para as datas selecionadas:</p>
             
             <div id="container-kanban-recepcao" style="display:flex; flex-direction:column; gap:10px;"></div>
 
@@ -275,45 +262,4 @@
                 <div class="form-group">
                     <label>Profissional:</label>
                     <select id="encaixe-barbeiro">
-                        <option value="Gabriel (Proprietário)">Gabriel (Proprietário)</option>
-                        <option value="Lucas Barber">Lucas Barber</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Horário de Encaixe:</label>
-                    <input type="time" id="encaixe-hora" value="14:00">
-                </div>
-                <button class="btn-gold" id="btn-executar-encaixe">Gravar e Encaixar na Fila</button>
-            </div>
-        </section>
-
-        <section id="aba-adm-analytics" class="escondido">
-            <h2 class="gold-text" style="margin-bottom: 4px;">Análise Avançada de Performance</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Predição de ociosidade e inteligência de retenção:</p>
-            
-            <div id="analytics-retencao" style="margin-bottom: 20px;"></div>
-            
-            <div class="card">
-                <h3>📊 Janelas Dinâmicas e Fluxo de Pico</h3>
-                <div id="analytics-heatmap" style="margin-top: 10px;"></div>
-            </div>
-        </section>
-
-        <nav class="nav-inferior" id="menu-navegacao"></nav>
-    </div>
-</div>
-
-<div id="modal-confirmacao" class="modal-overlay escondido">
-    <div class="modal-content">
-        <h3 class="gold-text">Conferir Agendamento</h3>
-        <div id="modal-resumo-detalhes" style="background: #222428; padding: 16px; border-radius: 12px; font-size: 14px; line-height: 1.8; margin-bottom:15px;"></div>
-        <div style="display: flex; gap: 10px;">
-            <button style="flex:1; background:#333; color:white; border:none; border-radius:10px; cursor:pointer;" onclick="document.getElementById('modal-confirmacao').classList.add('escondido')">Voltar</button>
-            <button class="btn-gold" id="btn-confirmar-modal" style="flex: 1; padding:12px 0;">Confirmar</button>
-        </div>
-    </div>
-</div>
-
-<script src="app.js"></script>
-</body>
-</html>
+                        <option value="Gabriel (Proprietário)">
