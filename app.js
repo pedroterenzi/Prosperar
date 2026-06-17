@@ -1,6 +1,6 @@
 /**
  * ARQUITETURA CORE DE FINANÇAS - PROSPERAR CLUB
- * Implementação Strict TypeScript rules compilada para ES6.
+ * Implementação Strict JavaScript com Tratamento Reativo de Horários.
  */
 
 const API_URL = "https://prosperar.onrender.com";
@@ -41,7 +41,6 @@ const HORARIOS_PADRAO = [
 
 /**
  * MOCK DATA AVANÇADO PARA TESTES OPERACIONAIS DE FILTROS E SPLIT DE COMISSÕES
- * Contempla variação de datas, formas de pagamento, produtos e gorjetas puras.
  */
 const MOCK_AGENDAMENTOS_TESTE = [
     { id: 101, cliente: "MIGUEL ANJOS", servico: "Combo Premium", barbeiro: "Gabriel (Proprietário)", data: new Date().toISOString().split('T')[0], hora: "09:00", pagamento: "Cartão de Crédito", status: "Concluído", valor_produtos: 20.00, valor_gorjeta: 15.00 },
@@ -55,35 +54,33 @@ const MOCK_AGENDAMENTOS_TESTE = [
     { id: 105, cliente: "RODRIGO FARIA", servico: "Combo Premium", barbeiro: "Lucas Barber", data: (() => { let d = new Date(); d.setDate(d.getDate()-4); return d.toISOString().split('T')[0]; })(), hora: "18:30", pagamento: "Cartão de Crédito", status: "Concluído", valor_produtos: 10.00, valor_gorjeta: 0.00 }
 ];
 
+// Inicialização segura ao carregar a página
 document.addEventListener("DOMContentLoaded", () => {
     const btnCadastrar = document.getElementById('btn-cadastrar');
     if(btnCadastrar) btnCadastrar.addEventListener('click', executarCadastro);
 
     const btnEntrar = document.getElementById('btn-entrar');
-    // CORRIGIDO: Alterado de 'executingLogin' para 'executarLogin' para bater com o nome da função real
+    // CORREÇÃO 1: Vinculado corretamente à função em português para destravar a tela
     if(btnEntrar) btnEntrar.addEventListener('click', executarLogin);
     
     // Inicializar inputs de data do filtro de período com os valores de hoje
-    const filtroInicio = document.getElementById('filtro-data-inicio');
-    const filtroFim = document.getElementById('filtro-data-fim');
-    if(filtroInicio) filtroInicio.value = dataFiltroInicio;
-    if(filtroFim) filtroFim.value = dataFiltroFim;
+    const inputInicio = document.getElementById('filtro-data-inicio');
+    const inputFim = document.getElementById('filtro-data-fim');
+    if(inputInicio) inputInicio.value = dataFiltroInicio;
+    if(inputFim) inputFim.value = dataFiltroFim;
     
-    console.log("Sistema Prosperar Financeiro carregado. Mock pronto.");
+    console.log("Sistema Prosperar Financeiro carregado. Painel Inicial Desbloqueado.");
 });
 
 /**
  * ENGINE DE VALIDAÇÃO TEMPORAL - EXPERIÊNCIA DO CLIENTE
- * Compara a data selecionada e a hora do slot com o momento exato atual da execução.
  */
 function isSlotPast(dateStr, timeStr) {
     const agora = new Date();
     
-    // Divide os componentes evitando distorções de fuso horário por string isolada
     const [ano, mes, dia] = dateStr.split('-').map(Number);
     const [hora, minuto] = timeStr.split(':').map(Number);
     
-    // Constrói o objeto de data no contexto local exato do navegador do cliente
     const dataDoSlot = new Date(ano, mes - 1, dia, hora, minuto, 0, 0);
     
     return dataDoSlot < agora;
@@ -135,14 +132,8 @@ async function executarCadastro() {
 }
 
 async function executarLogin() {
-    // Captura os elementos de forma segura
-    const inputUsuario = document.getElementById('login-usuario');
-    const inputSenha = document.getElementById('login-senha');
-
-    if(!inputUsuario || !inputSenha) return;
-
-    const login = inputUsuario.value.trim().toLowerCase();
-    const senha = inputSenha.value;
+    const login = document.getElementById('login-usuario').value.trim().toLowerCase();
+    const senha = document.getElementById('login-senha').value;
 
     if(!login || !senha) return alert("Preencha os campos de acesso.");
 
@@ -159,7 +150,6 @@ async function executarLogin() {
             perfilLogado = user.perfil;
             nomeUsuarioLogado = user.nome;
 
-             Realizar a transição de telas
             document.getElementById('tela-autenticacao').classList.add('escondido');
             document.getElementById('conteudo-app').classList.remove('escondido');
 
@@ -167,33 +157,27 @@ async function executarLogin() {
             direcionarFluxoInicial(perfilLogado, user.nome);
             inicializarListenersPosLogin();
         } else {
-            // Fallback imediato caso as credenciais locais padrão do admin sejam inseridas
             if(login === "admin" && senha === "admin") {
-                ativarModoContingenciaAdmin();
+                forçarLoginContingencia();
             } else {
                 alert("Acesso negado. Verifique os dados.");
             }
         }
     } catch(e) {
-        // Se o servidor estiver fora do ar, ativa o modo local se for o Admin para testes
         if(login === "admin" && senha === "admin") {
-            alert("Modo de contingência local ativado (Admin).");
-            ativarModoContingenciaAdmin();
+            forçarLoginContingencia();
         } else {
-            alert("Erro ao conectar com o servidor. Verifique sua conexão.");
+            alert("Falha ao se conectar à API externa Render. Use o usuário local padrão.");
         }
     }
 }
 
-// Auxiliar para limpar e centralizar a ativação de Contingência do Admin
-function ativarModoContingenciaAdmin() {
+function forçarLoginContingencia() {
     usuarioLogado = "admin"; 
     perfilLogado = "admin"; 
     nomeUsuarioLogado = "Gabriel Admin";
-    
     document.getElementById('tela-autenticacao').classList.add('escondido');
     document.getElementById('conteudo-app').classList.remove('escondido');
-    
     montarMenuNavegacao(perfilLogado); 
     direcionarFluxoInicial(perfilLogado, "Gabriel Admin");
     inicializarListenersPosLogin();
@@ -216,7 +200,6 @@ function inicializarListenersPosLogin() {
                 return;
             }
             
-            // Validação de segurança extra antes de abrir o modal de confirmação do cliente
             const dataSelecionada = document.getElementById('data').value;
             if (isSlotPast(dataSelecionada, horarioSelecionado)) {
                 alert("Atenção: Este horário acabou de expirar. Escolha um horário futuro.");
@@ -241,7 +224,6 @@ function inicializarListenersPosLogin() {
             const nomeCliente = nomeUsuarioLogado ? nomeUsuarioLogado.toUpperCase() : "CLIENTE_ANONIMO";
             const dataSelecionada = document.getElementById('data').value;
 
-            // Trava lógica final de barreira no submit do formulário frontend
             if (isSlotPast(dataSelecionada, horarioSelecionado)) {
                 alert("Operação bloqueada. Não é possível salvar agendamentos retroativos.");
                 document.getElementById('modal-confirmacao').classList.add('escondido');
@@ -290,6 +272,8 @@ function inicializarListenersPosLogin() {
             const servico = document.getElementById('encaixe-servico').value;
             const barbeiro = document.getElementById('encaixe-barbeiro').value;
             const hora = document.getElementById('encaixe-hora').value;
+            const gorjeta = parseFloat(document.getElementById('encaixe-gorjeta').value || 0);
+            const pagamento = document.getElementById('encaixe-pagamento').value;
 
             if(!nome) return alert("Insira o nome do cliente.");
 
@@ -302,10 +286,10 @@ function inicializarListenersPosLogin() {
                 barbeiro: barbeiro,
                 data: dataAlvoEncaixe,
                 hora: hora,
-                pagamento: "Balcão (Dinheiro)",
+                pagamento: pagamento,
                 status: "Concluído",
                 valor_produtos: 0.00,
-                valor_gorjeta: 0.00
+                valor_gorjeta: gorjeta
             };
 
             try {
@@ -322,7 +306,7 @@ function inicializarListenersPosLogin() {
                 }
             } catch(e) {
                 MOCK_AGENDAMENTOS_TESTE.push(payload);
-                alert("⚡ Encaixe registrado localmente!");
+                alert("⚡ Encaixe registrado localmente no cache!");
                 document.getElementById('encaixe-nome').value = "";
                 recarregarAbaAtivaAdm();
             }
@@ -331,12 +315,12 @@ function inicializarListenersPosLogin() {
 }
 
 function direcionarFluxoInicial(perfil, nomeUsuario) {
-    if(perfil === 'admin') {
+    if(perfil === 'admin' || perfil === 'barbeiro') {
         document.getElementById('bloco-filtros-global-adm').classList.remove('escondido');
+        // CORREÇÃO 2: Atualização segura das IDs de data inicial e final do range picker para não travar o script
+        document.getElementById('filtro-data-inicio').value = dataFiltroInicio;
+        document.getElementById('filtro-data-fim').value = dataFiltroFim;
         alternarTela('adm-dash');
-    } else if(perfil === 'barbeiro') {
-        document.getElementById('bloco-filtros-global-adm').classList.remove('escondido');
-        alternarTela('adm-recepcao');
     } else {
         document.getElementById('bloco-filtros-global-adm').classList.add('escondido');
         alternarTela('home');
@@ -734,10 +718,6 @@ async function carregarPainelAnalytics() {
     }
 }
 
-/**
- * REFACTOR: VISÃO DO CLIENTE - TRAVA AUTOMÁTICA DE HORÁRIOS EXPIRADOS
- * Mapeia os botões e desabilita automaticamente slots passados no dia atual.
- */
 async function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios');
     if (!container) return;
@@ -776,15 +756,12 @@ async function renderizarGradeHorariosReais() {
             btn.className = "btn-horario";
             btn.innerText = h;
 
-            // 1. Validação de Regra de Negócio: O horário já passou do minuto atual?
             const jaPassou = isSlotPast(dataSelecionada, h.trim());
-            
-            // 2. Validação secundária: O horário já está reservado no banco de dados?
             const jaOcupado = ocupados.includes(h.trim());
 
             if (jaPassou) {
                 btn.disabled = true;
-                btn.classList.add('expirado'); // Permite estilizar com opacidade ou risco no seu arquivo CSS
+                btn.classList.add('expirado');
                 btn.innerText = "Expirado";
                 btn.style.opacity = "0.4";
                 btn.style.cursor = "not-allowed";
