@@ -4,11 +4,10 @@ from pydantic import BaseModel
 from typing import List
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import os
 
 app = FastAPI()
 
-# Permitir que o seu front-end da Vercel acesse a API do Render
+# Libera o acesso para que o Front-end hospedado na Vercel acesse a API no Render
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,11 +16,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# String de conexão do seu Banco Neon (configurada nas variáveis de ambiente do Render)
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://usuario:senha@ep-xxx-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require")
+# STRING DE CONEXÃO REAL DO SEU BANCO NEON
+DATABASE_URL = "postgresql://neondb_owner:npg_FB5WRUfgniD9@ep-calm-grass-ah0b366i.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
-# Modelo de dados que o banco Neon espera receber
-class Agendamento(BaseModel):
+def inicializar_banco():
+    """Garante a existência da tabela com a estrutura mapeada para o Front-end"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS agendamentos (
+                id SERIAL PRIMARY KEY,
+                cliente VARCHAR(255) NOT NULL,
+                servico VARCHAR(255) NOT NULL,
+                barbeiro VARCHAR(255) NOT NULL,
+                data VARCHAR(50) NOT NULL,
+                hora VARCHAR(50) NOT NULL,
+                pagamento VARCHAR(100) NOT NULL
+            );
+        """)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("⚡ Banco Neon conectado e tabela mapeada com sucesso!")
+    except Exception as e:
+        print(f"❌ Erro ao conectar no Neon durante a inicialização: {str(e)}")
+
+# Executa na inicialização do servidor
+inicializar_banco()
+
+# Esquema de dados validado pelo Pydantic
+class ModeloAgendamento(BaseModel):
     cliente: str
     servico: str
     barbeiro: str
@@ -29,29 +54,8 @@ class Agendamento(BaseModel):
     hora: str
     pagamento: str
 
-# Função para conectar ao Neon e criar a tabela se ela não existir
-def inicializar_banco():
-    conn = psycopg2.connect(DATABASE_URL)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS agendamentos (
-            id SERIAL PRIMARY KEY,
-            cliente VARCHAR(255) NOT NULL,
-            servico VARCHAR(255) NOT NULL,
-            barbeiro VARCHAR(255) NOT NULL,
-            data VARCHAR(50) NOT NULL,
-            hora VARCHAR(50) NOT NULL,
-            pagamento VARCHAR(100) NOT NULL
-        );
-    """)
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-inicializar_banco()
-
 @app.post("/agendamentos")
-def criar_agendamento(obj: Agendamento):
+def salvar_agendamento(obj: ModeloAgendamento):
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
@@ -65,7 +69,7 @@ def criar_agendamento(obj: Agendamento):
         conn.close()
         return {"status": "sucesso", "id": novo_id}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro no banco Neon: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erro ao salvar no Neon: {str(e)}")
 
 @app.get("/agendamentos")
 def listar_agendamentos():
@@ -78,10 +82,10 @@ def listar_agendamentos():
         conn.close()
         return dados
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Erro ao ler o Neon: {str(e)}")
 
 @app.delete("/agendamentos/{id}")
-def deletar_agendamento(id: int):
+def remover_agendamento(id: int):
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
@@ -89,6 +93,6 @@ def deletar_agendamento(id: int):
         conn.commit()
         cursor.close()
         conn.close()
-        return {"status": "deletado"}
+        return {"status": "removido"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Erro ao deletar no Neon: {str(e)}")
