@@ -70,9 +70,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function isSlotPast(dateStr, timeStr) {
     const agora = new Date();
-    const [ano, mes, dia] = dateStr.split('-').map(Number);
-    const [hora, minuto] = timeStr.split(':').map(Number);
-    return new Date(ano, mes - 1, dia, hora, minuto, 0, 0) < agora;
+    
+    // Converte a data de hoje para string local YYYY-MM-DD para comparação precisa de calendário
+    const hojeStr = agora.getFullYear() + '-' + 
+                    String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
+                    String(agora.getDate()).padStart(2, '0');
+
+    // 1. Se a data selecionada for um dia que já passou, bloqueia tudo
+    if (dateStr < hojeStr) return true;
+    
+    // 2. Se a data selecionada for um dia futuro, libera TODOS os horários (Manhã, Tarde e Noite)
+    if (dateStr > hojeStr) return false;
+
+    // 3. Se for o dia de hoje, valida estritamente a hora e minuto atual
+    const [horaSlot, minutoSlot] = timeStr.split(':').map(Number);
+    const horaAtual = agora.getHours();
+    const minutoAtual = agora.getMinutes();
+
+    if (horaSlot < horaAtual) return true;
+    if (horaSlot === horaAtual && minutoSlot < minutoAtual) return true;
+
+    return false;
 }
 
 function alternarAbasAuth(aba) {
