@@ -4,15 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prosperar Club - Painel Corporativo</title>
-    <!-- Importação da fonte moderna e minimalista Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0d0e10;
+            --bg-color: #0d0e11;
             --card-bg: #16171a;
-            --card-hover: #1f2125;
+            --card-hover: #1f2126;
             --accent-color: #cc9933; 
             --accent-hover: #e6b85c;
             --text-color: #f3f4f6;
@@ -31,13 +30,13 @@
             padding: 0; 
             display: flex; 
             justify-content: center; 
-            padding-bottom: 120px;
+            padding-bottom: 120px; 
             letter-spacing: -0.2px;
         }
         .app-container { width: 100%; max-width: 480px; padding: 20px; box-sizing: border-box; }
         
-        .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 24px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
-        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; box-sizing: border-box; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 24px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 10px 35px rgba(0,0,0,0.5); }
+        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; box-sizing: border-box; }
         .form-group label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
         .form-group input, .form-group select { 
             width: 100%; 
@@ -49,35 +48,31 @@
             font-size: 15px; 
             font-family: 'Inter', sans-serif;
             box-sizing: border-box; 
-            transition: border-color 0.2s;
+            transition: all 0.2s;
         }
-        .form-group input:focus, .form-group select:focus {
-            border-color: var(--accent-color);
-            outline: none;
-        }
+        .form-group input:focus, .form-group select:focus { border-color: var(--accent-color); outline: none; }
         
-        h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.6px; }
+        h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
         .gold-text { color: var(--accent-color); }
         
-        .step-label { display: block; margin: 24px 0 12px; font-weight: 600; color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .step-label { display: block; margin: 24px 0 12px; font-weight: 700; color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
         input[type="date"] { width: 100%; padding: 14px; background: #1f2125; border: 1px solid var(--border-color); border-radius: 10px; color: white; font-size: 15px; box-sizing: border-box; }
 
         .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
         .btn-gold:hover { background: var(--accent-hover); transform: translateY(-1px); }
-        .btn-gold:active { transform: translateY(0); }
         .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
-        .btn-small-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-        .btn-small-danger:hover { background: var(--danger-color); color: white; }
+        .btn-small-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-small-danger:hover { background: var(--danger-color); color: #fff; }
 
         .cards-container { display: flex; flex-direction: column; gap: 10px; }
-        .modern-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
-        .modern-card:hover { border-color: #383a40; background-color: var(--card-hover); }
+        .modern-card { background: #1f2125; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+        .modern-card:hover { border-color: #383a40; }
         .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.06); }
         .modern-card .title { font-weight: 600; font-size: 15px; color: #fff; }
         .modern-card .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
         .modern-card .price { font-weight: 700; font-size: 15px; color: var(--success-color); }
 
-        .turno-title { font-size: 12px; font-weight: 700; color: var(--accent-color); margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .turno-title { font-size: 12px; font-weight: 700; color: var(--accent-color); margin: 18px 0 8px; text-transform: uppercase; }
         .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
         .btn-horario { background: #1f2125; color: white; border: 1px solid var(--border-color); padding: 12px 2px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; }
         .btn-horario.selecionado { background: var(--accent-color); color: black; font-weight: 700; }
@@ -86,9 +81,9 @@
         .grid-indicadores { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
         .kpi-card { background: #16171a; border: 1px solid var(--border-color); padding: 18px; border-radius: 12px; }
         .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
-        .kpi-card .kpi-val { font-size: 22px; font-weight: 700; margin-top: 6px; letter-spacing: -0.5px; }
+        .kpi-card .kpi-val { font-size: 22px; font-weight: 700; margin-top: 4px; letter-spacing: -0.5px; }
 
-        .filtros-tempo-container { display: flex; gap: 6px; margin-bottom: 12px; background: #1f2125; padding: 4px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .filtros-tempo-container { display: flex; gap: 4px; margin-bottom: 12px; background: #1f2125; padding: 4px; border-radius: 8px; border: 1px solid var(--border-color); }
         .btn-filtro-tempo { flex: 1; background: none; border: none; color: var(--text-muted); padding: 10px 2px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
         .btn-filtro-tempo.ativo { background: var(--accent-color); color: #000; font-weight: 700; }
 
@@ -111,14 +106,10 @@
         .escondido { display: none !important; }
         .btn-status { padding: 6px 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
         
-        .badge-sucesso { background-color: rgba(16, 185, 129, 0.15); color: #10b981; }
-        .badge-alerta { background-color: rgba(204, 153, 51, 0.15); color: var(--accent-color); }
-        .badge-perigo { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
-
-        /* Estilos de Barras de Progresso Modernas para o BI */
+        /* Novas Classes para Barras Analíticas Premium */
         .analytics-bar-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
         .analytics-bar-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; }
-        .analytics-bar-bg { width: 100%; background: #1f2125; height: 8px; border-radius: 99px; overflow: hidden; margin-top: 4px; }
+        .analytics-bar-bg { width: 100%; background: #2b2d35; height: 8px; border-radius: 99px; overflow: hidden; margin-top: 4px; }
         .analytics-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-color), #f5cb5c); border-radius: 99px; transition: width 0.4s ease-out; }
     </style>
 </head>
@@ -126,7 +117,6 @@
 
 <div class="app-container">
 
-    <!-- FORMULÁRIO DE AUTENTICAÇÃO -->
     <div id="tela-autenticacao" class="card" style="margin-top: 30px;">
         <div class="toggle-auth">
             <button id="tab-login" class="active" onclick="alternarAbasAuth('login')">ENTRAR</button>
@@ -178,18 +168,14 @@
         </div>
     </div>
 
-    <!-- ÁREA INTERNA DA APLICAÇÃO -->
     <div id="conteudo-app" class="escondido">
         
-        <!-- FILTRO DE ANÁLISE GERAL INTEGRADO (image_2a07be.png) -->
         <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color);">
             <h4 style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral:</h4>
             
             <div class="form-group" style="margin-bottom: 14px;">
                 <label>Visualizar dados de:</label>
-                <select id="filtro-barbeiro-alvo" onchange="recarregarAbaAtivaAdm()" style="background: #131417;">
-                    <option value="todos">-- Todos os Barbeiros (Geral) --</option>
-                </select>
+                <select id="filtro-barbeiro-alvo" style="background: #1f2125;" onchange="recarregarAbaAtivaAdm()"></select>
             </div>
 
             <div class="filtros-tempo-container">
@@ -211,7 +197,6 @@
             </div>
         </div>
 
-        <!-- ABA DO CLIENTE: HOME -->
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 20px;">
                 <h2 id="boas-vistas-cliente" style="font-size: 22px; margin-bottom: 4px;">Olá!</h2>
@@ -221,25 +206,28 @@
                 <h3>Agendar Nova Cadeira</h3>
                 <span class="step-label">1. Escolha o Serviço:</span>
                 <div id="container-servicos" class="cards-container"></div>
+                
                 <span class="step-label">2. Escolha o Profissional:</span>
                 <div id="container-barbeiros" class="cards-container"></div>
+                
                 <span class="step-label">3. Selecione o Dia:</span>
                 <input type="date" id="data">
+                
                 <span class="step-label">4. Horários Disponíveis:</span>
                 <div id="container-horarios"></div>
+                
                 <span class="step-label">5. Forma de Pagamento:</span>
                 <div id="container-pagamentos" class="cards-container"></div>
+                
                 <button class="btn-gold" id="btnPreAgendar" style="margin-top: 25px;">Confirmar Agendamento</button>
             </div>
         </section>
 
-        <!-- ABA DO CLIENTE: RESERVAS -->
         <section id="aba-estilo" class="escondido">
             <h3>Meus Agendamentos</h3>
             <div id="container-meus-agendamentos"></div>
         </section>
 
-        <!-- ABA ADMINISTRATIVA: DASHBOARD FINANCEIRO & GESTÃO (image_2a1286.png) -->
         <section id="aba-adm-dash" class="escondido">
             <h2 class="gold-text" style="margin-bottom: 4px;">Métricas de Faturamento</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores baseados no período selecionado:</p>
@@ -263,13 +251,12 @@
                 </div>
             </div>
 
-            <!-- Visão Exclusiva para Colaboradores -->
             <div class="card escondido" id="card-rendimentos-barbeiro">
                 <h3 class="gold-text">Minha Carteira Pro</h3>
                 <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.3);">
                     <div>
                         <strong style="font-size:15px;">Sua Comissão Acumulada</strong><br>
-                        <span style="font-size:11px; color:var(--text-muted);" id="minha-breakdown-comissao">Calculando rendimentos...</span>
+                        <span style="font-size:11px; color:var(--text-muted);" id="minha-breakdown-comissao">Carregando dados...</span>
                     </div>
                     <div style="color: var(--success-color); font-weight:800; font-size: 20px;" id="minha-comissao-total">R$ 0,00</div>
                 </div>
@@ -284,10 +271,9 @@
                 <div class="lista-backoffice" id="lista-split-comissoes-equipe"></div>
             </div>
 
-            <!-- REFACTOR: CRIAÇÃO DINÂMICA DE EQUIPE COM BASE NO FLUXO COMPLETO (image_2a1286.png) -->
             <div class="card restrito-adm" style="border-color: rgba(204,153,51,0.25);">
                 <h3>👥 Gerenciamento de Barbeiros</h3>
-                <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione colaboradores vinculados diretamente ao banco de dados.</p>
+                <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione colaboradores e salve as informações no banco de dados.</p>
                 
                 <div style="background: #1f2125; padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-color);">
                     <h4 style="font-size:13px; margin-bottom:12px; color: var(--accent-color);">+ Incluir Novo Profissional</h4>
@@ -304,7 +290,7 @@
                         <input type="text" id="adm-barbeiro-celular" placeholder="Ex: 11999999999">
                     </div>
                     <div class="form-group">
-                        <label>Comissão Alvo (%):</label>
+                        <label>Comissão Contratual (%):</label>
                         <select id="adm-barbeiro-comissao">
                             <option value="0.30">Comissão: 30%</option>
                             <option value="0.40" selected>Comissão: 40%</option>
@@ -315,7 +301,7 @@
                         <label>Senha Operacional:</label>
                         <input type="password" id="adm-barbeiro-senha" placeholder="Crie uma senha de acesso">
                     </div>
-                    <button class="btn-gold" onclick="incluirBarbeiroSistema()" style="padding:12px; font-size:14px; margin-top: 4px;">Salvar Novo Membro</button>
+                    <button class="btn-gold" onclick="incluirBarbeiroSistema()">Salvar Novo Membro</button>
                 </div>
 
                 <h4>Corpo Técnico Ativo</h4>
@@ -323,7 +309,6 @@
             </div>
         </section>
 
-        <!-- ABA ADMINISTRATIVA: CRM MARKETING -->
         <section id="aba-adm-mkt" class="escondido restrito-adm">
             <h3>CRM e Comunicação Ativa</h3>
             <div class="card" style="margin-bottom:15px;">
@@ -344,7 +329,6 @@
             </div>
         </section>
 
-        <!-- ABA ADMINISTRATIVA: MONITOR KANBAN -->
         <section id="aba-adm-recepcao" class="escondido">
             <h3>Monitor de Atendimentos</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia:</p>
@@ -392,11 +376,9 @@
             </div>
         </section>
 
-        <!-- ABA ADMINISTRATIVA: BUSINESS INTELLIGENCE (image_2a0b3e.png) -->
         <section id="aba-adm-analytics" class="escondido">
             <h3>Business Intelligence</h3>
             
-            <!-- CENTRALIZADO E ENRIQUECIDO COM MÉTRICA SAAS REAL (LTV) -->
             <div id="analytics-retencao" style="display: flex; justify-content: center; width: 100%; gap: 12px; margin-bottom: 20px;"></div>
 
             <div class="card">
@@ -410,9 +392,17 @@
             </div>
         </section>
 
-        <!-- MENU INFERIOR DE MACRO NAVEGAÇÃO -->
         <nav class="nav-inferior" id="menu-navegacao"></nav>
 
+    </div>
+</div>
+
+<div id="modal-confirmacao" class="modal-overlay escondido">
+    <div class="modal-content">
+        <h3>Confirmar sua Cadeira?</h3>
+        <p id="modal-resumo-detalhes" style="font-size: 14px; line-height: 1.6; color: var(--text-muted);"></p>
+        <button class="btn-gold" id="btn-confirmar-modal">Confirmar Oficialmente</button>
+        <button class="btn-danger" onclick="document.getElementById('modal-confirmacao').classList.add('escondido')">Voltar / Cancelar</button>
     </div>
 </div>
 
