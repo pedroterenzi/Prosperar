@@ -1,35 +1,20 @@
 const API_URL = "https://prosperar.onrender.com";
 
-// Estado de memória reativo sincronizado da aplicação
+// Estado reativo da aplicação
 let usuarioLogado = null;
 let perfilLogado = null;
 
-// Estados selecionados do formulário moderno do cliente
 let servicoSelecionado = null;
 let barbeiroSelecionado = null;
 let horarioSelecionado = null;
 let pagamentoSelecionado = null;
 
-// Elementos Globais de Captura do DOM
-const btnEntrar = document.getElementById('btn-entrar');
-const inputUser = document.getElementById('login-usuario');
-const inputPass = document.getElementById('login-senha');
-const erroLogin = document.getElementById('erro-login');
-const telaLogin = document.getElementById('tela-login');
-const conteudoApp = document.getElementById('conteudo-app');
-const menuNavegacao = document.getElementById('menu-navegacao');
-
-const campoData = document.getElementById('data');
-const wrapperTurnos = document.getElementById('wrapper-turnos-grade');
-const btnConfirmar = document.getElementById('btnConfirmar');
-const msgStatus = document.getElementById('mensagem-status');
-
-// Tabelas de configurações estéticas e dados padrão estruturados
+// Dados estruturados para os novos cards modernos
 const ESTRUTURA_SERVICOS = [
-    { id: "corte", nome: "Corte Simples", preco: 40.00, sub: "Duração: 30 min" },
-    { id: "corte_sob", nome: "Corte + Sobrancelha", preco: 55.00, sub: "Duração: 45 min" },
-    { id: "barba", nome: "Barba Completa", preco: 35.00, sub: "Duração: 30 min" },
-    { id: "combo", nome: "Combo Premium (Corte + Barba + Sobrancelha)", preco: 85.00, sub: "Duração: 60 min" }
+    { id: "corte", nome: "Corte Simples", preco: 40.00, sub: "Duração: 30 min", img: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=150" },
+    { id: "corte_sob", nome: "Corte + Sobrancelha", preco: 55.00, sub: "Duração: 45 min", img: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=150" },
+    { id: "barba", nome: "Barba Completa", preco: 35.00, sub: "Duração: 30 min", img: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?q=80&w=150" },
+    { id: "combo", nome: "Combo Premium", preco: 85.00, sub: "Corte + Barba + Sobrancelha", img: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=150" }
 ];
 
 const ESTRUTURA_BARBEIROS = [
@@ -38,426 +23,298 @@ const ESTRUTURA_BARBEIROS = [
 ];
 
 const ESTRUTURA_PAGAMENTOS = [
-    { id: "Pix", nome: "Pix", sub: "Ganha Pontos em Dobro" },
-    { id: "Cartão", nome: "Cartão Débito/Crédito", sub: "Processamento via Split automático" },
-    { id: "Dinheiro", nome: "Dinheiro Físico", sub: "Fechamento direto no balcão" }
+    { id: "pix", nome: "Pix", sub: "Ganha Pontos em Dobro" },
+    { id: "cartao", nome: "Cartão", sub: "Crédito ou Débito" }
 ];
 
-// Dados Iniciais e Controle de Mutação Persistente por LocalStorage
 const HORARIOS_PADRAO = [
     { turno: "☀️ Turno da Manhã", horas: ["09:00", "09:30", "11:00", "11:30"] },
-    { turno: "🌤️ Turno da Tarde", horas: ["12:00", "12:30", "13:30", "14:00", "14:30", "16:00", "16:30", "17:00", "17:30"] },
+    { turno: "🌤️ Turno da Tarde", horas: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "16:00", "16:30", "17:00", "17:30"] },
     { turno: "🌙 Turno da Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
 ];
 
-const MOCK_OPERACAO_DEFAULT = {
+// Banco de dados persistente no navegador do usuário
+const MOCK_INICIAL = {
     barbeiros: {
         "gabriel": { agendamentos: 9, faturamento: 385.50 },
         "lucas": { agendamentos: 6, faturamento: 210.00 }
     },
-    admin: { faturamento: 18450.00, ticket: 72.00, ocupacao: "81%", noshow: "3.5%" },
-    estoque_critico: ["Pomada Matte Premium (Restam 2 un)", "Gola Higiênica (Restam 1 un)"],
     agenda_dia: [
-        { id: 1, cliente: "Carlos Andrade", servico: "Corte Simples", hora: "14:00", status: "Agendado", cor: "var(--blue-color)", barbeiro: "gabriel" },
-        { id: 2, cliente: "Marcos Lima", servico: "Combo Premium", hora: "15:30", status: "Agendado", cor: "var(--accent-color)", barbeiro: "gabriel" },
-        { id: 3, cliente: "Lucas Souza", servico: "Barba Completa", hora: "11:00", status: "Agendado", cor: "var(--success-color)", barbeiro: "lucas" }
+        { id: 1, cliente: "Carlos Andrade", servico: "Corte Simples", hora: "14:00", status: "Agendado", barbeiro: "gabriel" },
+        { id: 2, cliente: "Marcos Lima", servico: "Combo Premium", hora: "15:30", status: "Agendado", barbeiro: "gabriel" }
     ]
 };
 
-// Inicialização segura do Estado Persistente
 if (!localStorage.getItem('PROSPERAR_STATE')) {
-    localStorage.setItem('PROSPERAR_STATE', JSON.stringify(MOCK_OPERACAO_DEFAULT));
+    localStorage.setItem('PROSPERAR_STATE', JSON.stringify(MOCK_INICIAL));
 }
 
-function obterEstadoCorporativo() {
-    return JSON.parse(localStorage.getItem('PROSPERAR_STATE'));
-}
-
-function salvarEstadoCorporativo(novoEstado) {
-    localStorage.setItem('PROSPERAR_STATE', JSON.stringify(novoEstado));
-}
+function obterEstado() { return JSON.parse(localStorage.getItem('PROSPERAR_STATE')); }
+function salvarEstado(estado) { localStorage.setItem('PROSPERAR_STATE', JSON.stringify(estado)); }
 
 // ==========================================
-// 🔐 SISTEMA DE AUTENTICAÇÃO E INITIAL DEPLOY
+// CONTROLADOR DE LOGIN
 // ==========================================
-btnEntrar.addEventListener('click', async () => {
-    const login = inputUser.value.trim().toLowerCase();
-    const senha = inputPass.value.trim();
+document.getElementById('btn-entrar').addEventListener('click', async () => {
+    const login = document.getElementById('login-usuario').value.trim().toLowerCase();
+    const senha = document.getElementById('login-senha').value.trim();
 
-    if (!login || !senha) {
-        exibirMensagemErro("Por favor, preencha todos os campos!");
-        return;
-    }
+    if (!login) return alert("Digite o usuário!");
 
-    erroLogin.style.color = "orange";
-    erroLogin.innerText = "Autenticando no ecossistema...";
+    // Fallback imediato para testes e uso fluido no Front-end
+    usuarioLogado = login;
+    perfilLogado = (login === 'gabriel' || login === 'lucas') ? 'barbeiro' : 'cliente';
 
-    try {
-        const response = await fetch(`${API_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ login: login, senha: senha })
-        });
+    document.getElementById('tela-login').classList.add('escondido');
+    document.getElementById('conteudo-app').classList.remove('escondido');
 
-        const dados = await response.json();
-
-        if (response.ok) {
-            usuarioLogado = dados.usuario.login;
-            perfilLogado = dados.usuario.perfil ? dados.usuario.perfil.toLowerCase() : 'cliente';
-            const nomeExibicao = dados.usuario.nome || "Membro";
-
-            erroLogin.innerText = "";
-            telaLogin.classList.add('escondido');
-            conteudoApp.classList.remove('escondido');
-
-            montarMenuNavegacao(perfilLogado);
-            renderizarLayoutPorPerfil(perfilLogado, nomeExibicao, dados.usuario);
-        } else {
-            exibirMensagemErro(dados.detail || "Usuário ou senha inválidos.");
-        }
-    } catch (error) {
-        exibirMensagemErro("Servidor Render em standby. Tentando carregar ambiente local...");
-        // Fallback robusto para desenvolvimento/teste local fluido caso a API falhe
-        usuarioLogado = login;
-        perfilLogado = (login === 'gabriel' || login === 'lucas') ? 'barbeiro' : (login === 'admin' ? 'admin' : 'cliente');
-        telaLogin.classList.add('escondido');
-        conteudoApp.classList.remove('escondido');
-        montarMenuNavegacao(perfilLogado);
-        renderizarLayoutPorPerfil(perfilLogado, login.toUpperCase(), { pontos_fidelidade: 14 });
-    }
+    montarMenuNavegacao(perfilLogado);
+    inicializarFluxoPainel();
 });
 
-function exibirMensagemErro(msg) {
-    erroLogin.style.color = "var(--danger-color)";
-    erroLogin.innerText = msg;
-}
-
 // ==========================================
-// 📱 MOTOR DE NAVEGAÇÃO INTERATIVA (SPA)
+// CONSTRUTOR DO FORMULÁRIO DE CARDS DO CLIENTE
 // ==========================================
-function montarMenuNavegacao(role) {
-    menuNavegacao.innerHTML = "";
-    
-    const esquemas = {
-        cliente: [
-            { id: 'home', label: 'Agendar', svg: '<svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>' },
-            { id: 'estilo', label: 'Meu Estilo', svg: '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.5 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>' },
-            { id: 'fidelidade', label: 'Fidelidade', svg: '<svg viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>' }
-        ],
-        barbeiro: [
-            { id: 'barbeiro', label: 'Minha Cadeira', svg: '<svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>' }
-        ],
-        admin: [
-            { id: 'admin', label: 'Métricas ERP', svg: '<svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 16H6c-.55 0-1-.45-1-1V6c0-.55.45-1 1-1h12c.55 0 1 .45 1 1v12c0 .55-.45 1-1 1z"/></svg>' },
-            { id: 'barbeiro', label: 'Agenda Geral', svg: '<svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>' }
-        ]
-    };
-
-    const listaBotoes = esquemas[role] || esquemas['cliente'];
-    
-    listaBotoes.forEach(aba => {
-        const btn = document.createElement('button');
-        btn.className = 'nav-item';
-        btn.innerHTML = `${aba.svg} ${aba.label}`;
-        btn.onclick = () => alternarAbasEfetivo(aba.id, btn);
-        menuNavegacao.appendChild(btn);
-    });
-
-    const btnSair = document.createElement('button');
-    btnSair.className = 'nav-item';
-    btnSair.style.color = "var(--danger-color)";
-    btnSair.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59z"/></svg> Sair`;
-    btnSair.onclick = acaoLogoutLimpo;
-    menuNavegacao.appendChild(btnSair);
-}
-
-function alternarAbasEfetivo(idAba, elementoBotao) {
-    ['home', 'estilo', 'fidelidade', 'barbeiro', 'admin'].forEach(aba => {
-        const painel = document.getElementById(`aba-${aba}`);
-        if (painel) painel.classList.add('escondido');
-    });
-    
-    document.getElementById(`aba-${idAba}`).classList.remove('escondido');
-    document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('ativo'));
-    if (elementoBotao) elementoBotao.classList.add('ativo');
-}
-
-// ==========================================
-// 🎨 CONSTRUTOR DE UI DINÂMICA (ANTI-QUADRADO)
-// ==========================================
-function renderizarLayoutPorPerfil(role, nome, dadosUsuario) {
-    const estado = obterEstadoCorporativo();
-
-    if (role === 'barbeiro' || role === 'admin') {
-        alternarAbasEfetivo('barbeiro', document.querySelectorAll('.nav-item')[0]);
-        document.getElementById('txt-welcome-barbeiro').innerText = `💈 Estação de Trabalho: ${nome}`;
-        
-        atualizarKpisBarbeiro();
-        construirKanbanCadeira();
-
-        if (role === 'admin') {
-            document.getElementById('adm-faturamento').innerText = `R$ ${estado.admin.faturamento.toFixed(2)}`;
-            document.getElementById('adm-ticket').innerText = `R$ ${estado.admin.ticket.toFixed(2)}`;
-            document.getElementById('adm-ocupacao').innerText = estado.admin.ocupacao;
-            document.getElementById('adm-noshow').innerText = estado.admin.noshow;
-            
-            document.getElementById('estoque-alerta-container').innerHTML = estado.estoque_critico.map(i => `<p style="margin:6px 0; color:#f59e0b; font-weight:600;">⚠️ ${i}</p>`).join('');
-        }
-    } else {
-        alternarAbasEfetivo('home', document.querySelectorAll('.nav-item')[0]);
-        document.getElementById('boas-vistas-cliente').innerHTML = `Olá, <span class="gold-text">${nome.toLowerCase()}</span>!`;
-        
-        document.getElementById('txt-prontuario').innerText = dadosUsuario.anotacao_tecnica || "Usa degradê navalhado médio, redemoinho na coroa exige cuidado, não gosta de costeleta pontuda.";
-        document.getElementById('txt-pontos').innerText = dadosUsuario.pontos_fidelidade || 0;
-        
-        const perc = Math.min(((dadosUsuario.pontos_fidelidade || 0) / 20) * 100, 100);
-        document.getElementById('progresso-fidelidade').style.width = `${perc}%`;
-
-        construirCardsInterativosFormulario();
-    }
-}
-
-// Geração de Interface Fluida (Substituindo os selects por stacks de cards)
-function construirCardsInterativosFormulario() {
-    // 1. Injeção de Serviços Premium
-    const containerServicos = document.getElementById('stack-servicos');
-    containerServicos.innerHTML = "";
+function renderizarFormularioCliente() {
+    // 1. Renderizar Serviços [Padrão Streamlit]
+    const boxServicos = document.getElementById('container-servicos');
+    boxServicos.innerHTML = "";
     ESTRUTURA_SERVICOS.forEach(s => {
-        const card = document.createElement('div');
-        card.className = "selectable-card";
-        card.innerHTML = `<div><div class="card-title">${s.nome}</div><div class="card-subtitle">${s.sub}</div></div><div class="card-price">R$ ${s.preco.toFixed(2)}</div>`;
-        card.onclick = () => {
-            document.querySelectorAll('#stack-servicos .selectable-card').forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
+        const div = document.createElement('div');
+        div.className = "modern-card";
+        div.style.backgroundImage = `linear-gradient(rgba(26,27,30,0.9), rgba(26,27,30,0.95)), url('${s.img}')`;
+        div.innerHTML = `<div class="info-block"><div class="title">${s.nome}</div><div class="subtitle">${s.sub}</div></div><div class="price">R$ ${s.preco.toFixed(2)}</div>`;
+        div.onclick = () => {
+            document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected'));
+            div.classList.add('selected');
             servicoSelecionado = s.nome;
         };
-        containerServicos.appendChild(card);
+        boxServicos.appendChild(div);
     });
 
-    // 2. Injeção de Barbeiros
-    const containerBarbeiros = document.getElementById('stack-barbeiros');
-    containerBarbeiros.innerHTML = "";
+    // 2. Renderizar Barbeiros
+    const boxBarbeiros = document.getElementById('container-barbeiros');
+    boxBarbeiros.innerHTML = "";
     ESTRUTURA_BARBEIROS.forEach(b => {
-        const card = document.createElement('div');
-        card.className = "selectable-card";
-        card.innerHTML = `<div><div class="card-title">${b.nome}</div><div class="card-subtitle">${b.avaliacao}</div></div>`;
-        card.onclick = () => {
-            document.querySelectorAll('#stack-barbeiros .selectable-card').forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
+        const div = document.createElement('div');
+        div.className = "modern-card";
+        div.innerHTML = `<div class="info-block"><div class="title">${b.nome}</div><div class="subtitle">${b.avaliacao}</div></div>`;
+        div.onclick = () => {
+            document.querySelectorAll('#container-barbeiros .modern-card').forEach(c => c.classList.remove('selected'));
+            div.classList.add('selected');
             barbeiroSelecionado = b.id;
-            renderizarGradeHorariosPorTurno(); // Atualiza os horários baseados no profissional selecionado
+            renderizarGradeHorarios(); // Libera os horários assim que clica no profissional
         };
-        containerBarbeiros.appendChild(card);
+        boxBarbeiros.appendChild(div);
     });
 
-    // 3. Injeção de Pagamentos
-    const containerPagos = document.getElementById('stack-pagamentos');
-    containerPagos.innerHTML = "";
+    // 3. Renderizar Meios de Pagamento
+    const boxPagos = document.getElementById('container-pagamentos');
+    boxPagos.innerHTML = "";
     ESTRUTURA_PAGAMENTOS.forEach(p => {
-        const card = document.createElement('div');
-        card.className = "selectable-card";
-        card.innerHTML = `<div><div class="card-title">${p.nome}</div><div class="card-subtitle">${p.sub}</div></div>`;
-        card.onclick = () => {
-            document.querySelectorAll('#stack-pagamentos .selectable-card').forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
+        const div = document.createElement('div');
+        div.className = "modern-card";
+        div.innerHTML = `<div class="info-block"><div class="title">${p.nome}</div><div class="subtitle">${p.sub}</div></div>`;
+        div.onclick = () => {
+            document.querySelectorAll('#container-pagamentos .modern-card').forEach(c => c.classList.remove('selected'));
+            div.classList.add('selected');
             pagamentoSelecionado = p.nome;
         };
-        containerPagos.appendChild(card);
+        boxPagos.appendChild(div);
     });
 
-    // Data Padrão
+    // Definir data padrão (Amanhã)
     const amanha = new Date();
     amanha.setDate(amanha.getDate() + 1);
-    campoData.value = amanha.toISOString().split('T')[0];
-    
-    renderizarGradeHorariosPorTurno();
+    document.getElementById('data').value = amanha.toISOString().split('T')[0];
+
+    renderizarGradeHorarios();
 }
 
 // ==========================================
-// 📅 SELEÇÃO DE HORÁRIOS ORGANIZADA POR TURNOS
+// RENDERIZADOR DE HORÁRIOS POR TURNO
 // ==========================================
-campoData.addEventListener('change', renderizarGradeHorariosPorTurno);
+document.getElementById('data').addEventListener('change', renderizarGradeHorarios);
 
-function renderizarGradeHorariosPorTurno() {
-    wrapperTurnos.innerHTML = "";
-    horarioSelecionado = null;
+function renderizarGradeHorarios() {
+    const container = document.getElementById('container-horarios');
+    container.innerHTML = "";
 
     if (!barbeiroSelecionado) {
-        wrapperTurnos.innerHTML = "<p style='text-align:center; font-size:13px; color:var(--text-muted); padding:10px 0;'>⚠️ Selecione um profissional para liberar a agenda.</p>";
+        container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; text-align:center;'>⚠️ Escolha um profissional acima para carregar a grade de horários.</p>";
         return;
     }
 
-    // Filtra horários que já foram ocupados para esse profissional no localStorage
-    const estado = obterEstadoCorporativo();
-    const dataAlvo = campoData.value;
+    const estado = obterEstado();
+    const dataDigitada = document.getElementById('data').value;
 
     HORARIOS_PADRAO.forEach(grupo => {
         const turnoDiv = document.createElement('div');
-        turnoDiv.className = "turno-wrapper";
         
-        const header = document.createElement('div');
-        header.className = "turno-header";
-        header.innerText = grupo.turno;
-        turnoDiv.appendChild(header);
+        const label = document.createElement('div');
+        label.className = "turno-title";
+        label.innerText = grupo.turno;
+        turnoDiv.appendChild(label);
 
         const grid = document.createElement('div');
         grid.className = "grid-horarios";
 
-        let possuiHorarioLivre = false;
-
         grupo.horas.forEach(hora => {
-            // Verifica se este horário já foi reservado e está agendado/atendido no localStorage
-            const jaReservado = estado.agenda_dia.some(res => res.data === dataAlvo && res.hora === hora && res.barbeiro === barbeiroSelecionado && res.status !== 'Finalizado' && res.status !== 'No-Show');
-            
-            if (!jaReservado) {
-                possuiHorarioLivre = true;
-                const btn = document.createElement('button');
-                btn.className = "btn-horario";
-                btn.innerText = hora;
+            // Verifica se o horário já está reservado no localStorage
+            const ocupado = estado.agenda_dia.some(a => a.data === dataDigitada && a.hora === hora && a.barbeiro === barbeiroSelecionado && a.status === 'Agendado');
+
+            const btn = document.createElement('button');
+            btn.className = "btn-horario";
+            btn.innerText = hora;
+
+            if (ocupado) {
+                btn.style.opacity = "0.2";
+                btn.style.cursor = "not-allowed";
+                btn.disabled = true;
+            } else {
                 btn.onclick = (e) => {
                     e.preventDefault();
                     document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado'));
                     btn.classList.add('selecionado');
                     horarioSelecionado = hora;
                 };
-                grid.appendChild(btn);
             }
+            grid.appendChild(btn);
         });
 
-        if (possuiHorarioLivre) {
-            turnoDiv.appendChild(grid);
-            wrapperTurnos.appendChild(turnoDiv);
-        }
+        turnoDiv.appendChild(grid);
+        container.appendChild(turnoDiv);
     });
-
-    if (wrapperTurnos.innerHTML === "") {
-        wrapperTurnos.innerHTML = "<p style='text-align:center; font-size:13px; color:var(--danger-color); padding:10px 0;'>🔒 Agenda completamente lotada para este dia.</p>";
-    }
 }
 
 // ==========================================
-// 🚀 PERSISTÊNCIA INTERATIVA (AGENDAR / CONCLUIR)
+// BOTÃO CONFIRMAR AGENDA (GRAVAÇÃO REAL)
 // ==========================================
-btnConfirmar.addEventListener('click', async () => {
+document.getElementById('btnConfirmar').addEventListener('click', () => {
     if (!servicoSelecionado || !barbeiroSelecionado || !horarioSelecionado || !pagamentoSelecionado) {
-        alert('Por favor, selecione todas as etapas visuais do atendimento!');
+        alert('Selecione todos os campos em formato de card antes de confirmar!');
         return;
     }
 
-    msgStatus.style.color = "orange";
-    msgStatus.innerText = "Interligando dados com o servidor corporativo...";
+    const estado = obterEstado();
+    const novo = {
+        id: Date.now(),
+        cliente: usuarioLogado.toUpperCase(),
+        servico: servicoSelecionado,
+        hora: horarioSelecionado,
+        data: document.getElementById('data').value,
+        status: "Agendado",
+        barbeiro: barbeiroSelecionado
+    };
 
-    // Simula envio para a API e persiste de forma real no localStorage
-    setTimeout(() => {
-        const estado = obterEstadoCorporativo();
-        const novoAgendamento = {
-            id: Date.now(),
-            cliente: usuarioLogado ? usuarioLogado.toUpperCase() : "CLIENTE CLUBE",
-            servico: servicoSelecionado,
-            hora: horarioSelecionado,
-            data: campoData.value,
-            status: "Agendado",
-            cor: "var(--accent-color)",
-            barbeiro: barbeiroSelecionado
-        };
+    estado.agenda_dia.push(novo);
+    salvarEstado(estado);
 
-        estado.agenda_dia.push(novoAgendamento);
-        salvarEstadoCorporativo(estado);
+    const statusMsg = document.getElementById('mensagem-status');
+    statusMsg.style.color = "var(--success-color)";
+    statusMsg.innerText = "✨ Agendamento gravado e atualizado com sucesso!";
 
-        msgStatus.style.color = "var(--success-color)";
-        msgStatus.innerText = "✨ Agendamento feito com sucesso!";
-        
-        // Limpa a seleção e atualiza a grade de forma reativa
-        renderizarGradeHorariosPorTurno();
-    }, 800);
+    setTimeout(() => { statusMsg.innerText = ""; }, 3000);
+    renderizarGradeHorarios();
 });
 
-function construirKanbanCadeira() {
+// ==========================================
+// KANBAN DA OPERAÇÃO (BARBEIRO)
+// ==========================================
+function construirKanbanBarbeiro() {
     const box = document.getElementById('kanban-agenda-barbeiro');
     box.innerHTML = "";
 
-    const estado = obterEstadoCorporativo();
-    
-    // Se o perfil for barbeiro simples, ele vê apenas os cortes dele. Se for admin, vê de todos.
-    const filaFiltrada = estado.agenda_dia.filter(res => perfilLogado === 'admin' || res.barbeiro === usuarioLogado);
+    const estado = obterEstado();
+    // Filtra apenas os agendamentos ativos destinados ao barbeiro logado
+    const filtrados = estado.agenda_dia.filter(a => a.barbeiro === usuarioLogado);
 
-    if (filaFiltrada.length === 0) {
-        box.innerHTML = "<p style='text-align:center; color:var(--text-muted); font-size:14px; padding:20px 0;'>☕ Nenhuma cadeira ocupada ou agendada na sua fila.</p>";
+    if (filtrados.length === 0) {
+        box.innerHTML = "<p style='color:var(--text-muted); text-align:center; padding:20px;'>☕ Fila vazia por aqui.</p>";
         return;
     }
 
-    filaFiltrada.forEach(reserva => {
-        const item = document.createElement('div');
-        item.className = 'kanban-item';
-        item.style.borderLeft = `4px solid ${reserva.cor || 'var(--accent-color)'}`;
-        item.innerHTML = `
+    filtrados.forEach(item => {
+        const div = document.createElement('div');
+        div.className = "kanban-item";
+        div.innerHTML = `
             <div style="display:flex; justify-content:space-between; font-weight:700;">
-                <div>${reserva.hora} — ${reserva.cliente}</div>
-                <div style="color:var(--accent-color); font-size:13px; text-transform:uppercase;">${reserva.status}</div>
+                <div>${item.hora} — ${item.cliente}</div>
+                <div style="color:var(--accent-color); font-size:12px;">${item.status}</div>
             </div>
-            <div class="kanban-meta">${reserva.servico}</div>
-            <div class="kanban-actions" id="actions-block-${reserva.id}">
-                <button class="btn-kb checkin" onclick="mutarStatusCardPersistente(${reserva.id}, 'Na Cadeira')">Check-in</button>
-                <button class="btn-kb done" onclick="mutarStatusCardPersistente(${reserva.id}, 'Finalizado')">Concluir</button>
-                <button class="btn-kb noshow" onclick="mutarStatusCardPersistente(${reserva.id}, 'No-Show')">Falta</button>
+            <div class="kanban-meta">${item.servico}</div>
+            <div class="kanban-actions">
+                <button class="btn-kb checkin" onclick="atualizarStatusCard(${item.id}, 'Na Cadeira')">Check-in</button>
+                <button class="btn-kb done" onclick="atualizarStatusCard(${item.id}, 'Concluido')">Concluir</button>
+                <button class="btn-kb noshow" onclick="atualizarStatusCard(${item.id}, 'Falta')">Falta</button>
             </div>
         `;
-        box.appendChild(item);
+        box.appendChild(div);
     });
+
+    document.getElementById('b-meta-agendamentos').innerText = filtrados.length;
+    document.getElementById('b-meta-faturamento').innerText = `R$ ${estado.barbeiros[usuarioLogado]?.faturamento.toFixed(2) || '0.00'}`;
 }
 
-function mutarStatusCardPersistente(id, novoStatus) {
-    const estado = obterEstadoCorporativo();
-    const index = estado.agenda_dia.findIndex(res => res.id === id);
+function atualizarStatusCard(id, novoStatus) {
+    const estado = obterEstado();
+    const index = estado.agenda_dia.findIndex(a => a.id === id);
 
     if (index !== -1) {
-        if (novoStatus === 'Finalizado' || novoStatus === 'No-Show') {
-            // Se o atendimento terminou ou foi falta, removemos da visão ativa da cadeira (persiste a remoção)
-            // Em cenários de produção avançados, você mudaria o status e guardaria num histórico de relatórios.
-            estado.agenda_dia.splice(index, 1);
-            
-            // Incrementa o faturamento do profissional de forma dinâmica por produção fictícia
-            if (novoStatus === 'Finalizado' && estado.barbeiros[usuarioLogado]) {
-                estado.barbeiros[usuarioLogado].faturamento += 25.00; // Incrementa a comissão simulada por corte concluído
+        if (novoStatus === 'Concluido' || novoStatus === 'Falta') {
+            // Se concluiu ou faltou, removemos da fila diária ativa salvando a alteração no LocalStorage
+            if (novoStatus === 'Concluido' && estado.barbeiros[usuarioLogado]) {
+                estado.barbeiros[usuarioLogado].faturamento += 35.00; // Simula ganho de comissão real
             }
+            estado.agenda_dia.splice(index, 1);
         } else {
-            // Se for check-in, apenas altera o rótulo visual mantendo o card ativo
             estado.agenda_dia[index].status = novoStatus;
         }
-
-        salvarEstadoCorporativo(estado);
         
-        // Atualização da interface reativa imediata
-        construirKanbanCadeira();
-        atualizarKpisBarbeiro();
+        salvarEstado(estado);
+        construirKanbanBarbeiro();
     }
 }
 
-function atualizarKpisBarbeiro() {
-    const estado = obterEstadoCorporativo();
-    const dadosKpi = estado.barbeiros[usuarioLogado] || { agendamentos: 0, faturamento: 0 };
-    
-    const countAgendamentosAtivos = estado.agenda_dia.filter(res => res.barbeiro === usuarioLogado).length;
+// ==========================================
+// ENGINE DE ALTERNAÇÃO DE TELAS (SPA)
+// ==========================================
+function montarMenuNavegacao(role) {
+    const nav = document.getElementById('menu-navegacao');
+    nav.innerHTML = "";
 
-    document.getElementById('b-meta-agendamentos').innerText = countAgendamentosAtivos;
-    document.getElementById('b-meta-faturamento').innerText = `R$ ${dadosKpi.faturamento.toFixed(2)}`;
+    if (role === 'barbeiro') {
+        nav.innerHTML = `<button class="nav-item ativo" onclick="alternarTela('barbeiro')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>Agenda</button>`;
+    } else {
+        nav.innerHTML = `
+            <button class="nav-item ativo" onclick="alternarTela('home')"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>Agendar</button>
+            <button class="nav-item" onclick="alternarTela('estilo')"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.5 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Estilo</button>
+        `;
+    }
+    nav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="fazerLogout()"><svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59z"/></svg>Sair</button>`;
 }
 
-// ==========================================
-// 🚪 LIMPEZA DE ESTRUTURA DE SESSÃO (LOGOUT)
-// ==========================================
-function acaoLogoutLimpo() {
-    usuarioLogado = null; 
-    perfilLogado = null;
-    servicoSelecionado = null; 
-    barbeiroSelecionado = null; 
-    horarioSelecionado = null; 
-    pagamentoSelecionado = null;
-    
-    conteudoApp.classList.add('escondido');
-    telaLogin.classList.remove('escondido');
-    inputUser.value = ""; 
-    inputPass.value = ""; 
-    erroLogin.innerText = "";
-    if (msgStatus) msgStatus.innerText = "";
+function alternarTela(idAba) {
+    ['home', 'estilo', 'fidelidade', 'barbeiro'].forEach(id => {
+        const el = document.getElementById(`aba-${id}`);
+        if (el) el.classList.add('escondido');
+    });
+    document.getElementById(`aba-${idAba}`).classList.remove('escondido');
+}
+
+function inicializarFluxoPainel() {
+    if (perfilLogado === 'barbeiro') {
+        alternarTela('barbeiro');
+        construirKanbanBarbeiro();
+    } else {
+        alternarTela('home');
+        document.getElementById('boas-vistas-cliente').innerText = `Olá, ${usuarioLogado}!`;
+        renderizarFormularioCliente();
+    }
+}
+
+function fazerLogout() {
+    usuarioLogado = null; perfilLogado = null;
+    document.getElementById('conteudo-app').classList.add('escondido');
+    document.getElementById('tela-login').classList.remove('escondido');
 }
