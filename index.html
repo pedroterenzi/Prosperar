@@ -179,7 +179,7 @@
             <div class="form-group" style="margin-bottom: 14px;">
                 <label>Visualizar dados de:</label>
                 <select id="filtro-barbeiro-alvo" style="background: #1f2125;" onchange="recarregarAbaAtivaAdm()">
-                    <!-- Carregado de forma segura e preventiva -->
+                    <!-- AJUSTE SEGURO: Opções preventivas e estáticas inseridas para evitar quebra reativa do DOM -->
                     <option value="todos">-- Todos os Barbeiros (Geral) --</option>
                     <option value="gabriel">Gabriel (Proprietário)</option>
                     <option value="lucas">Lucas Barber</option>
@@ -262,7 +262,7 @@
                 </div>
             </div>
 
-            <!-- Visão de Ganhos Privados do Colaborador Logado -->
+            <!-- Visão de Ganh Ganhos Privados do Colaborador Logado -->
             <div class="card escondido" id="card-rendimentos-barbeiro">
                 <h3 class="gold-text">Minha Carteira Pro</h3>
                 <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.3);">
@@ -367,6 +367,7 @@
                 <div class="form-group">
                     <label>Profissional Designado:</label>
                     <select id="encaixe-barbeiro">
+                        <!-- AJUSTE SEGURO: Opções preventivas inseridas para evitar quebras por referências nulas -->
                         <option value="Gabriel (Proprietário)">Gabriel (Proprietário)</option>
                         <option value="Lucas Barber">Lucas Barber</option>
                     </select>
