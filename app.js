@@ -1,4 +1,3 @@
-// Configuração da API conectada ao Render
 const API_URL = "https://prosperar.onrender.com";
 
 let usuarioLogado = null;
@@ -33,10 +32,10 @@ const HORARIOS_PADRAO = [
     { turno: "🌙 Turno da Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
 ];
 
-// Login local unificado
+// Gerenciador de Login e Direcionamento de fluxo
 document.getElementById('btn-entrar').addEventListener('click', () => {
     const login = document.getElementById('login-usuario').value.trim().toLowerCase();
-    if (!login) return alert("Informe seu usuário!");
+    if (!login) return alert("Por favor, digite seu usuário.");
 
     usuarioLogado = login;
     perfilLogado = (login === 'gabriel' || login === 'lucas') ? 'barbeiro' : 'cliente';
@@ -55,7 +54,7 @@ document.getElementById('btn-entrar').addEventListener('click', () => {
 });
 
 function renderizarFormularioCliente() {
-    // 1. Renderizar Serviços
+    // 1. Injetar Serviços
     const boxServicos = document.getElementById('container-servicos');
     boxServicos.innerHTML = "";
     ESTRUTURA_SERVICOS.forEach(s => {
@@ -72,7 +71,7 @@ function renderizarFormularioCliente() {
         boxServicos.appendChild(div);
     });
 
-    // 2. Renderizar Barbeiros
+    // 2. Injetar Barbeiros
     const boxBarbeiros = document.getElementById('container-barbeiros');
     boxBarbeiros.innerHTML = "";
     ESTRUTURA_BARBEIROS.forEach(b => {
@@ -88,7 +87,7 @@ function renderizarFormularioCliente() {
         boxBarbeiros.appendChild(div);
     });
 
-    // 3. Renderizar Pagamentos
+    // 3. Injetar Pagamentos
     const boxPagos = document.getElementById('container-pagamentos');
     boxPagos.innerHTML = "";
     ESTRUTURA_PAGAMENTOS.forEach(p => {
@@ -106,7 +105,7 @@ function renderizarFormularioCliente() {
     document.getElementById('data').value = new Date().toISOString().split('T')[0];
 }
 
-// 1. REQUISITO: PUXAR E EXCLUIR HORÁRIOS JÁ AGENDADOS NO BANCO DE DADOS REAIS
+// 1. REQUISITO: RETIRAR OS HORÁRIOS OCUPADOS DIRETAMENTE DO NEON
 document.getElementById('data').addEventListener('change', renderizarGradeHorariosReais);
 
 async function renderizarGradeHorariosReais() {
@@ -121,19 +120,21 @@ async function renderizarGradeHorariosReais() {
     const dataSelecionada = document.getElementById('data').value;
     let agendamentosOcupados = [];
 
-    // Faz o fetch real na API buscando a lista cadastrada no banco
     try {
         const resposta = await fetch(`${API_URL}/agendamentos`);
         if (resposta.ok) {
             const todosAgendamentos = await resposta.json();
-            // Filtra os registros ativos do banco que colidem com a mesma data e profissional
-            agendamentosOcupados = todosAgendamentos.filter(a => 
-                a.data === dataSelecionada && 
-                a.barbeiro.toLowerCase().includes(barbeiroSelecionado)
-            ).map(a => a.hora);
+            
+            agendamentosOcupados = todosAgendamentos
+                .filter(a => {
+                    const bancoBarbeiro = String(a.barbeiro).toLowerCase();
+                    const selecionadoBarbeiro = String(barbeiroSelecionado).toLowerCase();
+                    return a.data === dataSelecionada && bancoBarbeiro.includes(selecionadoBarbeiro);
+                })
+                .map(a => String(a.hora).trim());
         }
     } catch (erro) {
-        console.error("Erro ao ler banco de dados, exibindo grade cheia.", erro);
+        console.error("Erro na leitura das datas do Neon.", erro);
     }
 
     container.innerHTML = "";
@@ -152,9 +153,10 @@ async function renderizarGradeHorariosReais() {
             btn.className = "btn-horario";
             btn.innerText = hora;
 
-            // Se o horário retornado do banco bater com este botão, desativa-o imediatamente
-            if (agendamentosOcupados.includes(hora)) {
+            // Bloqueia e altera o texto do botão caso o horário conste no Neon
+            if (agendamentosOcupados.includes(hora.trim())) {
                 btn.disabled = true;
+                btn.innerText = "Ocupado";
             } else {
                 btn.onclick = (e) => {
                     e.preventDefault();
@@ -171,24 +173,22 @@ async function renderizarGradeHorariosReais() {
     });
 }
 
-// 2. REQUISITO: POP-UP DE CONFIRMAÇÃO EM DOIS PASSOS
+// 2. REQUISITO: POP-UP MODAL DE DUPLA CONFIRMAÇÃO
 document.getElementById('btnPreAgendar').addEventListener('click', () => {
     if (!servicoSelecionado || !barbeiroSelecionado || !horarioSelecionado || !pagamentoSelecionado) {
-        alert("Por favor, selecione todas as opções nos cards antes de avançar!");
+        alert("Por favor, selecione todas as opções antes de avançar!");
         return;
     }
 
-    // Alimenta a caixa de texto com o resumo formatado das opções do cliente
     document.getElementById('modal-resumo-detalhes').innerHTML = `
-        <strong>💇‍♂️ Serviço:</strong> ${servicoSelecionado}<br>
-        <strong>💈 Profissional:</strong> ${barbeiroSelecionado.toUpperCase()}<br>
-        <strong>📅 Data escolhida:</strong> ${document.getElementById('data').value}<br>
-        <strong>⏰ Horário reservado:</strong> ${horarioSelecionado}<br>
+        <strong>💇‍♂️ Procedimento:</strong> ${servicoSelecionado}<br>
+        <strong>💈 Barbeiro:</strong> ${barbeiroSelecionado.toUpperCase()}<br>
+        <strong>📅 Data:</strong> ${document.getElementById('data').value}<br>
+        <strong>⏰ Horário:</strong> ${horarioSelecionado}<br>
         <strong>💳 Pagamento:</strong> ${pagamentoSelecionado}<br>
         <span style="color:var(--success-color); font-weight:bold;">💵 Valor total: R$ ${precoServico.toFixed(2)}</span>
     `;
 
-    // Torna a janela visível na tela
     document.getElementById('modal-confirmacao').classList.remove('escondido');
 });
 
@@ -196,7 +196,7 @@ document.getElementById('btn-modal-voltar').addEventListener('click', () => {
     document.getElementById('modal-confirmacao').classList.add('escondido');
 });
 
-// ENVIO DE DADOS PARA A API E LINK DO WHATSAPP
+// ENVIO DOS DADOS CONFIRMADOS PARA A API
 document.getElementById('btn-modal-gravar').addEventListener('click', async () => {
     const payload = {
         cliente: usuarioLogado.toUpperCase(),
@@ -216,23 +216,23 @@ document.getElementById('btn-modal-gravar').addEventListener('click', async () =
 
         if (enviar.ok) {
             document.getElementById('modal-confirmacao').classList.add('escondido');
-            alert("✅ Agendamento registrado com sucesso no banco de dados!");
+            alert("✅ Agendamento gravado com sucesso no Neon!");
             
-            // 4. REQUISITO: MENSAGEM VIA WHATSAPP AUTOMÁTICA
+            // 4. REQUISITO: DISPARO DE MENSAGEM VIA WHATSAPP
             enviarMensagemWhatsApp(payload);
 
             renderizarGradeHorariosReais();
             carregarMeusAgendamentosDoBanco();
         } else {
-            alert("Erro ao salvar o agendamento na API.");
+            alert("Erro ao gravar agendamento. Verifique o backend.");
         }
     } catch (e) {
-        alert("Servidor indisponível no momento. O registro não pôde ser concluído.");
+        alert("O servidor de banco de dados não respondeu.");
     }
 });
 
 function enviarMensagemWhatsApp(dados) {
-    const numeroBarbearia = "5519999999999"; // Substitua pelo número real da barbearia se desejar centralizar
+    const numeroBarbearia = "5519999999999"; // Insira o número real da barbearia se preferir centralizar
     const texto = `👋 Olá! Segue a confirmação do meu agendamento na Prosperar Club:\n\n` +
                   `👤 Cliente: ${dados.cliente}\n` +
                   `💇‍♂️ Procedimento: ${dados.servico}\n` +
@@ -240,28 +240,27 @@ function enviarMensagemWhatsApp(dados) {
                   `📅 Data: ${dados.data}\n` +
                   `⏰ Horário: ${dados.hora}\n` +
                   `💳 Meio de Pagamento: ${dados.pagamento}\n\n` +
-                  `Obrigado! Até lá.`;
+                  `Obrigado!`;
 
     const urlCodificada = `https://api.whatsapp.com/send?phone=${numeroBarbearia}&text=${encodeURIComponent(texto)}`;
     window.open(urlCodificada, '_blank');
 }
 
-// 3. REQUISITO: SEÇÃO DE CONSULTA E EXCLUSÃO DO BANCO DE DADOS (CANCELAMENTO)
+// 3. REQUISITO: INTERFACE DE CANCELAMENTO COM DELEÇÃO REAL NO NEON
 async function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos');
     if (!container) return;
 
-    container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Buscando registros ativos...</p>";
+    container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Buscando seus agendamentos...</p>";
 
     try {
         const resposta = await fetch(`${API_URL}/agendamentos`);
         if (resposta.ok) {
             const lista = await resposta.json();
-            // Filtra agendamentos pertencentes unicamente ao cliente logado
             const meusAgendamentos = lista.filter(a => a.cliente.toUpperCase() === usuarioLogado.toUpperCase());
 
             if (meusAgendamentos.length === 0) {
-                container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Você não possui agendamentos cadastrados no momento.</p>";
+                container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Você não possui horários marcados.</p>";
                 return;
             }
 
@@ -282,31 +281,28 @@ async function carregarMeusAgendamentosDoBanco() {
             });
         }
     } catch (err) {
-        container.innerHTML = "<p style='color:var(--danger-color); text-align:center;'>Falha ao conectar com o banco de dados.</p>";
+        container.innerHTML = "<p style='color:var(--danger-color); text-align:center;'>Erro de comunicação com o Neon.</p>";
     }
 }
 
 async function cancelarAgendamentoDoBanco(id) {
-    if (!confirm("Tem certeza que deseja cancelar esse agendamento e liberá-lo no banco de dados?")) return;
+    if (!confirm("Tem certeza que deseja cancelar e liberar esse horário de forma definitiva?")) return;
 
     try {
-        const deletar = await fetch(`${API_URL}/agendamentos/${id}`, {
-            method: 'DELETE'
-        });
-
+        const deletar = await fetch(`${API_URL}/agendamentos/${id}`, { method: 'DELETE' });
         if (deletar.ok) {
-            alert("Excluído com sucesso do banco de dados!");
+            alert("Excluído permanentemente do banco Neon!");
             renderizarGradeHorariosReais();
             carregarMeusAgendamentosDoBanco();
         } else {
-            alert("Não foi possível excluir o registro. Verifique a rota da API.");
+            alert("Não foi possível excluir o registro.");
         }
     } catch (e) {
-        alert("Erro de conexão ao tentar deletar o agendamento.");
+        alert("Erro na conexão com a API.");
     }
 }
 
-// Alternador de Abas (SPA)
+// Alternador SPA
 function montarMenuNavegacao(role) {
     const nav = document.getElementById('menu-navegacao');
     if (!nav) return;
