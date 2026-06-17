@@ -32,80 +32,120 @@ const HORARIOS_PADRAO = [
     { turno: "🌙 Turno da Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
 ];
 
-// Gerenciador de Login e Direcionamento de fluxo
+// Login com Controle de Acesso (RBAC)
 document.getElementById('btn-entrar').addEventListener('click', () => {
     const login = document.getElementById('login-usuario').value.trim().toLowerCase();
-    if (!login) return alert("Por favor, digite seu usuário.");
+    if (!login) return alert("Por favor, preencha o login.");
 
     usuarioLogado = login;
-    perfilLogado = (login === 'gabriel' || login === 'lucas') ? 'barbeiro' : 'cliente';
+    
+    // Configuração de Nível de Permissão Estrita
+    if (login === 'gabriel') {
+        perfilLogado = 'admin'; // Acesso estratégico completo
+    } else if (login === 'lucas') {
+        perfilLogado = 'barbeiro'; // Vê apenas recepção/agenda básica
+    } else {
+        perfilLogado = 'cliente'; // Interface de compras e reservas
+    }
 
     document.getElementById('tela-login').classList.add('escondido');
     document.getElementById('conteudo-app').classList.remove('escondido');
 
     montarMenuNavegacao(perfilLogado);
-    
-    if (perfilLogado === 'cliente') {
+    direcionarFluxoInicial(perfilLogado);
+});
+
+function direcionarFluxoInicial(perfil) {
+    if (perfil === 'admin') {
+        alternarTela('adm-dash');
+        carregarDadosEstrategicosDoNeon();
+    } else if (perfil === 'barbeiro') {
+        alternarTela('adm-recepcao');
+        carregarModoRecepcaoKanban();
+    } else {
         alternarTela('home');
-        document.getElementById('boas-vistas-cliente').innerText = `Olá, ${login.charAt(0).toUpperCase() + login.slice(1)}!`;
+        document.getElementById('boas-vistas-cliente').innerText = `Olá, ${usuarioLogado.charAt(0).toUpperCase() + usuarioLogado.slice(1)}!`;
         renderizarFormularioCliente();
         carregarMeusAgendamentosDoBanco();
     }
-});
-
-function renderizarFormularioCliente() {
-    // 1. Injetar Serviços
-    const boxServicos = document.getElementById('container-servicos');
-    boxServicos.innerHTML = "";
-    ESTRUTURA_SERVICOS.forEach(s => {
-        const div = document.createElement('div');
-        div.className = "modern-card";
-        div.style.backgroundImage = `linear-gradient(rgba(26,27,30,0.9), rgba(26,27,30,0.95)), url('${s.img}')`;
-        div.innerHTML = `<div class="info-block"><div class="title">${s.nome}</div><div class="subtitle">${s.sub}</div></div><div class="price">R$ ${s.preco.toFixed(2)}</div>`;
-        div.onclick = () => {
-            document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected'));
-            div.classList.add('selected');
-            servicoSelecionado = s.nome;
-            precoServico = s.preco;
-        };
-        boxServicos.appendChild(div);
-    });
-
-    // 2. Injetar Barbeiros
-    const boxBarbeiros = document.getElementById('container-barbeiros');
-    boxBarbeiros.innerHTML = "";
-    ESTRUTURA_BARBEIROS.forEach(b => {
-        const div = document.createElement('div');
-        div.className = "modern-card";
-        div.innerHTML = `<div class="info-block"><div class="title">${b.nome}</div><div class="subtitle">${b.avaliacao}</div></div>`;
-        div.onclick = () => {
-            document.querySelectorAll('#container-barbeiros .modern-card').forEach(c => c.classList.remove('selected'));
-            div.classList.add('selected');
-            barbeiroSelecionado = b.id;
-            renderizarGradeHorariosReais();
-        };
-        boxBarbeiros.appendChild(div);
-    });
-
-    // 3. Injetar Pagamentos
-    const boxPagos = document.getElementById('container-pagamentos');
-    boxPagos.innerHTML = "";
-    ESTRUTURA_PAGAMENTOS.forEach(p => {
-        const div = document.createElement('div');
-        div.className = "modern-card";
-        div.innerHTML = `<div class="info-block"><div class="title">${p.nome}</div><div class="subtitle">${p.sub}</div></div>`;
-        div.onclick = () => {
-            document.querySelectorAll('#container-pagamentos .modern-card').forEach(c => c.classList.remove('selected'));
-            div.classList.add('selected');
-            pagamentoSelecionado = p.nome;
-        };
-        boxPagos.appendChild(div);
-    });
-
-    document.getElementById('data').value = new Date().toISOString().split('T')[0];
 }
 
-// 1. REQUISITO: RETIRAR OS HORÁRIOS OCUPADOS DIRETAMENTE DO NEON
+// ================= PROCESSAMENTO DE INTELIGÊNCIA DE NEGÓCIO (NEON) =================
+async function carregarDadosEstrategicosDoNeon() {
+    try {
+        const resposta = await fetch(`${API_URL}/agendamentos`);
+        if (!resposta.ok) return;
+        const agendamentos = await resposta.json();
+
+        let faturamentoTotal = 0;
+        let comissaoGabriel = 0;
+        let comissaoLucas = 0;
+
+        agendamentos.forEach(a => {
+            // Encontra o valor bruto do serviço para processar métricas reais
+            const serv = ESTRUTURA_SERVICOS.find(s => s.nome === a.servico);
+            const valor = serv ? serv.preco : 40.00;
+
+            faturamentoTotal += valor;
+
+            // Split de pagamento automatizado
+            if (String(a.barbeiro).toLowerCase().includes('gabriel')) {
+                comissaoGabriel += (valor * 0.50); // Gabriel ganha 50%
+            } else {
+                comissaoLucas += (valor * 0.40); // Lucas ganha 40%
+            }
+        });
+
+        // Atualiza os indicadores visuais do Dono da Barbearia
+        document.getElementById('kpi-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
+        
+        const tMedio = agendamentos.length > 0 ? (faturamentoTotal / agendamentos.length) : 0;
+        document.getElementById('kpi-ticket').innerText = `R$ ${tMedio.toFixed(2)}`;
+
+        document.getElementById('split-gabriel').innerText = `R$ ${comissaoGabriel.toFixed(2)}`;
+        document.getElementById('split-lucas').innerText = `R$ ${comissaoLucas.toFixed(2)}`;
+
+    } catch (e) {
+        console.error("Erro ao puxar métricas estratégicas do Neon.", e);
+    }
+}
+
+// Visão estilo Kanban da Recepção
+async function carregarModoRecepcaoKanban() {
+    const container = document.getElementById('container-kanban-recepcao');
+    if (!container) return;
+    container.innerHTML = "<p style='color:var(--text-muted);'>Sincronizando cadeiras...</p>";
+
+    try {
+        const resposta = await fetch(`${API_URL}/agendamentos`);
+        if (!resposta.ok) return;
+        const lista = await resposta.json();
+
+        container.innerHTML = "";
+        if(lista.length === 0) {
+            container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Nenhum cliente em atendimento hoje.</p>";
+            return;
+        }
+
+        lista.slice(0, 5).forEach(item => {
+            const div = document.createElement('div');
+            div.className = "item-backoffice";
+            div.style.borderLeft = "4px solid var(--accent-color)";
+            div.innerHTML = `
+                <div>
+                    <strong>👤 ${item.cliente}</strong><br>
+                    <span style="font-size:12px; color:var(--text-muted);">${item.servico} com ${item.barbeiro}</span>
+                </div>
+                <span style="background:#cc9933; color:black; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:700;">${item.hora}</span>
+            `;
+            container.appendChild(div);
+        });
+    } catch(err) {
+        container.innerHTML = "<p style='color:var(--danger-color);'>Erro ao renderizar o Kanban da recepção.</p>";
+    }
+}
+
+// FILTRAGEM RESTRETA DE HORÁRIOS DISPONÍVEIS
 document.getElementById('data').addEventListener('change', renderizarGradeHorariosReais);
 
 async function renderizarGradeHorariosReais() {
@@ -113,7 +153,7 @@ async function renderizarGradeHorariosReais() {
     if (!container) return;
 
     if (!barbeiroSelecionado) {
-        container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; text-align:center;'>⚠️ Escolha o barbeiro para checar horários disponíveis.</p>";
+        container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; text-align:center;'>⚠️ Escolha o profissional para abrir os horários livres.</p>";
         return;
     }
 
@@ -124,7 +164,6 @@ async function renderizarGradeHorariosReais() {
         const resposta = await fetch(`${API_URL}/agendamentos`);
         if (resposta.ok) {
             const todosAgendamentos = await resposta.json();
-            
             agendamentosOcupados = todosAgendamentos
                 .filter(a => {
                     const bancoBarbeiro = String(a.barbeiro).toLowerCase();
@@ -153,7 +192,6 @@ async function renderizarGradeHorariosReais() {
             btn.className = "btn-horario";
             btn.innerText = hora;
 
-            // Bloqueia e altera o texto do botão caso o horário conste no Neon
             if (agendamentosOcupados.includes(hora.trim())) {
                 btn.disabled = true;
                 btn.innerText = "Ocupado";
@@ -167,16 +205,15 @@ async function renderizarGradeHorariosReais() {
             }
             grid.appendChild(btn);
         });
-
         turnoDiv.appendChild(grid);
         container.appendChild(turnoDiv);
     });
 }
 
-// 2. REQUISITO: POP-UP MODAL DE DUPLA CONFIRMAÇÃO
+// MODAL DE DUPLA CONFIRMAÇÃO
 document.getElementById('btnPreAgendar').addEventListener('click', () => {
     if (!servicoSelecionado || !barbeiroSelecionado || !horarioSelecionado || !pagamentoSelecionado) {
-        alert("Por favor, selecione todas as opções antes de avançar!");
+        alert("Por favor, preencha todos os campos do agendamento!");
         return;
     }
 
@@ -188,7 +225,6 @@ document.getElementById('btnPreAgendar').addEventListener('click', () => {
         <strong>💳 Pagamento:</strong> ${pagamentoSelecionado}<br>
         <span style="color:var(--success-color); font-weight:bold;">💵 Valor total: R$ ${precoServico.toFixed(2)}</span>
     `;
-
     document.getElementById('modal-confirmacao').classList.remove('escondido');
 });
 
@@ -196,7 +232,6 @@ document.getElementById('btn-modal-voltar').addEventListener('click', () => {
     document.getElementById('modal-confirmacao').classList.add('escondido');
 });
 
-// ENVIO DOS DADOS CONFIRMADOS PARA A API
 document.getElementById('btn-modal-gravar').addEventListener('click', async () => {
     const payload = {
         cliente: usuarioLogado.toUpperCase(),
@@ -216,15 +251,12 @@ document.getElementById('btn-modal-gravar').addEventListener('click', async () =
 
         if (enviar.ok) {
             document.getElementById('modal-confirmacao').classList.add('escondido');
-            alert("✅ Agendamento gravado com sucesso no Neon!");
-            
-            // 4. REQUISITO: DISPARO DE MENSAGEM VIA WHATSAPP
+            alert("✅ Agendamento gravado de forma definitiva no banco Neon!");
             enviarMensagemWhatsApp(payload);
-
             renderizarGradeHorariosReais();
             carregarMeusAgendamentosDoBanco();
         } else {
-            alert("Erro ao gravar agendamento. Verifique o backend.");
+            alert("Erro ao salvar o agendamento na API.");
         }
     } catch (e) {
         alert("O servidor de banco de dados não respondeu.");
@@ -232,26 +264,15 @@ document.getElementById('btn-modal-gravar').addEventListener('click', async () =
 });
 
 function enviarMensagemWhatsApp(dados) {
-    const numeroBarbearia = "5519999999999"; // Insira o número real da barbearia se preferir centralizar
-    const texto = `👋 Olá! Segue a confirmação do meu agendamento na Prosperar Club:\n\n` +
-                  `👤 Cliente: ${dados.cliente}\n` +
-                  `💇‍♂️ Procedimento: ${dados.servico}\n` +
-                  `💈 Profissional: ${dados.barbeiro}\n` +
-                  `📅 Data: ${dados.data}\n` +
-                  `⏰ Horário: ${dados.hora}\n` +
-                  `💳 Meio de Pagamento: ${dados.pagamento}\n\n` +
-                  `Obrigado!`;
-
-    const urlCodificada = `https://api.whatsapp.com/send?phone=${numeroBarbearia}&text=${encodeURIComponent(texto)}`;
-    window.open(urlCodificada, '_blank');
+    const texto = `👋 Olá! Segue a confirmação do meu agendamento na Prosperar Club:\n\n👤 Cliente: ${dados.cliente}\n💇‍♂️ Procedimento: ${dados.servico}\n💈 Profissional: ${dados.barbeiro}\n📅 Data: ${dados.data}\n⏰ Horário: ${dados.hora}\n💳 Meio de Pagamento: ${dados.pagamento}\n\nObrigado!`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`, '_blank');
 }
 
-// 3. REQUISITO: INTERFACE DE CANCELAMENTO COM DELEÇÃO REAL NO NEON
+// RENDER DE CLIENTES FIXOS E CANCELAMENTO DIRETO NO NEON
 async function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos');
     if (!container) return;
-
-    container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Buscando seus agendamentos...</p>";
+    container.innerHTML = "<p style='color:var(--text-muted);'>Carregando...</p>";
 
     try {
         const resposta = await fetch(`${API_URL}/agendamentos`);
@@ -260,7 +281,7 @@ async function carregarMeusAgendamentosDoBanco() {
             const meusAgendamentos = lista.filter(a => a.cliente.toUpperCase() === usuarioLogado.toUpperCase());
 
             if (meusAgendamentos.length === 0) {
-                container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Você não possui horários marcados.</p>";
+                container.innerHTML = "<p style='color:var(--text-muted); text-align:center;'>Você não possui reservas pendentes.</p>";
                 return;
             }
 
@@ -271,7 +292,7 @@ async function carregarMeusAgendamentosDoBanco() {
                 div.style.border = "1px solid #3a1a1a";
                 div.innerHTML = `
                     <div style="font-weight:700; font-size:16px; margin-bottom: 8px;" class="gold-text">${item.servico}</div>
-                    <div style="font-size:14px; line-height:1.6; color: var(--text-muted);">
+                    <div style="font-size:14px; color: var(--text-muted); line-height:1.6;">
                         <strong>Barbeiro:</strong> ${item.barbeiro}<br>
                         <strong>Data/Hora:</strong> ${item.data} às ${item.hora}
                     </div>
@@ -281,43 +302,95 @@ async function carregarMeusAgendamentosDoBanco() {
             });
         }
     } catch (err) {
-        container.innerHTML = "<p style='color:var(--danger-color); text-align:center;'>Erro de comunicação com o Neon.</p>";
+        container.innerHTML = "<p style='color:var(--danger-color);'>Erro ao buscar dados do banco Neon.</p>";
     }
 }
 
 async function cancelarAgendamentoDoBanco(id) {
-    if (!confirm("Tem certeza que deseja cancelar e liberar esse horário de forma definitiva?")) return;
-
+    if (!confirm("Tem certeza que deseja apagar esse registro permanentemente?")) return;
     try {
         const deletar = await fetch(`${API_URL}/agendamentos/${id}`, { method: 'DELETE' });
         if (deletar.ok) {
-            alert("Excluído permanentemente do banco Neon!");
+            alert("Excluído com sucesso do banco de dados!");
             renderizarGradeHorariosReais();
             carregarMeusAgendamentosDoBanco();
-        } else {
-            alert("Não foi possível excluir o registro.");
         }
     } catch (e) {
-        alert("Erro na conexão com a API.");
+        alert("Erro na requisição.");
     }
 }
 
-// Alternador SPA
+function renderizarFormularioCliente() {
+    const boxServicos = document.getElementById('container-servicos');
+    boxServicos.innerHTML = "";
+    ESTRUTURA_SERVICOS.forEach(s => {
+        const div = document.createElement('div');
+        div.className = "modern-card";
+        div.style.backgroundImage = `linear-gradient(rgba(26,27,30,0.9), rgba(26,27,30,0.95)), url('${s.img}')`;
+        div.innerHTML = `<div class="info-block"><div class="title">${s.nome}</div><div class="subtitle">${s.sub}</div></div><div class="price">R$ ${s.preco.toFixed(2)}</div>`;
+        div.onclick = () => {
+            document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected'));
+            div.classList.add('selected');
+            servicoSelecionado = s.nome; precoServico = s.preco;
+        };
+        boxServicos.appendChild(div);
+    });
+
+    const boxBarbeiros = document.getElementById('container-barbeiros');
+    boxBarbeiros.innerHTML = "";
+    ESTRUTURA_BARBEIROS.forEach(b => {
+        const div = document.createElement('div');
+        div.className = "modern-card";
+        div.innerHTML = `<div class="info-block"><div class="title">${b.nome}</div><div class="subtitle">${b.avaliacao}</div></div>`;
+        div.onclick = () => {
+            document.querySelectorAll('#container-barbeiros .modern-card').forEach(c => c.classList.remove('selected'));
+            div.classList.add('selected');
+            barbeiroSelecionado = b.id; renderizarGradeHorariosReais();
+        };
+        boxBarbeiros.appendChild(div);
+    });
+
+    const boxPagos = document.getElementById('container-pagamentos');
+    boxPagos.innerHTML = "";
+    ESTRUTURA_PAGAMENTOS.forEach(p => {
+        const div = document.createElement('div');
+        div.className = "modern-card";
+        div.innerHTML = `<div class="info-block"><div class="title">${p.nome}</div><div class="subtitle">${p.sub}</div></div>`;
+        div.onclick = () => {
+            document.querySelectorAll('#container-pagamentos .modern-card').forEach(c => c.classList.remove('selected'));
+            div.classList.add('selected');
+            pagamentoSelecionado = p.nome;
+        };
+        boxPagos.appendChild(div);
+    });
+    document.getElementById('data').value = new Date().toISOString().split('T')[0];
+}
+
+// ALTERNADOR E SELETOR DE NAVEGAÇÃO DINÂMICA (SPA)
 function montarMenuNavegacao(role) {
     const nav = document.getElementById('menu-navegacao');
     if (!nav) return;
 
-    if (role === 'cliente') {
+    if (role === 'admin') {
         nav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('home')"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>Agendar</button>
-            <button class="nav-item" onclick="alternarTela('estilo')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>Minhas Cadeiras</button>
+            <button class="nav-item ativo" onclick="alternarTela('adm-dash')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 14H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V7h12v2z"/></svg>Finanças</button>
+            <button class="nav-item" onclick="alternarTela('adm-estoque')"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 12H4v-2h11v2zm0-4H4v-2h11v2zm5-4H4V6h16v2z"/></svg>Estoque</button>
+            <button class="nav-item" onclick="alternarTela('adm-mkt')"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>Marketing</button>
+            <button class="nav-item" onclick="alternarTela('adm-recepcao')"><svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>Cadeiras</button>
+        `;
+    } else if (role === 'barbeiro') {
+        nav.innerHTML = `<button class="nav-item ativo" onclick="alternarTela('adm-recepcao')"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>Minha Agenda</button>`;
+    } else {
+        nav.innerHTML = `
+            <button class="nav-item ativo" onclick="alternarTela('home')"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Agendar</button>
+            <button class="nav-item" onclick="alternarTela('estilo')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>Meus Horários</button>
         `;
     }
     nav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()"><svg viewBox="0 0 24 24"><path d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59z"/></svg>Sair</button>`;
 }
 
 function alternarTela(idAba) {
-    ['home', 'estilo'].forEach(id => {
+    ['home', 'estilo', 'adm-dash', 'adm-estoque', 'adm-mkt', 'adm-recepcao'].forEach(id => {
         const el = document.getElementById(`aba-${id}`);
         if (el) el.classList.add('escondido');
     });
@@ -326,4 +399,8 @@ function alternarTela(idAba) {
 
     document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('ativo'));
     if (window.event && window.event.currentTarget) window.event.currentTarget.classList.add('ativo');
+
+    // Gatilhos para recarregar dados específicos ao alternar abas
+    if (idAba === 'adm-dash') carregarDadosEstrategicosDoNeon();
+    if (idAba === 'adm-recepcao') carregarModoRecepcaoKanban();
 }
