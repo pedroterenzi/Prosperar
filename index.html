@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prosperar Club</title>
+    <title>Prosperar Club - Dashboard & Agendamentos</title>
     <style>
         :root {
             --bg-color: #111214;
@@ -27,7 +27,7 @@
             padding: 0;
             display: flex;
             justify-content: center;
-            padding-bottom: 90px;
+            padding-bottom: 100px;
         }
 
         .app-container { 
@@ -46,74 +46,27 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.4); 
         }
 
-        /* Alinhamento estruturado para a tela de Login */
-        .login-form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 16px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .login-form-group label {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-
-        .login-form-group input {
-            width: 100%;
-            padding: 14px;
-            background: #222428;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            color: white;
-            font-size: 16px;
-            box-sizing: border-box;
-            transition: border-color 0.2s;
-        }
-        .login-form-group input:focus { border-color: var(--accent-color); outline: none; }
+        .login-form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; width: 100%; box-sizing: border-box; }
+        .login-form-group label { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+        .login-form-group input { width: 100%; padding: 14px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box; }
         
         h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
         .gold-text { color: var(--accent-color); }
         
-        .step-label { 
-            display: block; 
-            margin: 24px 0 12px; 
-            font-weight: 700; 
-            color: #ffffff; 
-            font-size: 14px; 
-            text-transform: uppercase; 
-            letter-spacing: 0.5px; 
-        }
-        
-        input[type="date"] {
-            width: 100%; padding: 16px; background: #222428; border: 1px solid var(--border-color);
-            border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box;
-        }
+        .step-label { display: block; margin: 24px 0 12px; font-weight: 700; color: #ffffff; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+        input[type="date"], select { width: 100%; padding: 16px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box; }
 
         .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
         .btn-gold:hover { background: var(--accent-hover); }
-
         .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 12px; }
 
         .cards-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
         
-        /* Layout de Cards Horizontais Estilo Streamlit */
         .modern-card {
             background: linear-gradient(rgba(26, 27, 30, 0.85), rgba(26, 27, 30, 0.95)), url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=120') no-repeat right center;
-            background-size: contain;
-            border: 1px solid var(--border-color);
-            padding: 18px;
-            border-radius: 14px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            background-size: contain; border: 1px solid var(--border-color); padding: 18px; border-radius: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
         }
-        
-        .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.08); box-shadow: 0 0 12px rgba(204,153,51,0.2); }
+        .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.08); }
         .modern-card .info-block { flex: 1; }
         .modern-card .title { font-weight: 700; font-size: 16px; color: #fff; }
         .modern-card .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
@@ -125,7 +78,18 @@
         .btn-horario.selecionado { background: var(--accent-color); color: black; border-color: var(--accent-color); font-weight: 700; }
         .btn-horario:disabled { opacity: 0.2; cursor: not-allowed; background: #151618; border-color: #1f2023; color: #ff4444; }
 
-        /* Camada da Modal (Pop-up de Confirmação) */
+        /* Estilos do Dashboard Executivo */
+        .grid-indicadores { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+        .kpi-card { background: #1a1b1e; border: 1px solid var(--border-color); padding: 16px; border-radius: 14px; text-align: left; }
+        .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+        .kpi-card .kpi-val { font-size: 20px; font-weight: 800; margin-top: 6px; color: #fff; }
+        .kpi-card .kpi-badge { font-size: 11px; margin-top: 4px; font-weight: 700; }
+
+        /* Lista de Estoque e Comissões */
+        .lista-backoffice { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .item-backoffice { background: #222428; border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Modal Overlay */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
         .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
         .modal-buttons { display: flex; gap: 12px; margin-top: 20px; }
@@ -145,17 +109,14 @@
 
     <div id="tela-login" class="card" style="margin-top: 40px;">
         <h2 style="text-align: center; font-size: 24px; margin-bottom: 24px;" class="gold-text">Acessar Conta</h2>
-        
         <div class="login-form-group">
             <label>Usuário / WhatsApp:</label>
-            <input type="text" id="login-usuario" placeholder="Ex: gabriel">
+            <input type="text" id="login-usuario" placeholder="Ex: gabriel ou cliente">
         </div>
-        
         <div class="login-form-group">
             <label>Senha:</label>
             <input type="password" id="login-senha" placeholder="••••••">
         </div>
-        
         <button class="btn-gold" id="btn-entrar" style="margin-top: 16px;">Entrar no Sistema</button>
     </div>
 
@@ -166,33 +127,127 @@
                 <h2 id="boas-vistas-cliente" style="font-size: 24px; margin-bottom: 4px;">Olá!</h2>
                 <p style="margin:0; color: var(--text-muted); font-size: 14px;">Bora atualizar seu estilo hoje?</p>
             </div>
-            
             <div class="card">
                 <h3>Agendar Nova Cadeira</h3>
-                
                 <span class="step-label">1. Escolha o Serviço:</span>
                 <div id="container-servicos" class="cards-container"></div>
-
                 <span class="step-label">2. Escolha o Profissional:</span>
                 <div id="container-barbeiros" class="cards-container"></div>
-
                 <span class="step-label">3. Selecione o Dia:</span>
                 <input type="date" id="data">
-
                 <span class="step-label">4. Horários Disponíveis:</span>
                 <div id="container-horarios"></div>
-
                 <span class="step-label">5. Forma de Pagamento:</span>
                 <div id="container-pagamentos" class="cards-container"></div>
-
                 <button class="btn-gold" id="btnPreAgendar" style="margin-top: 30px;">Confirmar Agendamento</button>
             </div>
         </section>
 
         <section id="aba-estilo" class="escondido">
             <h3>Meus Agendamentos</h3>
-            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px; margin-bottom: 20px;">Abaixo estão as suas reservas gravadas no banco Neon:</p>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px; margin-bottom: 20px;">Suas reservas salvas no banco Neon:</p>
             <div id="container-meus-agendamentos"></div>
+        </section>
+
+        <section id="aba-adm-dash" class="escondido">
+            <h2 class="gold-text" style="margin-bottom: 4px;">Painel de Controle Executivo</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">Dados extraídos diretamente do Banco Neon:</p>
+            
+            <div class="grid-indicadores">
+                <div class="kpi-card">
+                    <div class="kpi-label">Faturamento (Mês)</div>
+                    <div class="kpi-val" id="kpi-faturamento">R$ 0,00</div>
+                    <div class="kpi-badge" style="color: var(--success-color);">+12.4% vs maio</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Ticket Médio</div>
+                    <div class="kpi-val" id="kpi-ticket">R$ 51,20</div>
+                    <div class="kpi-badge" style="color: var(--success-color);">+4.2% este mês</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label font-weight-bold">Ocupação de Cadeiras</div>
+                    <div class="kpi-val">74%</div>
+                    <div class="kpi-badge" style="color: var(--success-color);">Sinal Verde 🟢</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Índice No-Show</div>
+                    <div class="kpi-val">2.8%</div>
+                    <div class="kpi-badge" style="color: var(--success-color);">Dentro da meta</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Divisão Automática de Comissão (Split)</h3>
+                <div class="lista-backoffice">
+                    <div class="item-backoffice">
+                        <div><strong>Gabriel (Proprietário)</strong><br><span style="font-size:12px; color:var(--text-muted);">Comissão: 50%</span></div>
+                        <div style="color: var(--success-color); font-weight:800;" id="split-gabriel">R$ 0,00</div>
+                    </div>
+                    <div class="item-backoffice">
+                        <div><strong>Lucas Barber</strong><br><span style="font-size:12px; color:var(--text-muted);">Comissão: 40%</span></div>
+                        <div style="color: var(--success-color); font-weight:800;" id="split-lucas">R$ 0,00</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="aba-adm-estoque" class="escondido">
+            <h3>Controle de Estoque Inteligente</h3>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px;">Monitoramento crítico de produtos (Uso vs Venda):</p>
+            
+            <div class="card">
+                <h4 class="gold-text">⚠️ Alertas de Nível Crítico</h4>
+                <div class="lista-backoffice" id="container-alertas-estoque">
+                    <div class="item-backoffice" style="border-left: 4px solid var(--danger-color);">
+                        <div><strong>Pomada Efeito Matte</strong><br><span style="font-size:12px; color:var(--text-muted);">Vitrine de Vendas</span></div>
+                        <div style="color: var(--danger-color); font-weight:700;">Restam 2 un</div>
+                    </div>
+                    <div class="item-backoffice" style="border-left: 4px solid var(--danger-color);">
+                        <div><strong>Gola Higiênica Roll</strong><br><span style="font-size:12px; color:var(--text-muted);">Uso Interno</span></div>
+                        <div style="color: var(--danger-color); font-weight:700;">Restam 3 un</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h4>Entrada de Mercadoria via Código de Barras</h4>
+                <button class="btn-gold" onclick="alert('Simulando abertura da Câmera Integrada para leitura de NF-e e QR Code...')">📷 Ativar Câmera do Celular</button>
+            </div>
+        </section>
+
+        <section id="aba-adm-mkt" class="escondido">
+            <h3>Motor de Marketing e CRM Ativo</h3>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px;">Disparos automáticos e segmentados via WhatsApp:</p>
+
+            <div class="card" style="margin-bottom:15px;">
+                <h4>Clientes Inativos (+30 dias)</h4>
+                <p style="font-size:13px; color:var(--text-muted);">Fazer disparo massivo oferecendo cupom de 15% para trazer o cliente de volta.</p>
+                <button class="btn-gold" style="padding:10px;" onclick="alert('Campanha de Reconexão enviada com sucesso para 48 clientes!')">🚀 Disparar Cupom "Sumido"</button>
+            </div>
+
+            <div class="card">
+                <h4>Clube de Assinatura Mensal</h4>
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                    <span>Assinantes Ativos:</span>
+                    <strong>34 clientes</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <span>Receita Recorrente Garantida:</span>
+                    <span style="color: var(--success-color); font-weight:700;">R$ 2.890,00</span>
+                </div>
+            </div>
+        </section>
+
+        <section id="aba-adm-recepcao" class="escondido">
+            <h3>Painel Geral de Cadeiras (Modo Recepção)</h3>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px; margin-bottom: 20px;">Visão horizontal estilo Kanban da barbearia:</p>
+            
+            <div id="container-kanban-recepcao"></div>
+
+            <div class="card" style="margin-top:20px;">
+                <h4>Encaixe Manual (Cliente de Rua)</h4>
+                <button class="btn-gold" onclick="alert('Abrindo formulário de encaixe Walk-in rápido...')">➕ Encaixar Cliente Sem App</button>
+            </div>
         </section>
 
         <nav class="nav-inferior" id="menu-navegacao"></nav>
@@ -207,7 +262,7 @@
             </div>
         <div class="modal-buttons">
             <button class="btn-modal-cancel" id="btn-modal-voltar">Voltar</button>
-            <button class="btn-gold" id="btn-modal-gravar" style="flex: 1; padding: 0;">Salvar na Agenda</button>
+            <button class="btn-gold" id="btn-modal-gravar" style="flex: 1; padding: 0;">Confirmar Tudo</button>
         </div>
     </div>
 </div>
