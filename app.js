@@ -1,6 +1,6 @@
 /**
  * ARQUITETURA CORE DE FINANÇAS E FLUXOS CLIENTE - PROSPERAR CLUB
- * VERSÃO CORRIGIDA: REGRAS DE ACESSO MASTER E FEEDBACK DE SELEÇÃO VISUAL
+ * VERSÃO RESTRITA Enterprise: Sincronização Dinâmica e Correção de Roles.
  */
 
 const API_URL = "https://prosperar.onrender.com";
@@ -19,7 +19,7 @@ let precoServico = 0;
 // Estado Global de Agendamentos da API externa (Evita resetar ao dar F5)
 let AGENDAMENTOS_TELA_PRESTADORES = [];
 
-// Configuração unificada de filtros superiores (image_2a07be.png)
+// Configuração unificada de filtros superiores
 let filtroTempoGlobal = 'mes_atual'; 
 let filtroBarbeiroAlvo = 'todos'; 
 let dataFiltroInicio = new Date().toISOString().split('T')[0];
@@ -43,7 +43,6 @@ const HORARIOS_PADRAO = [
     { turno: "🌙 Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
 ];
 
-// Base unificada de Agendamentos
 const MOCK_AGENDAMENTOS_TESTE = [
     { id: 101, cliente: "MIGUEL ANJOS", servico: "Combo Premium", barbeiro: "Gabriel (Proprietário)", data: new Date().toISOString().split('T')[0], hora: "09:00", pagamento: "Pix", status: "Concluído", valor_produtos: 20.00, valor_gorjeta: 15.00 },
     { id: 102, cliente: "BRUNO SILVA", servico: "Corte Simples", barbeiro: "Lucas Barber", data: new Date().toISOString().split('T')[0], hora: "10:30", pagamento: "Pix", status: "Concluído", valor_produtos: 0.00, valor_gorjeta: 5.00 },
@@ -55,7 +54,6 @@ document.addEventListener("DOMContentLoaded", () => {
         ESTRUTURA_BARBEIROS = JSON.parse(localStorage.getItem("PROSPERAR_EQUIPE"));
     }
 
-    // Definir data padrão de agendamento do cliente como hoje
     const inputDataCliente = document.getElementById('data');
     if(inputDataCliente) {
         inputDataCliente.value = new Date().toISOString().split('T')[0];
@@ -77,10 +75,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function isSlotPast(dateStr, timeStr) {
     const agora = new Date();
-    
-    const hojeStr = agora.getFullYear() + '-' + 
-                    String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
-                    String(agora.getDate()).padStart(2, '0');
+    const hojeStr = agora.getFullYear() + '-' + String(agora.getMonth() + 1).padStart(2, '0') + '-' + String(agora.getDate()).padStart(2, '0');
 
     if (dateStr < hojeStr) return true;
     if (dateStr > hojeStr) return false;
@@ -162,19 +157,17 @@ async function incluirBarbeiroSistema() {
     const jaExiste = ESTRUTURA_BARBEIROS.some(b => b.login === login || b.nome.toLowerCase() === nome.toLowerCase());
     if(jaExiste) return alert("Erro: Login ou profissional já existente!");
 
-    // SOLUÇÃO: Forçando explicitamente a propriedade de perfil para o backend e cache local
     const payload = { login, senha, nome, celular, perfil: "barbeiro", plano_assinatura: "Nenhum" };
 
     try {
-        const res = await fetch(`${API_URL}/usuarios/cadastro`, {
+        await fetch(`${API_URL}/usuarios/cadastro`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(payload)
         });
 
         const novaId = "barber_" + Date.now();
-        // Salvando os atributos cruciais para que o login condicional reconheça este usuário
-        ESTRUTURA_BARBEIROS.push({ id: novaId, login, senha, nome, celular, comissao, perfil: "barbeiro" });
+        ESTRUTURA_BARBEIROS.push({ id: novaId, login, senha, nome, celular, comissao });
         localStorage.setItem("PROSPERAR_EQUIPE", JSON.stringify(ESTRUTURA_BARBEIROS));
         
         alert(`✨ Profissional ${nome} cadastrado com sucesso e salvo no banco de dados!`);
@@ -199,11 +192,10 @@ function removerBarbeiroSistema(id) {
     recarregarAbaAtivaAdm();
 }
 
-async function ejecutarCadastro() {
+async function executarCadastro() {
     const nome = document.getElementById('cad-nome').value.trim();
     const login = document.getElementById('cad-login').value.trim().toLowerCase();
     const celular = document.getElementById('cad-celular').value.trim();
-    const plano = document.getElementById('cad-plano').value;
     const senha = document.getElementById('cad-senha').value;
     const confirmar = document.getElementById('cad-confirmar-senha').value;
 
@@ -228,25 +220,22 @@ async function executarLogin() {
 
     if(!login || !senha) return alert("Preencha os campos de acesso.");
 
-    // SOLUÇÃO 1: Verificação profunda de regras e bloqueio de redirecionamento incorreto
+    // AJUSTE CRÍTICO: Varre a lista dinâmica para direcionar o Gabriel ou colaboradores para suas funções corretas
     const barbeiroAlvo = ESTRUTURA_BARBEIROS.find(b => b.login === login);
     if(barbeiroAlvo) {
         if(barbeiroAlvo.senha && barbeiroAlvo.senha !== senha) return alert("Senha incorreta.");
         
-        // Garante mapeamento correto para o Gabriel ou qualquer outro barbeiro cadastrado
         if(barbeiroAlvo.id === 'gabriel' || login === 'admin') {
             perfilLogado = 'admin';
         } else {
             perfilLogado = 'barbeiro';
         }
-        
         usuarioLogado = barbeiroAlvo.login;
         nomeUsuarioLogado = barbeiroAlvo.nome;
         ativarAcessoAoPainelProfissional();
         return;
     }
 
-    // Se não for mapeado em ESTRUTURA_BARBEIROS, assume o papel padrão de cliente
     usuarioLogado = login;
     perfilLogado = "cliente";
     nomeUsuarioLogado = login.toUpperCase();
@@ -363,7 +352,6 @@ function inicializarListenersPosLogin() {
                 if (!res.ok) throw new Error("Erro no servidor");
 
                 MOCK_AGENDAMENTOS_TESTE.push(payload);
-                
                 document.getElementById('modal-confirmacao')?.classList.add('escondido');
                 alert("✨ Cadeira reservada com sucesso e gravada no banco!");
                 
@@ -372,11 +360,9 @@ function inicializarListenersPosLogin() {
                 carregarMeusAgendamentosDoBanco(); 
 
             } catch (error) {
-                console.error("Erro ao salvar agendamento:", error);
                 MOCK_AGENDAMENTOS_TESTE.push(payload);
                 document.getElementById('modal-confirmacao')?.classList.add('escondido');
-                alert("⚠️ Salvo localmente! O servidor está instável, mas seu agendamento foi registrado no app.");
-                
+                alert("⚠️ Registro processado offline de contingência com sucesso.");
                 horarioSelecionado = null;
                 renderizarGradeHorariosReais();
                 carregarMeusAgendamentosDoBanco();
@@ -384,32 +370,6 @@ function inicializarListenersPosLogin() {
                 btnConfirmarModal.innerText = "Confirmar Oficialmente";
                 btnConfirmarModal.disabled = false;
             }
-        };
-    }
-
-    const btnExecutarEncaixe = document.getElementById('btn-executar-encaixe');
-    if(btnExecutarEncaixe) {
-        btnExecutarEncaixe.onclick = () => {
-            const nome = document.getElementById('encaixe-nome')?.value.trim();
-            const servico = document.getElementById('encaixe-servico')?.value;
-            const barbeiro = document.getElementById('encaixe-barbeiro')?.value;
-            const hora = document.getElementById('encaixe-hora')?.value;
-            const gorjeta = parseFloat(document.getElementById('encaixe-gorjeta')?.value || 0);
-            const pagamento = document.getElementById('encaixe-pagamento')?.value;
-
-            if(!nome) return alert("Insira o nome do cliente.");
-
-            const payload = {
-                id: Date.now(),
-                cliente: `WALK-IN: ${nome.toUpperCase()}`,
-                servico, barbeiro, data: new Date().toISOString().split('T')[0],
-                hora, pagamento, status: "Concluído", valor_produtos: 0.00, valor_gorjeta: gorjeta
-            };
-
-            MOCK_AGENDAMENTOS_TESTE.push(payload);
-            alert("⚡ Encaixe registrado com sucesso!");
-            document.getElementById('encaixe-nome').value = "";
-            recarregarAbaAtivaAdm();
         };
     }
 }
@@ -510,7 +470,7 @@ async function renderizarGradeHorariosReais() {
             btn.className = "btn-horario"; 
             btn.innerText = horaTratada;
             
-            // SOLUÇÃO 2: Verificação de estado ativo para feedback de clique visual
+            // AJUSTE VISUAL: Se coincide com o selecionado, injeta a classe reativa
             if (horaTratada === horarioSelecionado) {
                 btn.classList.add('selected');
             }
@@ -526,9 +486,7 @@ async function renderizarGradeHorariosReais() {
             } else { 
                 btn.onclick = (e) => { 
                     e.preventDefault();
-                    // Limpa a seleção visual de todos os outros botões de horário da tela
                     document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selected')); 
-                    // Aplica imediatamente a classe visual no botão clicado
                     btn.classList.add('selected'); 
                     horarioSelecionado = horaTratada; 
                 }; 
@@ -557,7 +515,6 @@ async function carregarMeusAgendamentosDoBanco() {
             agendamentosFinais = MOCK_AGENDAMENTOS_TESTE;
         }
     } catch (e) {
-        console.error("Erro ao conectar na API, usando cache local:", e);
         agendamentosFinais = MOCK_AGENDAMENTOS_TESTE;
     }
 
@@ -568,7 +525,6 @@ async function carregarMeusAgendamentosDoBanco() {
     );
     
     const filtradosSemDuplicados = Array.from(new Map(meus.map(item => [item.id, item])).values());
-
     filtradosSemDuplicados.sort((a, b) => b.data.localeCompare(a.data) || b.hora.localeCompare(a.hora));
 
     if (filtradosSemDuplicados.length === 0) {
@@ -591,8 +547,8 @@ async function carregarMeusAgendamentosDoBanco() {
 
 function filtrarAgendamentoPorRegraGlobal(a) {
     if(filtroBarbeiroAlvo !== 'todos') {
-        const profesionalAlvo = ESTRUTURA_BARBEIROS.find(b => b.id === filtroBarbeiroAlvo);
-        if(!profesionalAlvo || a.barbeiro !== profesionalAlvo.nome) return false;
+        const profissionalAlvo = ESTRUTURA_BARBEIROS.find(b => b.id === filtroBarbeiroAlvo);
+        if(!profissionalAlvo || a.barbeiro !== profissionalAlvo.nome) return false;
     }
 
     const dataAtendimento = new Date(a.data + 'T00:00:00');
