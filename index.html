@@ -97,7 +97,7 @@
                 <label>Senha:</label>
                 <input type="password" id="login-senha" placeholder="••••••">
             </div>
-            <button class="btn-gold" id="btn-entrar" style="margin-top: 10px;">Entrar no Sistema</button>
+            <button class="btn-gold" id="btn-entrar" style="margin-top: 10px;">Entrar no System</button>
         </div>
 
         <div id="form-cadastro" class="escondido">
@@ -178,7 +178,7 @@
 
         <section id="aba-adm-dash" class="escondido">
             <h2 class="gold-text" style="margin-bottom: 4px;">Métricas de Faturamento</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores baseados no período selecionado acima:</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores baseados no período selecionado:</p>
             
             <div class="grid-indicadores">
                 <div class="kpi-card">
@@ -228,7 +228,7 @@
             <div class="card">
                 <h4>Clube de Assinatura Recorrente</h4>
                 <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                    <span>Assinantes Ativos no Neon:</span>
+                    <span>Assinantes Ativos:</span>
                     <strong id="mkt-total-assinantes">0</strong>
                 </div>
                 <div style="display:flex; justify-content:space-between;">
@@ -240,7 +240,7 @@
 
         <section id="aba-adm-recepcao" class="escondido">
             <h3>Monitor de Atendimentos</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia para as datas selecionadas:</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia:</p>
             
             <div id="container-kanban-recepcao" style="display:flex; flex-direction:column; gap:10px;"></div>
 
@@ -262,4 +262,45 @@
                 <div class="form-group">
                     <label>Profissional:</label>
                     <select id="encaixe-barbeiro">
-                        <option value="Gabriel (Proprietário)">
+                        <option value="Gabriel (Proprietário)">Gabriel (Proprietário)</option>
+                        <option value="Lucas Barber">Lucas Barber</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Horário:</label>
+                    <input type="text" id="encaixe-hora" value="14:00" placeholder="Ex: 14:00">
+                </div>
+                <button class="btn-gold" id="btn-executar-encaixe">Lançar Encaixe Concluído</button>
+            </div>
+        </section>
+
+        <section id="aba-adm-analytics" class="escondido">
+            <h3>Business Intelligence</h3>
+            <div id="analytics-retencao"></div>
+            <div class="card">
+                <h4>Volumetria por Turnos</h4>
+                <div id="analytics-heatmap"></div>
+            </div>
+            <div class="card">
+                <h4>Movimentação por Dias da Semana</h4>
+                <div id="analytics-dias-semana"></div>
+            </div>
+        </section>
+
+        <nav class="nav-inferior" id="menu-navegacao"></nav>
+
+    </div>
+</div>
+
+<div id="modal-confirmacao" class="modal-overlay escondido">
+    <div class="modal-content">
+        <h3>Confirmar sua Cadeira?</h3>
+        <p id="modal-resumo-detalhes" style="font-size: 14px; line-height: 1.6; color: var(--text-muted);"></p>
+        <button class="btn-gold" id="btn-confirmar-modal">Confirmar Oficialmente</button>
+        <button class="btn-danger" onclick="document.getElementById('modal-confirmacao').classList.add('escondido')">Voltar / Cancelar</button>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
