@@ -102,7 +102,7 @@ function atualizarSeletoresEFormulariosDeEquipe() {
     if(seletorFiltro) {
         seletorFiltro.innerHTML = '<option value="todos">-- Todos os Barbeiros (Geral) --</option>';
         ESTRUTURA_BARBEIROS.forEach(b => {
-            seletorFiltro.innerHTML += <option value="${b.id}">${b.nome}</option>;
+            seletorFiltro.innerHTML += `<option value="${b.id}">${b.nome}</option>`;
         });
     }
 
@@ -111,7 +111,7 @@ function atualizarSeletoresEFormulariosDeEquipe() {
     if(seletorEncaixe) {
         seletorEncaixe.innerHTML = '';
         ESTRUTURA_BARBEIROS.forEach(b => {
-            seletorEncaixe.innerHTML += <option value="${b.nome}">${b.nome}</option>;
+            seletorEncaixe.innerHTML += `<option value="${b.nome}">${b.nome}</option>`;
         });
     }
 
@@ -127,7 +127,7 @@ function atualizarSeletoresEFormulariosDeEquipe() {
                     <strong>${b.nome}</strong><br>
                     <span style="font-size:11px; color:var(--text-muted);">Usuário: ${b.login} | Split base: ${(b.comissao*100)}%</span>
                 </div>
-                ${b.id !== 'gabriel' ? <button class="btn-small-danger" onclick="removerBarbeiroSistema('${b.id}')">Excluir</button> : '<span style="font-size:10px; color:var(--accent-color);">Fundador</span>'}
+                ${b.id !== 'gabriel' ? `<button class="btn-small-danger" onclick="removerBarbeiroSistema('${b.id}')">Excluir</button>` : '<span style="font-size:10px; color:var(--accent-color);">Fundador</span>'}
             `;
             containerLista.appendChild(item);
         });
@@ -159,7 +159,7 @@ function incluirBarbeiroSistema() {
     });
 
     localStorage.setItem("PROSPERAR_EQUIPE", JSON.stringify(ESTRUTURA_BARBEIROS));
-    alert(✨ ${nome} foi introduzido na equipe e já pode efetuar login.);
+    alert(`✨ ${nome} foi introduzido na equipe e já pode efetuar login.`);
     
     document.getElementById('adm-barbeiro-nome').value = '';
     document.getElementById('adm-barbeiro-login').value = '';
@@ -210,7 +210,7 @@ async function executarLogin() {
 
     // 2. Fallback para Clientes Normais integrados via API externa Render
     try {
-        const res = await fetch(${API_URL}/usuarios/login, {
+        const res = await fetch(`${API_URL}/usuarios/login`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ login: loginInserido, senha: senhaInserida })
@@ -270,7 +270,7 @@ function direcionarFluxoInicial(perfil, nomeUsuario) {
     } else {
         document.getElementById('bloco-filtros-global-adm').classList.add('escondido');
         alternarTela('home');
-        document.getElementById('boas-vistas-cliente').innerText = Olá, ${nomeUsuario}!;
+        document.getElementById('boas-vistas-cliente').innerText = `Olá, ${nomeUsuario}!`;
         renderizarFormularioCliente();
     }
 }
@@ -386,7 +386,7 @@ function recarregarAbaAtivaAdm() {
     const abas = ['adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-analytics'];
     let abaAtiva = 'adm-dash';
     abas.forEach(id => {
-        const el = document.getElementById(aba-${id});
+        const el = document.getElementById(`aba-${id}`);
         if (el && !el.classList.contains('escondido')) abaAtiva = id;
     });
 
@@ -407,7 +407,7 @@ async function carregarDadosEstrategicosDoNeon() {
     try {
         let todosAgendamentos = [];
         try {
-            const res = await fetch(${API_URL}/agendamentos);
+            const res = await fetch(`${API_URL}/agendamentos`);
             if(res.ok) todosAgendamentos = await res.json();
         } catch(e) { todosAgendamentos = MOCK_AGENDAMENTOS_TESTE; }
 
@@ -453,15 +453,15 @@ async function carregarDadosEstrategicosDoNeon() {
         });
 
         // 1. Atualizar Painel Global (Visão Admin)
-        document.getElementById('kpi-faturamento').innerText = R$ ${faturamentoTotal.toFixed(2)};
+        document.getElementById('kpi-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
         const ticketMedio = contagemCortesConcluidos > 0 ? (faturamentoServicosBrutos / contagemCortesConcluidos) : 0;
-        document.getElementById('kpi-ticket').innerText = R$ ${ticketMedio.toFixed(2)};
+        document.getElementById('kpi-ticket').innerText = `R$ ${ticketMedio.toFixed(2)}`;
         document.getElementById('kpi-ocupacao').innerText = contagemCortesConcluidos;
         const taxaNoShow = agendamentos.length > 0 ? ((totalFaltasNoShow / agendamentos.length) * 100) : 0;
-        document.getElementById('kpi-noshow').innerText = ${taxaNoShow.toFixed(1)}%;
+        document.getElementById('kpi-noshow').innerText = `${taxaNoShow.toFixed(1)}%`;
 
-        document.getElementById('detalhe-servicos').innerText = Serviços Brutos: R$ ${faturamentoServicosBrutos.toFixed(2)};
-        document.getElementById('detalhe-produtos').innerText = Produtos Brutos: R$ ${faturamentoProdutosBrutos.toFixed(2)};
+        document.getElementById('detalhe-servicos').innerText = `Serviços Brutos: R$ ${faturamentoServicosBrutos.toFixed(2)}`;
+        document.getElementById('detalhe-produtos').innerText = `Produtos Brutos: R$ ${faturamentoProdutosBrutos.toFixed(2)}`;
 
         // Renderizar Split Real da Equipe de Administrador
         const containerSplit = document.getElementById('lista-split-comissoes-equipe');
@@ -489,8 +489,8 @@ async function carregarDadosEstrategicosDoNeon() {
             const profissionalLogadoInfo = ESTRUTURA_BARBEIROS.find(b => b.login === usuarioLogado);
             if(profissionalLogadoInfo && balançoEquipe[profissionalLogadoInfo.nome]) {
                 const dadosRendimento = balançoEquipe[profissionalLogadoInfo.nome];
-                document.getElementById('minha-comissao-total').innerText = R$ ${dadosRendimento.totalPagar.toFixed(2)};
-                document.getElementById('minha-breakdown-comissao').innerText = Serviços: R$ ${dadosRendimento.servicosLiquidos.toFixed(2)} | Produtos: R$ ${dadosRendimento.produtos.toFixed(2)} | Gorjetas: R$ ${dadosRendimento.gorjetas.toFixed(2)};
+                document.getElementById('minha-comissao-total').innerText = `R$ ${dadosRendimento.totalPagar.toFixed(2)}`;
+                document.getElementById('minha-breakdown-comissao').innerText = `Serviços: R$ ${dadosRendimento.servicosLiquidos.toFixed(2)} | Produtos: R$ ${dadosRendimento.produtos.toFixed(2)} | Gorjetas: R$ ${dadosRendimento.gorjetas.toFixed(2)}`;
             }
         }
 
@@ -504,7 +504,7 @@ async function carregarModoRecepcaoKanban() {
     try {
         let dados = [];
         try {
-            const res = await fetch(${API_URL}/agendamentos);
+            const res = await fetch(`${API_URL}/agendamentos`);
             if(res.ok) dados = await res.json();
         } catch(e) { dados = MOCK_AGENDAMENTOS_TESTE; }
 
@@ -522,15 +522,15 @@ async function carregarModoRecepcaoKanban() {
             div.className = "item-backoffice";
             let corBorda = item.status === 'Concluído' ? "var(--success-color)" : (item.status === 'Falta' ? "var(--danger-color)" : "var(--accent-color)");
 
-            div.style.borderLeft = 4px solid ${corBorda};
+            div.style.borderLeft = `4px solid ${corBorda}`;
             div.innerHTML = `
                 <div>
                     <strong>👤 ${item.cliente} (${item.status})</strong><br>
                     <span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${item.hora} [Prof: ${item.barbeiro}]</span>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔️</button>
-                    <button class="btn-status" style="background:var(--danger-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Falta')">✖️</button>
+                    <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
+                    <button class="btn-status" style="background:var(--danger-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Falta')">✖</button>
                 </div>
             `;
             container.appendChild(div);
@@ -548,7 +548,7 @@ async function carregarPainelAnalytics() {
     try {
         let todosAgendamentos = [];
         try {
-            const res = await fetch(${API_URL}/agendamentos);
+            const res = await fetch(`${API_URL}/agendamentos`);
             if(res.ok) todosAgendamentos = await res.json();
         } catch(e) { todosAgendamentos = MOCK_AGENDAMENTOS_TESTE; }
 
@@ -578,7 +578,7 @@ async function carregarPainelAnalytics() {
         `;
 
         if(containerDiasSemana) {
-            let htmlDias = <div style="display: flex; flex-direction: column; gap: 8px; background: #111; padding: 15px; border-radius: 8px;">;
+            let htmlDias = `<div style="display: flex; flex-direction: column; gap: 8px; background: #111; padding: 15px; border-radius: 8px;">`;
             for(let dia in volumeDiasSemana) {
                 const totalCortes = volumeDiasSemana[dia];
                 const porcentagemBarra = agendamentos.length > 0 ? Math.min((totalCortes / agendamentos.length) * 100, 100) : 0;
@@ -591,7 +591,7 @@ async function carregarPainelAnalytics() {
                     </div>
                 `;
             }
-            containerDiasSemana.innerHTML = htmlDias + </div>;
+            containerDiasSemana.innerHTML = htmlDias + `</div>`;
         }
 
         const clientesUnicos = [...new Set(agendamentos.map(a => a.cliente))];
@@ -638,7 +638,7 @@ async function renderizarGradeHorariosReais() {
     container.innerHTML = "";
     HORARIOS_PADRAO.forEach(g => {
         const box = document.createElement('div');
-        box.innerHTML = <div class="turno-title">${g.turno}</div>;
+        box.innerHTML = `<div class="turno-title">${g.turno}</div>`;
         const grid = document.createElement('div'); grid.className = "grid-horarios";
 
         g.horas.forEach(h => {
@@ -667,7 +667,7 @@ function renderizarFormularioCliente() {
     const box = document.getElementById('container-servicos'); box.innerHTML = "";
     ESTRUTURA_SERVICOS.forEach(s => {
         const div = document.createElement('div'); div.className = "modern-card";
-        div.innerHTML = <div class="title">${s.nome}</div><div class="price">R$ ${s.preco.toFixed(2)}</div>;
+        div.innerHTML = `<div class="title">${s.nome}</div><div class="price">R$ ${s.preco.toFixed(2)}</div>`;
         div.onclick = () => {
             document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected'));
             div.classList.add('selected'); servicoSelecionado = s.nome; precoServico = s.preco;
@@ -678,7 +678,7 @@ function renderizarFormularioCliente() {
     const boxB = document.getElementById('container-barbeiros'); boxB.innerHTML = "";
     ESTRUTURA_BARBEIROS.forEach(b => {
         const div = document.createElement('div'); div.className = "modern-card";
-        div.innerHTML = <div><div class="title">${b.nome}</div></div>;
+        div.innerHTML = `<div><div class="title">${b.nome}</div></div>`;
         div.onclick = () => {
             document.querySelectorAll('#container-barbeiros .modern-card').forEach(c => c.classList.remove('selected'));
             div.classList.add('selected'); barbeiroSelecionado = b.id; renderizarGradeHorariosReais();
@@ -689,7 +689,7 @@ function renderizarFormularioCliente() {
     const boxP = document.getElementById('container-pagamentos'); boxP.innerHTML = "";
     ["Pix", "Cartão de Crédito", "Cartão de Débito"].forEach(p => {
         const div = document.createElement('div'); div.className = "modern-card";
-        div.innerHTML = <div class="title">${p}</div>;
+        div.innerHTML = `<div class="title">${p}</div>`;
         div.onclick = () => {
             document.querySelectorAll('#container-pagamentos .modern-card').forEach(c => c.classList.remove('selected'));
             div.classList.add('selected'); pagamentoSelecionado = p;
@@ -712,7 +712,7 @@ function montarMenuNavegacao(role) {
     if (role === 'admin' || role === 'barbeiro') {
         nav.innerHTML = `
             <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
-            ${role === 'admin' ? <button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button> : ''}
+            ${role === 'admin' ? `<button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>` : ''}
             <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
             <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 BI Analítico</button>
         `;
@@ -722,14 +722,14 @@ function montarMenuNavegacao(role) {
             <button class="nav-item" onclick="alternarTela('estilo')">🗂️ Reservas</button>
         `;
     }
-    nav.innerHTML += <button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()">🚪 Sair</button>;
+    nav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()">🚪 Sair</button>`;
 }
 
 function alternarTela(idAba) {
     ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-analytics'].forEach(id => {
-        const el = document.getElementById(aba-${id}); if (el) el.classList.add('escondido');
+        const el = document.getElementById(`aba-${id}`); if (el) el.classList.add('escondido');
     });
-    const abaAlvo = document.getElementById(aba-${idAba}); if (abaAlvo) abaAlvo.classList.remove('escondido');
+    const abaAlvo = document.getElementById(`aba-${idAba}`); if (abaAlvo) abaAlvo.classList.remove('escondido');
     document.querySelectorAll('.nav-inferior .nav-item').forEach(btn => btn.classList.remove('ativo'));
 
     recarregarAbaAtivaAdm();
