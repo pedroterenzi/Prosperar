@@ -18,7 +18,7 @@ let precoServico = 0;
 // Estado Global de Agendamentos da API externa (Evita resetar ao dar F5)
 let AGENDAMENTOS_TELA_PRESTADORES = [];
 
-// Configuração unificada de filtros superiores
+// Configuração unificada de filtros superiores (image_2a07be.png)
 let filtroTempoGlobal = 'mes_atual'; 
 let filtroBarbeiroAlvo = 'todos'; 
 let dataFiltroInicio = new Date().toISOString().split('T')[0];
@@ -64,7 +64,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if(btnCadastrar) btnCadastrar.addEventListener('click', executarCadastro);
 
     const btnEntrar = document.getElementById('btn-entrar');
-    if(btnEntrar) btnEntrar.addEventListener('click', executingLogin);
+    // CORREÇÃO: Mapeamento de chamada ortográfica exata para destravar o formulário de entrada
+    if(btnEntrar) btnEntrar.addEventListener('click', executarLogin);
     
     const inputInicio = document.getElementById('filtro-data-inicio');
     const inputFim = document.getElementById('filtro-data-fim');
@@ -225,7 +226,6 @@ async function executarLogin() {
 
     if(!login || !senha) return alert("Preencha os campos de acesso.");
 
-    // Verifica se é equipe técnica primeiro
     const barbeiroAlvo = ESTRUTURA_BARBEIROS.find(b => b.login === login);
     if(barbeiroAlvo) {
         if(barbeiroAlvo.id === 'gabriel') {
@@ -240,7 +240,6 @@ async function executarLogin() {
         return;
     }
 
-    // Fluxo Contingência de Login Cliente Padrão
     usuarioLogado = login;
     perfilLogado = "cliente";
     nomeUsuarioLogado = login.toUpperCase();
@@ -274,7 +273,6 @@ function ativarAcessoAoPainelProfissional() {
         if(seletor) { seletor.disabled = false; seletor.value = 'todos'; filtroBarbeiroAlvo = 'todos'; }
         alternarTela('adm-dash');
     } else {
-        // PERFIL CLIENTE CONECTADO DE VERDADE
         document.getElementById('bloco-filtros-global-adm')?.classList.add('escondido');
         const bv = document.getElementById('boas-vistas-cliente');
         if(bv) bv.innerText = `Olá, ${nomeUsuarioLogado}!`;
@@ -473,7 +471,6 @@ async function renderizarGradeHorariosReais() {
     
     const bNome = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome;
     
-    // Consulta ativa e dinâmica ao Banco de Dados na nuvem
     try {
         const res = await fetch(`${API_URL}/agendamentos`);
         if (res.ok) {
@@ -483,10 +480,8 @@ async function renderizarGradeHorariosReais() {
         console.error("Falha ao sincronizar ocupações em tempo real:", e);
     }
 
-    // Mescla dados dinâmicos da API com itens em memória local
     const todosAgendamentos = [...AGENDAMENTOS_TELA_PRESTADORES, ...MOCK_AGENDAMENTOS_TESTE];
 
-    // Mapeia os horários ocupados filtrando faltas e cancelamentos
     let ocupados = todosAgendamentos
         .filter(a => a.data === dataSel && a.barbeiro === bNome && a.status !== 'Falta' && a.status !== 'cancelado')
         .map(a => a.hora.trim());
@@ -518,8 +513,8 @@ async function renderizarGradeHorariosReais() {
             } else { 
                 btn.onclick = (e) => { 
                     e.preventDefault();
-                    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
-                    btn.classList.add('selecionado'); 
+                    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selected')); 
+                    btn.classList.add('selected'); 
                     horarioSelecionado = h.trim(); 
                 }; 
             }
@@ -645,15 +640,6 @@ function recarregarAbaAtivaAdm() {
     if(abaAtiva === 'adm-mkt' && perfilLogado === 'admin') carregarListaMarketingReal();
     if(abaAtiva === 'adm-recepcao') carregarModoRecepcaoKanban();
     if(abaAtiva === 'adm-analytics') carregarPainelAnalytics();
-}
-
-function mudarStatusAgendamento(id, novoStatus) {
-    const item = MOCK_AGENDAMENTOS_TESTE.find(a => a.id === id);
-    if(item) {
-        item.status = novoStatus;
-        alert(`Status alterado para ${novoStatus}`);
-        recarregarAbaAtivaAdm();
-    }
 }
 
 async function carregarDadosEstrategicosDoNeon() {
@@ -799,12 +785,6 @@ async function carregarPainelAnalytics() {
                 <div class="kpi-val" style="color: var(--success-color); font-size: 24px;">R$ ${(uClientes.length > 0 ? 62 * (agendamentos.length / uClientes.length) : 0).toFixed(2)}</div>
             </div>`;
     }
-}
-
-async function carregarListaMarketingReal() {
-    const container = document.getElementById('lista-marketing-clientes'); if(!container) return;
-    container.innerHTML = `
-        <div class="item-backoffice"><div><strong>Matheus Ribeiro</strong><br><span style="font-size:11px;color:var(--text-muted);">Ativo • 11999998888</span></div><span class="btn-status badge-sucesso">Fiel</span></div>`;
 }
 
 function montarMenuNavegacao(role) {
