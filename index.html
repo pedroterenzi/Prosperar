@@ -117,6 +117,7 @@
 
 <div class="app-container">
 
+    <!-- TELA DE LOGIN E CADASTRO -->
     <div id="tela-autenticacao" class="card" style="margin-top: 30px;">
         <div class="toggle-auth">
             <button id="tab-login" class="active" onclick="alternarAbasAuth('login')">ENTRAR</button>
@@ -168,14 +169,21 @@
         </div>
     </div>
 
+    <!-- CONTEÚDO OPERACIONAL DO CORE APP -->
     <div id="conteudo-app" class="escondido">
         
+        <!-- SELETOR E FILTRO GLOBAL (PROPRIETÁRIOS E COLABORADORES) (image_2a07be.png) -->
         <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color);">
             <h4 style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral:</h4>
             
             <div class="form-group" style="margin-bottom: 14px;">
                 <label>Visualizar dados de:</label>
-                <select id="filtro-barbeiro-alvo" style="background: #1f2125;" onchange="recarregarAbaAtivaAdm()"></select>
+                <select id="filtro-barbeiro-alvo" style="background: #1f2125;" onchange="recarregarAbaAtivaAdm()">
+                    <!-- Carregado de forma segura e preventiva -->
+                    <option value="todos">-- Todos os Barbeiros (Geral) --</option>
+                    <option value="gabriel">Gabriel (Proprietário)</option>
+                    <option value="lucas">Lucas Barber</option>
+                </select>
             </div>
 
             <div class="filtros-tempo-container">
@@ -197,6 +205,7 @@
             </div>
         </div>
 
+        <!-- ABA DO CLIENTE: AGENDAMENTO -->
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 20px;">
                 <h2 id="boas-vistas-cliente" style="font-size: 22px; margin-bottom: 4px;">Olá!</h2>
@@ -223,11 +232,13 @@
             </div>
         </section>
 
+        <!-- ABA DO CLIENTE: MEUS CORTES -->
         <section id="aba-estilo" class="escondido">
             <h3>Meus Agendamentos</h3>
             <div id="container-meus-agendamentos"></div>
         </section>
 
+        <!-- ABA BACKOFFICE: MONITOR FINANCEIRO & EQUIPE -->
         <section id="aba-adm-dash" class="escondido">
             <h2 class="gold-text" style="margin-bottom: 4px;">Métricas de Faturamento</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores baseados no período selecionado:</p>
@@ -251,6 +262,7 @@
                 </div>
             </div>
 
+            <!-- Visão de Ganhos Privados do Colaborador Logado -->
             <div class="card escondido" id="card-rendimentos-barbeiro">
                 <h3 class="gold-text">Minha Carteira Pro</h3>
                 <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.3);">
@@ -271,6 +283,7 @@
                 <div class="lista-backoffice" id="lista-split-comissoes-equipe"></div>
             </div>
 
+            <!-- CADASTRO E GERENCIAMENTO DE EQUIPE (image_2a1286.png) -->
             <div class="card restrito-adm" style="border-color: rgba(204,153,51,0.25);">
                 <h3>👥 Gerenciamento de Barbeiros</h3>
                 <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione colaboradores e salve as informações no banco de dados.</p>
@@ -309,6 +322,7 @@
             </div>
         </section>
 
+        <!-- ABA BACKOFFICE: CRM & COMUNICAÇÃO -->
         <section id="aba-adm-mkt" class="escondido restrito-adm">
             <h3>CRM e Comunicação Ativa</h3>
             <div class="card" style="margin-bottom:15px;">
@@ -329,6 +343,7 @@
             </div>
         </section>
 
+        <!-- ABA BACKOFFICE: KANBAN MONITOR -->
         <section id="aba-adm-recepcao" class="escondido">
             <h3>Monitor de Atendimentos</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia:</p>
@@ -351,7 +366,10 @@
                 </div>
                 <div class="form-group">
                     <label>Profissional Designado:</label>
-                    <select id="encaixe-barbeiro"></select>
+                    <select id="encaixe-barbeiro">
+                        <option value="Gabriel (Proprietário)">Gabriel (Proprietário)</option>
+                        <option value="Lucas Barber">Lucas Barber</option>
+                    </select>
                 </div>
                 <div class="intervalo-custom-grid">
                     <div class="form-group">
@@ -376,9 +394,11 @@
             </div>
         </section>
 
+        <!-- ABA BACKOFFICE: BUSINESS INTELLIGENCE (image_2a0b3e.png) -->
         <section id="aba-adm-analytics" class="escondido">
             <h3>Business Intelligence</h3>
             
+            <!-- CENTRALIZADO E MODERNIZADO LADO A LADO -->
             <div id="analytics-retencao" style="display: flex; justify-content: center; width: 100%; gap: 12px; margin-bottom: 20px;"></div>
 
             <div class="card">
@@ -392,11 +412,13 @@
             </div>
         </section>
 
+        <!-- MENU INFERIOR -->
         <nav class="nav-inferior" id="menu-navegacao"></nav>
 
     </div>
 </div>
 
+<!-- POP-UP CONFIRMAÇÃO -->
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Confirmar sua Cadeira?</h3>
