@@ -46,58 +46,22 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.4); 
         }
 
-        /* Correção Estrutural do Formulário de Login */
-        .login-form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 16px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .login-form-group label {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-
-        .login-form-group input {
-            width: 100%;
-            padding: 14px;
-            background: #222428;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            color: white;
-            font-size: 16px;
-            box-sizing: border-box;
-            transition: border-color 0.2s;
-        }
-        .login-form-group input:focus { border-color: var(--accent-color); outline: none; }
+        .login-form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; width: 100%; box-sizing: border-box; }
+        .login-form-group label { font-size: 14px; font-weight: 600; color: var(--text-muted); }
+        .login-form-group input { width: 100%; padding: 14px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box; }
         
         h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
         .gold-text { color: var(--accent-color); }
         
-        .step-label { 
-            display: block; 
-            margin: 24px 0 12px; 
-            font-weight: 700; 
-            color: #ffffff; 
-            font-size: 14px; 
-            text-transform: uppercase; 
-            letter-spacing: 0.5px; 
-        }
+        .step-label { display: block; margin: 24px 0 12px; font-weight: 700; color: #ffffff; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        input[type="date"] {
-            width: 100%; padding: 16px; background: #222428; border: 1px solid var(--border-color);
-            border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box; transition: all 0.3s;
-        }
-        input[type="date"]:focus { border-color: var(--accent-color); outline: none; }
+        input[type="date"] { width: 100%; padding: 16px; background: #222428; border: 1px solid var(--border-color); border-radius: 12px; color: white; font-size: 16px; box-sizing: border-box; }
 
         .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; }
-        .btn-gold:hover { background: var(--accent-hover); transform: translateY(-1px); }
+        .btn-gold:hover { background: var(--accent-hover); }
 
-        /* Grade de Cards Modernos */
+        .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+
         .cards-container { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
         
         .modern-card {
@@ -110,25 +74,27 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.2s ease;
         }
         
-        .modern-card:hover { border-color: #555; background-color: var(--card-hover); }
-        .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.08); box-shadow: 0 0 12px rgba(204,153,51,0.2); }
+        .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.08); }
         .modern-card .info-block { flex: 1; }
         .modern-card .title { font-weight: 700; font-size: 16px; color: #fff; }
         .modern-card .subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
         .modern-card .price { font-weight: 800; font-size: 16px; color: var(--success-color); }
 
-        /* Turnos e Horários */
-        .turno-title { font-size: 13px; font-weight: 700; color: var(--accent-color); margin: 18px 0 8px; display: flex; align-items: center; gap: 6px; text-transform: uppercase; }
+        .turno-title { font-size: 13px; font-weight: 700; color: var(--accent-color); margin: 18px 0 8px; text-transform: uppercase; }
         .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .btn-horario { background: #222428; color: white; border: 1px solid var(--border-color); padding: 12px 4px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s; }
-        .btn-horario:hover { border-color: #666; }
+        .btn-horario { background: #222428; color: white; border: 1px solid var(--border-color); padding: 12px 4px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; }
         .btn-horario.selecionado { background: var(--accent-color); color: black; border-color: var(--accent-color); font-weight: 700; }
+        .btn-horario:disabled { opacity: 0.25; cursor: not-allowed; background: #151618; border-color: #1f2023; color: #555; }
 
-        /* Navegação */
-        .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(26, 27, 30, 0.9); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px 8px; border-radius: 24px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); z-index: 999; }
+        /* Estilo da Janela Modal (Pop-up de Confirmação) */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .modal-buttons { display: flex; gap: 12px; margin-top: 20px; }
+        .btn-modal-cancel { flex: 1; background: #333; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }
+
+        .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(26, 27, 30, 0.9); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px 8px; border-radius: 24px; z-index: 999; }
         .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; font-weight: 600; }
         .nav-item.ativo { color: var(--accent-color); }
         .nav-item svg { width: 20px; height: 20px; fill: currentColor; }
@@ -142,19 +108,15 @@
 
     <div id="tela-login" class="card" style="margin-top: 40px;">
         <h2 style="text-align: center; font-size: 24px; margin-bottom: 24px;" class="gold-text">Acessar Conta</h2>
-        
         <div class="login-form-group">
-            <label for="login-usuario">Usuário / WhatsApp:</label>
+            <label>Usuário / WhatsApp:</label>
             <input type="text" id="login-usuario" placeholder="Ex: gabriel">
         </div>
-        
         <div class="login-form-group">
-            <label for="login-senha">Senha:</label>
+            <label>Senha:</label>
             <input type="password" id="login-senha" placeholder="••••••">
         </div>
-        
         <button class="btn-gold" id="btn-entrar" style="margin-top: 16px;">Entrar no Sistema</button>
-        <div id="erro-login" style="text-align: center; margin-top: 20px; font-weight: 600; font-size: 14px; color: var(--danger-color);"></div>
     </div>
 
     <div id="conteudo-app" class="escondido">
@@ -167,7 +129,6 @@
             
             <div class="card">
                 <h3>Agendar Nova Cadeira</h3>
-                <p style="color: var(--text-muted); font-size: 13px; margin-top: -5px; margin-bottom: 20px;">Escolha os parâmetros do atendimento abaixo</p>
                 
                 <span class="step-label">1. Escolha o Serviço:</span>
                 <div id="container-servicos" class="cards-container"></div>
@@ -184,26 +145,30 @@
                 <span class="step-label">5. Forma de Pagamento:</span>
                 <div id="container-pagamentos" class="cards-container"></div>
 
-                <button class="btn-gold" id="btnConfirmar" style="margin-top: 30px;">Confirmar Agendamento</button>
-                <div id="mensagem-status" style="text-align: center; margin-top: 20px; font-weight: 700;"></div>
+                <button class="btn-gold" id="btnPreAgendar" style="margin-top: 30px;">Confirmar Agendamento</button>
             </div>
         </section>
 
         <section id="aba-estilo" class="escondido">
-            <h3>Meu Estilo</h3>
-            <div class="card">
-                <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6;">Nenhum detalhe técnico registrado para este perfil ainda.</p>
-            </div>
-        </section>
-
-        <section id="aba-barbeiro" class="escondido">
-            <h2>Painel do Profissional</h2>
-            <div class="card">
-                <p>Gerenciamento de fila ativa do dia.</p>
-            </div>
+            <h3>Meus Agendamentos</h3>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: -10px; margin-bottom: 20px;">Abaixo estão suas reservas ativas no nosso banco de dados:</p>
+            <div id="container-meus-agendamentos"></div>
         </section>
 
         <nav class="nav-inferior" id="menu-navegacao"></nav>
+    </div>
+</div>
+
+<div id="modal-confirmacao" class="modal-overlay escondido">
+    <div class="modal-content">
+        <h3 class="gold-text" style="margin-bottom: 12px;">Conferir Agendamento</h3>
+        <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 8px;">Por favor, confirme as informações antes do envio:</p>
+        <div id="modal-resumo-detalhes" style="background: #222428; padding: 14px; border-radius: 10px; font-size: 14px; line-height: 1.8; border: 1px solid var(--border-color);">
+            </div>
+        <div class="modal-buttons">
+            <button class="btn-modal-cancel" id="btn-modal-voltar">Voltar</button>
+            <button class="btn-gold" id="btn-modal-gravar" style="flex: 1; padding: 0;">Confirmar</button>
+        </div>
     </div>
 </div>
 
