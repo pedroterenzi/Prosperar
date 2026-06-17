@@ -423,16 +423,27 @@ function renderizarFormularioCliente() {
 function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios'); 
     if (!container) return;
+    
     const dataSel = document.getElementById('data').value;
-    if(!dataSel) return container.innerHTML = "<p style='color:var(--text-muted); font-size:12px;'>Selecione o dia primeiro.</p>";
+    if(!dataSel) {
+        container.innerHTML = "<p style='color:var(--text-muted); font-size:12px;'>Selecione o dia primeiro.</p>";
+        return;
+    }
     
     const bNome = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome;
-    
     let ocupados = MOCK_AGENDAMENTOS_TESTE.filter(a => a.data === dataSel && a.barbeiro === bNome && a.status !== 'Falta').map(a => a.hora.trim());
+    
+    // Limpa o container completamente antes de começar
     container.innerHTML = "";
     
     HORARIOS_PADRAO.forEach(g => {
-        container.innerHTML += `<div class="turno-title">${g.turno}</div>`;
+        // 1. Cria o título do turno como um elemento real do DOM
+        const tituloTurno = document.createElement('div');
+        tituloTurno.className = "turno-title";
+        tituloTurno.innerText = g.turno;
+        container.appendChild(tituloTurno);
+
+        // 2. Cria a grid de horários
         const grid = document.createElement('div'); 
         grid.className = "grid-horarios";
         
@@ -449,14 +460,18 @@ function renderizarGradeHorariosReais() {
                 btn.disabled = true; 
                 btn.innerText = "Ocupado"; 
             } else { 
-                btn.onclick = () => { 
+                // Agora o clique está blindado e não vai sumir!
+                btn.onclick = (e) => { 
+                    e.preventDefault();
                     document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
                     btn.classList.add('selecionado'); 
-                    horarioSelecionado = h; 
+                    horarioSelecionado = h.trim(); 
                 }; 
             }
             grid.appendChild(btn);
         });
+        
+        // 3. Adiciona a grid ao container
         container.appendChild(grid);
     });
 }
