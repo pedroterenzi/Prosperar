@@ -309,9 +309,9 @@ function inicializarListenersPosLogin() {
         };
     }
 
-    const btnConfirmarModal = document.getElementById('btn-confirmar-modal');
+ const btnConfirmarModal = document.getElementById('btn-confirmar-modal');
     if(btnConfirmarModal) {
-        btnConfirmarModal.onclick = (e) => {
+        btnConfirmarModal.onclick = async (e) => {
             e.preventDefault();
             const dataSelecionada = document.getElementById('data').value;
             const bNome = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome;
@@ -330,17 +330,47 @@ function inicializarListenersPosLogin() {
                 valor_gorjeta: 0.00
             };
 
-            MOCK_AGENDAMENTOS_TESTE.push(payload);
-            document.getElementById('modal-confirmacao')?.classList.add('escondido');
-            alert("✨ Cadeira reservada com sucesso!");
-            
-            // Limpa seleções de horário anteriores
-            horarioSelecionado = null;
-            renderizarGradeHorariosReais();
-            carregarMeusAgendamentosDoBanco();
+            try {
+                // Altera o botão para mostrar que está salvando
+                btnConfirmarModal.innerText = "Salvando no Banco...";
+                btnConfirmarModal.disabled = true;
+
+                // Envia para o servidor Render do Prosperar Club
+                const res = await fetch(`${API_URL}/agendamentos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error("Erro no servidor");
+
+                // Atualiza o mock local caso o ADM precise ver sem recarregar
+                MOCK_AGENDAMENTOS_TESTE.push(payload);
+                
+                document.getElementById('modal-confirmacao')?.classList.add('escondido');
+                alert("✨ Cadeira reservada com sucesso e gravada no banco!");
+                
+                // Limpa seleções
+                horarioSelecionado = null;
+                renderizarGradeHorariosReais();
+                carregarMeusAgendamentosDoBanco(); // Recarrega a aba de reservas
+
+            } catch (error) {
+                console.error("Erro ao salvar agendamento:", error);
+                // Contingência: Se o servidor falhar, salva no local para não perder a venda
+                MOCK_AGENDAMENTOS_TESTE.push(payload);
+                document.getElementById('modal-confirmacao')?.classList.add('escondido');
+                alert("⚠️ Salvo localmente! O servidor está instável, mas seu agendamento foi registrado no app.");
+                
+                horarioSelecionado = null;
+                renderizarGradeHorariosReais();
+                carregarMeusAgendamentosDoBanco();
+            } finally {
+                btnConfirmarModal.innerText = "Confirmar Oficialmente";
+                btnConfirmarModal.disabled = false;
+            }
         };
     }
-
     const btnExecutarEncaixe = document.getElementById('btn-executar-encaixe');
     if(btnExecutarEncaixe) {
         btnExecutarEncaixe.onclick = () => {
@@ -476,19 +506,49 @@ function renderizarGradeHorariosReais() {
     });
 }
 
-function carregarMeusAgendamentosDoBanco() {
+async function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos'); 
     if(!container) return;
     
-    // Filtra pelo login do usuário ou pelo nome para garantir correspondência total
-    const meus = MOCK_AGENDAMENTOS_TESTE.filter(a => 
+    container.innerHTML = "<p style='font-size:13px; color:var(--text-muted); text-align:center;'>Buscando suas reservas no banco...</p>";
+    
+    let agendamentosFinais = [];
+
+    try {
+        // Busca os dados reais da API externa
+        const res = await fetch(`${API_URL}/agendamentos`);
+        if (res.ok) {
+            const dadosBanco = await res.json();
+            // Une os dados do banco com o mock local (para garantir que tudo apareça)
+            agendamentosFinais = [...dadosBanco, ...MOCK_AGENDAMENTOS_TESTE];
+        } else {
+            agendamentosFinais = MOCK_AGENDAMENTOS_TESTE;
+        }
+    } catch (e) {
+        console.error("Erro ao conectar na API, usando cache local:", e);
+        agendamentosFinais = MOCK_AGENDAMENTOS_TESTE;
+    }
+
+    // Filtra para mostrar apenas os agendamentos pertencentes ao cliente logado
+    const meus = agendamentosFinais.filter(a => 
         (a.login_cliente && a.login_cliente === usuarioLogado) || 
-        (a.cliente === nomeUsuarioLogado?.toUpperCase())
+        (a.cliente === nomeUsuarioLogado?.toUpperCase()) ||
+        (a.cliente === usuarioLogado?.toUpperCase())
     );
     
-    container.innerHTML = meus.length === 0 ? "<p style='font-size:13px; color:var(--text-muted); text-align:center;'>Nenhum corte agendado.</p>" : "";
-    
-    meus.forEach(item => { 
+    // Remove duplicados por ID (evita exibir o mesmo item vindo da API e do Mock)
+    const filtradosSemDuplicados = Array.from(new Map(meus.map(item => [item.id, item])).values());
+
+    // Ordena por data e hora (mais recentes ou próximos primeiro)
+    filtradosSemDuplicados.sort((a, b) => b.data.localeCompare(a.data) || b.hora.localeCompare(a.hora));
+
+    if (filtradosSemDuplicados.length === 0) {
+        container.innerHTML = "<p style='font-size:13px; color:var(--text-muted); text-align:center;'>Nenhum corte agendado localizado.</p>";
+        return;
+    }
+
+    container.innerHTML = "";
+    filtradosSemDuplicados.forEach(item => { 
         container.innerHTML += `
             <div class="card" style="margin-bottom:12px; background:#1f2125;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -499,7 +559,6 @@ function carregarMeusAgendamentosDoBanco() {
             </div>`; 
     });
 }
-
 function filtrarAgendamentoPorRegraGlobal(a) {
     if(filtroBarbeiroAlvo !== 'todos') {
         const profissionalAlvo = ESTRUTURA_BARBEIROS.find(b => b.id === filtroBarbeiroAlvo);
