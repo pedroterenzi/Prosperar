@@ -54,8 +54,14 @@ document.addEventListener("DOMContentLoaded", () => {
         ESTRUTURA_BARBEIROS = JSON.parse(localStorage.getItem("PROSPERAR_EQUIPE"));
     }
 
+    const inputDataCliente = document.getElementById('data');
+    if(inputDataCliente) {
+        inputDataCliente.value = new Date().toISOString().split('T')[0];
+    }
+
     const btnCadastrar = document.getElementById('btn-cadastrar');
-    if(btnCadastrar) btnCadastrar.addEventListener('click', executingCadastro);
+    // CORRIGIDO: Vinculado corretamente para a função em português sem travar o script
+    if(btnCadastrar) btnCadastrar.addEventListener('click', executarCadastro);
 
     const btnEntrar = document.getElementById('btn-entrar');
     if(btnEntrar) btnEntrar.addEventListener('click', executarLogin);
@@ -70,27 +76,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function isSlotPast(dateStr, timeStr) {
     const agora = new Date();
-    
-    // Converte a data de hoje para string local YYYY-MM-DD para comparação precisa de calendário
-    const hojeStr = agora.getFullYear() + '-' + 
-                    String(agora.getMonth() + 1).padStart(2, '0') + '-' + 
-                    String(agora.getDate()).padStart(2, '0');
-
-    // 1. Se a data selecionada for um dia que já passou, bloqueia tudo
-    if (dateStr < hojeStr) return true;
-    
-    // 2. Se a data selecionada for um dia futuro, libera TODOS os horários (Manhã, Tarde e Noite)
-    if (dateStr > hojeStr) return false;
-
-    // 3. Se for o dia de hoje, valida estritamente a hora e minuto atual
-    const [horaSlot, minutoSlot] = timeStr.split(':').map(Number);
-    const horaAtual = agora.getHours();
-    const minutoAtual = agora.getMinutes();
-
-    if (horaSlot < horaAtual) return true;
-    if (horaSlot === horaAtual && minutoSlot < minutoAtual) return true;
-
-    return false;
+    const [ano, mes, dia] = dateStr.split('-').map(Number);
+    const [hora, minuto] = timeStr.split(':').map(Number);
+    return new Date(ano, mes - 1, dia, hora, minuto, 0, 0) < agora;
 }
 
 function alternarAbasAuth(aba) {
@@ -192,7 +180,7 @@ async function incluirBarbeiroSistema() {
             recarregarAbaAtivaAdm();
         }
     } catch(e) {
-        alert("Falha de comunicação. Salvo localmente in contingência de cache.");
+        alert("Falha de comunicação. Salvo localmente em contingência de cache.");
     }
 }
 
@@ -204,7 +192,23 @@ function removerBarbeiroSistema(id) {
     recarregarAbaAtivaAdm();
 }
 
-async function executarCadastro() { alert("Inscrição sob análise."); }
+async function executarCadastro() {
+    const nome = document.getElementById('cad-nome').value.trim();
+    const login = document.getElementById('cad-login').value.trim().toLowerCase();
+    const celular = document.getElementById('cad-celular').value.trim();
+    const senha = document.getElementById('cad-senha').value;
+    const confirmar = document.getElementById('cad-confirmar-senha').value;
+
+    if(!nome || !login || !senha) return alert("Preencha os dados básicos!");
+    if(senha !== confirmar) return alert("As senhas informadas não conferem.");
+
+    usuarioLogado = login;
+    perfilLogado = "cliente";
+    nomeUsuarioLogado = nome;
+
+    alert("✨ Conta criada com sucesso!");
+    ativarAcessoAoPainelProfissional();
+}
 
 async function executarLogin() {
     const loginInput = document.getElementById('login-usuario');
@@ -264,6 +268,11 @@ function forçarLoginContingencia() {
     ativarAcessoAoPainelProfissional();
 }
 
+function colocarEmSelected(elemento) {
+    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selected'));
+    elemento.classList.add('selected');
+}
+
 function ativarAcessoAoPainelProfissional() {
     document.getElementById('tela-autenticacao')?.classList.add('escondido');
     document.getElementById('conteudo-app')?.classList.remove('escondido');
@@ -273,6 +282,7 @@ function ativarAcessoAoPainelProfissional() {
     if(perfilLogado === 'barbeiro') {
         document.querySelectorAll('.restrito-adm').forEach(el => el.classList.add('escondido'));
         document.getElementById('card-rendimentos-barbeiro')?.classList.remove('escondido');
+        document.getElementById('bloco-filtros-global-adm')?.classList.remove('escondido');
         
         const bInfo = ESTRUTURA_BARBEIROS.find(b => b.login === usuarioLogado);
         if(bInfo) {
@@ -280,14 +290,25 @@ function ativarAcessoAoPainelProfissional() {
             const seletor = document.getElementById('filtro-barbeiro-alvo');
             if(seletor) { seletor.value = bInfo.id; seletor.disabled = true; }
         }
+        alternarTela('adm-dash');
     } else if(perfilLogado === 'admin') {
         document.querySelectorAll('.restrito-adm').forEach(el => el.classList.remove('escondido'));
         document.getElementById('card-rendimentos-barbeiro')?.classList.add('escondido');
+        document.getElementById('bloco-filtros-global-adm')?.classList.remove('escondido');
+        
         const seletor = document.getElementById('filtro-barbeiro-alvo');
         if(seletor) { seletor.disabled = false; seletor.value = 'todos'; filtroBarbeiroAlvo = 'todos'; }
+        alternarTela('adm-dash');
+    } else {
+        document.getElementById('bloco-filtros-global-adm')?.classList.add('escondido');
+        const bv = document.getElementById('boas-vistas-cliente');
+        if(bv) bv.innerText = `Olá, ${nomeUsuarioLogado}!`;
+        
+        renderizarFormularioCliente();
+        carregarMeusAgendamentosDoBanco();
+        alternarTela('home');
     }
 
-    direcionarFluxoInicial(perfilLogado, nomeUsuarioLogado);
     inicializarListenersPosLogin();
 }
 
@@ -315,12 +336,14 @@ function inicializarListenersPosLogin() {
 
     const btnPreAgendar = document.getElementById('btnPreAgendar');
     if(btnPreAgendar) {
-        btnPreAgendar.addEventListener('click', (e) => {
+        btnPreAgendar.onclick = (e) => {
             e.preventDefault();
             if (!servicoSelecionado || !barbeiroSelecionado || !horarioSelecionado || !pagamentoSelecionado) {
-                return alert("Selecione todos os parâmetros antes de avançar.");
+                return alert("Por favor, selecione: Serviço, Profissional, Horário e Pagamento.");
             }
             const dataSelecionada = document.getElementById('data').value;
+            if (!dataSelecionada) return alert("Selecione uma data válida.");
+
             if (isSlotPast(dataSelecionada, horarioSelecionado)) {
                 alert("Este horário expirou. Escolha um horário futuro.");
                 renderizarGradeHorariosReais();
@@ -337,7 +360,7 @@ function inicializarListenersPosLogin() {
                 `;
             }
             document.getElementById('modal-confirmacao')?.classList.remove('escondido');
-        });
+        };
     }
 
     const btnConfirmarModal = document.getElementById('btn-confirmar-modal');
@@ -396,8 +419,8 @@ function inicializarListenersPosLogin() {
 
 function filtrarAgendamentoPorRegraGlobal(a) {
     if(filtroBarbeiroAlvo !== 'todos') {
-        const profesionalAlvo = ESTRUTURA_BARBEIROS.find(b => b.id === filtroBarbeiroAlvo);
-        if(!profesionalAlvo || a.barbeiro !== profesionalAlvo.nome) return false;
+        const profissionalAlvo = ESTRUTURA_BARBEIROS.find(b => b.id === filtroBarbeiroAlvo);
+        if(!profissionalAlvo || a.barbeiro !== profissionalAlvo.nome) return false;
     }
 
     const dataAtendimento = new Date(a.data + 'T00:00:00');
@@ -623,15 +646,12 @@ async function renderizarGradeHorariosReais() {
             } else if (ocupados.includes(h.trim())) { 
                 btn.disabled = true; btn.innerText = "Ocupado"; 
             } else { 
-                // CORREÇÃO VISUAL DE CLIQUE: Alterado de 'selecionado' para 'selected' para sincronizar com o CSS global do app
                 if(horarioSelecionado === h.trim()) {
                     btn.classList.add('selected');
                 }
                 
                 btn.onclick = () => { 
-                    // Remove o destaque amarelo de todos os outros botões de horário
                     document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selected')); 
-                    // Aplica instantaneamente a cor amarela no botão clicado
                     btn.classList.add('selected'); 
                     horarioSelecionado = h.trim(); 
                 }; 
@@ -658,7 +678,7 @@ function renderizarFormularioCliente() {
     });
 
     const boxP = document.getElementById('container-pagamentos'); if(boxP) boxP.innerHTML = "";
-    ["Pix", "Crédito", "Débito"].forEach(p => {
+    ["Pix", "Cartão de Crédito", "Cartão de Débito"].forEach(p => {
         const div = document.createElement('div'); div.className = "modern-card"; div.innerHTML = `<div class="title">${p}</div>`;
         div.onclick = () => { document.querySelectorAll('#container-pagamentos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); pagamentoSelecionado = p; };
         if(boxP) boxP.appendChild(div);
