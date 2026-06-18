@@ -19,7 +19,7 @@ let precoServico = 0;
 // Configuração unificada de filtros superiores
 let filtroTempoGlobal = 'mes_atual'; 
 let filtroBarbeiroAlvo = 'todos'; 
-dataFiltroInicio = new Date().toISOString().split('T')[0];
+let dataFiltroInicio = new Date().toISOString().split('T')[0];
 let dataFiltroFim = new Date().toISOString().split('T')[0];
 
 const ESTRUTURA_SERVICOS = [
@@ -268,8 +268,8 @@ function forçarLoginContingencia() {
 }
 
 function colocarEmSelected(elemento) {
-    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selected'));
-    elemento.classList.add('selected');
+    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado'));
+    elemento.classList.add('selecionado');
 }
 
 function mudarStatusAgendamento(id, novoStatus) {
@@ -635,8 +635,11 @@ async function carregarPainelAnalytics() {
     }
 }
 
+// FUNÇÃO TOTALMENTE CORRIGIDA E ADAPTADA PARA O SEU INDEX.HTML
 async function renderizarGradeHorariosReais() {
-    const container = document.getElementById('container-horarios'); if (!container) return;
+    const container = document.getElementById('container-horarios'); 
+    if (!container) return;
+    
     const dataSel = document.getElementById('data').value;
     const bNome = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome;
     
@@ -645,23 +648,35 @@ async function renderizarGradeHorariosReais() {
     
     HORARIOS_PADRAO.forEach(g => {
         container.innerHTML += `<div class="turno-title">${g.turno}</div>`;
-        const grid = document.createElement('div'); grid.className = "grid-horarios";
+        const grid = document.createElement('div'); 
+        grid.className = "grid-horarios";
+        
         g.horas.forEach(h => {
-            const btn = document.createElement('button'); btn.className = "btn-horario"; btn.innerText = h;
+            const btn = document.createElement('button'); 
+            btn.className = "btn-horario"; 
+            btn.innerText = h;
+            btn.type = "button"; // Evita submissão de formulário invisível
+            
             if (isSlotPast(dataSel, h.trim())) { 
-                btn.disabled = true; btn.style.opacity = "0.3"; btn.innerText = "Expirado"; 
+                btn.disabled = true; 
+                btn.style.opacity = "0.3"; 
+                btn.innerText = "Expirado"; 
             } else if (ocupados.includes(h.trim())) { 
-                btn.disabled = true; btn.innerText = "Ocupado"; 
+                btn.disabled = true; 
+                btn.innerText = "Ocupado"; 
             } else { 
+                // CORREÇÃO DA CLASSE: Mudado de 'selected' para 'selecionado' para alinhar ao index.html
                 if(horarioSelecionado === h.trim()) {
-                    btn.classList.add('selected');
+                    btn.classList.add('selecionado');
                 }
                 
-                btn.onclick = () => { 
-                    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selected')); 
-                    btn.classList.add('selected'); 
+                // Mapeia o clique isolado contornando conflito de escopo reativo (Manhã/Tarde)
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
+                    this.classList.add('selecionado'); 
                     horarioSelecionado = h.trim(); 
-                }; 
+                });
             }
             grid.appendChild(btn);
         });
@@ -707,15 +722,17 @@ async function carregarMeusAgendamentosDoBanco() {
 }
 
 function montarMenuNavegacao(role) {
-    const nav = document.getElementById('menu-navegacao'); if (!nav) return;
+    const nav = document.getElementById('menu-navigation'); // Fallback seguro caso o ID varie
+    const menuNav = document.getElementById('menu-navegacao') || nav; 
+    if (!menuNav) return;
     if (role === 'admin' || role === 'barbeiro') {
-        nav.innerHTML = `
+        menuNav.innerHTML = `
             <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
             ${role === 'admin' ? `<button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>` : ''}
             <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
             <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 Analytics</button>`;
-    } else { nav.innerHTML = `<button class="nav-item ativo" onclick="alternarTela('home')">📅 Agendar</button><button class="nav-item" onclick="alternarTela('estilo')">🗂️ Reservas</button>`; }
-    nav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()">🚪 Sair</button>`;
+    } else { menuNav.innerHTML = `<button class="nav-item ativo" onclick="alternarTela('home')">📅 Agendar</button><button class="nav-item" onclick="alternarTela('estilo')">🗂️ Reservas</button>`; }
+    menuNav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()">🚪 Sair</button>`;
 }
 
 function alternarTela(idAba) {
