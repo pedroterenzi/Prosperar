@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const btnCadastrar = document.getElementById('btn-cadastrar');
-    if(btnCadastrar) btnCadastrar.addEventListener('click', executarCadastro);
+    if(btnCadastrar) btnCadastrar.addEventListener('click', executingCadastro);
 
     const btnEntrar = document.getElementById('btn-entrar');
     if(btnEntrar) btnEntrar.addEventListener('click', executarLogin);
@@ -192,7 +192,7 @@ async function incluirBarbeiroSistema() {
             recarregarAbaAtivaAdm();
         }
     } catch(e) {
-        alert("Falha de comunicação. Salvo localmente em contingência de cache.");
+        alert("Falha de comunicação. Salvo localmente in contingência de cache.");
     }
 }
 
@@ -216,7 +216,6 @@ async function executarLogin() {
 
     if(!login || !senha) return alert("Preencha os campos de acesso.");
 
-    // AJUSTE CRÍTICO: Validação local prioritária para a equipe interna cadastrada
     const barbeiroAlvo = ESTRUTURA_BARBEIROS.find(b => b.login === login);
     if(barbeiroAlvo) {
         if(barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin') {
@@ -241,7 +240,6 @@ async function executarLogin() {
         if(res.ok) {
             const user = await res.json();
             usuarioLogado = user.login;
-            // Força admin ou barbeiro se mapeado por login para evitar furos do banco de dados externo
             if(login === "admin") {
                 perfilLogado = 'admin';
             } else if (ESTRUTURA_BARBEIROS.some(b => b.login === login)) {
@@ -294,7 +292,6 @@ function ativarAcessoAoPainelProfissional() {
 }
 
 function direcionarFluxoInicial(perfil, nomeUsuario) {
-    // CORREÇÃO DE DIRECIONAMENTO: Garante que admin e barbeiro vejam o Dashboard de Gerenciamento
     if(perfil === 'admin' || perfil === 'barbeiro') {
         document.getElementById('bloco-filtros-global-adm')?.classList.remove('escondido');
         alternarTela('adm-dash');
@@ -626,16 +623,16 @@ async function renderizarGradeHorariosReais() {
             } else if (ocupados.includes(h.trim())) { 
                 btn.disabled = true; btn.innerText = "Ocupado"; 
             } else { 
-                // CORREÇÃO VISUAL: Se o horário atual loopado já for o selecionado no estado, mantém ele com a classe CSS ativa
+                // CORREÇÃO VISUAL DE CLIQUE: Alterado de 'selecionado' para 'selected' para sincronizar com o CSS global do app
                 if(horarioSelecionado === h.trim()) {
-                    btn.classList.add('selecionado');
+                    btn.classList.add('selected');
                 }
                 
                 btn.onclick = () => { 
-                    // Remove a classe selecionado de todos os outros botões de horário
-                    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
-                    // Adiciona o feedback visual instantâneo ao botão clicado
-                    btn.classList.add('selecionado'); 
+                    // Remove o destaque amarelo de todos os outros botões de horário
+                    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selected')); 
+                    // Aplica instantaneamente a cor amarela no botão clicado
+                    btn.classList.add('selected'); 
                     horarioSelecionado = h.trim(); 
                 }; 
             }
