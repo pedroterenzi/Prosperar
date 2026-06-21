@@ -258,14 +258,12 @@ async function executarLogin() {
 
     if(!login || !senha) return alert("Preencha os campos de acesso.");
 
-    // FEEDBACK VISUAL PRO RENDER ACORDAR
     if(btnEntrar) {
         btnEntrar.innerText = "Conectando ao banco... aguarde";
         btnEntrar.disabled = true;
     }
 
     try {
-        // Validação interna do dono primeiro
         const barbeiroAlvo = ESTRUTURA_BARBEIROS.find(b => b.login === login);
         if(barbeiroAlvo && (barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin' || barbeiroAlvo.senha === senha)) {
             perfilLogado = (barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin') ? 'admin' : 'barbeiro';
@@ -328,7 +326,6 @@ async function mudarStatusAgendamento(id, novoStatus) {
 }
 
 async function ativarAcessoAoPainelProfissional() {
-    // Sincroniza sempre o banco na hora de entrar
     await sincronizarAgendamentos();
 
     document.getElementById('tela-autenticacao')?.classList.add('escondido');
@@ -596,7 +593,6 @@ async function carregarDadosEstrategicosDoNeon() {
             const taxaMaquininha = (forma.includes('cartao') || forma.includes('credito') || forma.includes('debito')) ? 0.025 : 0.00;
             const valorServicoLiquido = valorServico - (valorServico * taxaMaquininha);
 
-            // Considerar Maiúsculo e Minúsculo
             const statusAtual = a.status ? a.status.toLowerCase() : "";
 
             if(statusAtual !== 'falta' && statusAtual !== 'cancelado') {
@@ -725,7 +721,7 @@ async function carregarPainelAnalytics() {
     }
 }
 
-// CORREÇÃO: Estrutura do botão agora força a classe perfeitamente usando "btn"
+// CORREÇÃO: Uso de document.createElement em vez de innerHTML para não destruir os EventListeners anteriores
 function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios'); 
     if (!container) return;
@@ -738,10 +734,15 @@ function renderizarGradeHorariosReais() {
         .filter(a => a.data === dataSel && a.barbeiro === bNome && (a.status ? a.status.toLowerCase() !== 'falta' : true))
         .map(a => a.hora.trim());
         
-    container.innerHTML = "";
+    container.innerHTML = ""; // Limpa o container apenas uma vez no começo
     
     HORARIOS_PADRAO.forEach(g => {
-        container.innerHTML += `<div class="turno-title">${g.turno}</div>`;
+        // Agora criamos o título dinamicamente e inserimos na tela (isso evita o bug do clique)
+        const tituloTurno = document.createElement('div');
+        tituloTurno.className = "turno-title";
+        tituloTurno.innerText = g.turno;
+        container.appendChild(tituloTurno);
+        
         const grid = document.createElement('div'); 
         grid.className = "grid-horarios";
         
@@ -763,7 +764,6 @@ function renderizarGradeHorariosReais() {
                     btn.classList.add('selecionado');
                 }
                 
-                // CORREÇÃO CHAVE: Usando arrow function isolada apontando para "btn" diretamente
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
@@ -807,10 +807,8 @@ async function carregarListaMarketingReal() {
         <div class="item-backoffice"><div><strong>Guilherme M.</strong><br><span style="font-size:11px;color:var(--text-muted);color:var(--danger-color);">Inativo há 34 dias • 11977776666</span></div><button class="btn-status badge-perigo" onclick="alert('Disparando API de Engajamento Wpp...')">Resgatar</button></div>`;
 }
 
-// ONDE AS RESERVAS VÃO APARECER PARA O CLIENTE
 function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos'); if(!container) return;
-    // Puxa do array global já sincronizado com o banco Neon
     const meus = DADOS_AGENDAMENTOS.filter(a => a.cliente && usuarioLogado && a.cliente.toLowerCase() === usuarioLogado.toLowerCase());
     
     container.innerHTML = meus.length === 0 ? "<p style='font-size:13px; color:var(--text-muted);'>Nenhum corte agendado no sistema.</p>" : "";
