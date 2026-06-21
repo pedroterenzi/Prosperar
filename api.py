@@ -21,7 +21,8 @@ def inicializar_banco():
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
-        # Tabela de Agendamentos Atualizada com Coluna de Status
+        
+        # Tabela de Agendamentos Atualizada
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS agendamentos (
                 id SERIAL PRIMARY KEY,
@@ -34,7 +35,15 @@ def inicializar_banco():
                 status VARCHAR(50) DEFAULT 'Agendado'
             );
         """)
-        # Tabela de Usuários com a estrutura oficial solicitada
+        
+        # Adiciona colunas extras para finanças sem quebrar tabelas já existentes (Proteção)
+        try:
+            cursor.execute("ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS valor_produtos NUMERIC DEFAULT 0.00;")
+            cursor.execute("ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS valor_gorjeta NUMERIC DEFAULT 0.00;")
+        except Exception:
+            pass
+            
+        # Tabela de Usuários 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
                 id SERIAL PRIMARY KEY,
@@ -48,7 +57,7 @@ def inicializar_banco():
                 plano_assinatura VARCHAR(100) DEFAULT 'Nenhum'
             );
         """)
-        # Garante a existência do usuário administrador padrão para testes se não existir
+        
         cursor.execute("SELECT * FROM usuarios WHERE login = 'gabriel';")
         if not cursor.fetchone():
             cursor.execute("""
@@ -79,6 +88,9 @@ class ModeloAgendamento(BaseModel):
     data: str
     hora: str
     pagamento: str
+    status: Optional[str] = "Agendado"
+    valor_produtos: Optional[float] = 0.0
+    valor_gorjeta: Optional[float] = 0.0
 
 class ModeloStatus(BaseModel):
     status: str
@@ -137,8 +149,8 @@ def salvar_agendamento(obj: ModeloAgendamento):
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO agendamentos (cliente, servico, barbeiro, data, hora, pagamento, status) VALUES (%s, %s, %s, %s, %s, %s, 'Agendado') RETURNING id;",
-            (obj.cliente, obj.servico, obj.barbeiro, obj.data, obj.hora, obj.pagamento)
+            "INSERT INTO agendamentos (cliente, servico, barbeiro, data, hora, pagamento, status, valor_produtos, valor_gorjeta) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;",
+            (obj.cliente, obj.servico, obj.barbeiro, obj.data, obj.hora, obj.pagamento, obj.status, obj.valor_produtos, obj.valor_gorjeta)
         )
         novo_id = cursor.fetchone()[0]
         conn.commit()
