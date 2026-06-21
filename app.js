@@ -721,7 +721,6 @@ async function carregarPainelAnalytics() {
     }
 }
 
-// CORREÇÃO: Uso de document.createElement em vez de innerHTML para não destruir os EventListeners anteriores
 function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios'); 
     if (!container) return;
@@ -729,15 +728,13 @@ function renderizarGradeHorariosReais() {
     const dataSel = document.getElementById('data').value;
     const bNome = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome;
     
-    // Puxando da base global real
     let ocupados = DADOS_AGENDAMENTOS
         .filter(a => a.data === dataSel && a.barbeiro === bNome && (a.status ? a.status.toLowerCase() !== 'falta' : true))
         .map(a => a.hora.trim());
         
-    container.innerHTML = ""; // Limpa o container apenas uma vez no começo
+    container.innerHTML = ""; 
     
     HORARIOS_PADRAO.forEach(g => {
-        // Agora criamos o título dinamicamente e inserimos na tela (isso evita o bug do clique)
         const tituloTurno = document.createElement('div');
         tituloTurno.className = "turno-title";
         tituloTurno.innerText = g.turno;
@@ -809,16 +806,34 @@ async function carregarListaMarketingReal() {
 
 function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos'); if(!container) return;
-    const meus = DADOS_AGENDAMENTOS.filter(a => a.cliente && usuarioLogado && a.cliente.toLowerCase() === usuarioLogado.toLowerCase());
+    
+    // CORREÇÃO AQUI: Agora ele compara o Nome Salvo do cliente com o nomeUsuarioLogado
+    let meus = DADOS_AGENDAMENTOS.filter(a => 
+        a.cliente && 
+        nomeUsuarioLogado && 
+        a.cliente.trim().toLowerCase() === nomeUsuarioLogado.trim().toLowerCase()
+    );
+
+    // BÔNUS: Ordena os agendamentos pela data (os mais recentes ou futuros primeiro)
+    meus.sort((a, b) => {
+        const dataHoraA = new Date(`${a.data}T${a.hora}:00`);
+        const dataHoraB = new Date(`${b.data}T${b.hora}:00`);
+        return dataHoraB - dataHoraA; 
+    });
     
     container.innerHTML = meus.length === 0 ? "<p style='font-size:13px; color:var(--text-muted);'>Nenhum corte agendado no sistema.</p>" : "";
     
     meus.forEach(item => { 
+        // Lógica de cor visual para quando for concluído
+        const isConcluido = item.status && item.status.toLowerCase() === 'concluído';
+        const corBorda = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
+        const corTextoStatus = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
+
         container.innerHTML += `
-        <div class="card" style="border-left: 4px solid var(--accent-color)">
+        <div class="card" style="border-left: 4px solid ${corBorda}; margin-bottom: 12px; padding: 16px;">
             <strong style="color:white; font-size: 16px;">${item.servico}</strong><br>
             <span style="font-size:13px;color:var(--text-muted);">Profissional: ${item.barbeiro} • Dia: ${item.data} às ${item.hora}</span><br>
-            <span style="font-size:11px;color:var(--success-color); font-weight: bold;">Status: ${item.status}</span>
+            <span style="font-size:11px;color:${corTextoStatus}; font-weight: bold;">Status: ${item.status}</span>
         </div>`; 
     });
 }
