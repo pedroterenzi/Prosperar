@@ -16,6 +16,9 @@ let horarioSelecionado = null;
 let pagamentoSelecionado = null;
 let precoServico = 0;
 
+// Banco Dinâmico Sincronizado do Frontend para Agendamentos
+let DADOS_AGENDAMENTOS = [];
+
 // Configuração unificada de filtros superiores
 let filtroTempoGlobal = 'mes_atual'; 
 let filtroBarbeiroAlvo = 'todos'; 
@@ -29,7 +32,6 @@ const ESTRUTURA_SERVICOS = [
     { id: "combo", nome: "Combo Premium", preco: 85.00, sub: "Corte + Barba + Sobrancelha" }
 ];
 
-// Banco Dinâmico Sincronizado do Corpo Técnico
 let ESTRUTURA_BARBEIROS = [
     { id: "gabriel", login: "admin", nome: "Gabriel (Proprietário)", celular: "11999999999", comissao: 0.50 },
     { id: "lucas", login: "lucasbarber", nome: "Lucas Barber", celular: "11988888888", comissao: 0.40 }
@@ -39,14 +41,6 @@ const HORARIOS_PADRAO = [
     { turno: "☀️ Manhã", horas: ["09:00", "09:30", "11:00", "11:30"] },
     { turno: "🌤️ Tarde", horas: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "16:00", "16:30", "17:00", "17:30"] },
     { turno: "🌙 Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
-];
-
-const MOCK_AGENDAMENTOS_TESTE = [
-    { id: 101, cliente: "MIGUEL ANJOS", servico: "Combo Premium", barbeiro: "Gabriel (Proprietário)", data: new Date().toISOString().split('T')[0], hora: "09:00", pagamento: "Cartão de Crédito", status: "Concluído", valor_produtos: 20.00, valor_gorjeta: 15.00 },
-    { id: 102, cliente: "BRUNO SILVA", servico: "Corte Simples", barbeiro: "Lucas Barber", data: new Date().toISOString().split('T')[0], hora: "10:30", pagamento: "Pix", status: "Concluído", valor_produtos: 0.00, valor_gorjeta: 5.00 },
-    { id: 103, cliente: "CARLOS SOUZA", servico: "Barba Completa", barbeiro: "Lucas Barber", data: new Date().toISOString().split('T')[0], hora: "14:00", pagamento: "Cartão de Débito", status: "Falta", valor_produtos: 0.00, valor_gorjeta: 0.00 },
-    { id: 104, cliente: "ARTHUR REIS", servico: "Corte + Sobrancelha", barbeiro: "Gabriel (Proprietário)", data: (() => { let d = new Date(); d.setDate(d.getDate()-1); return d.toISOString().split('T')[0]; })(), hora: "16:00", pagamento: "Dinheiro", status: "Concluído", valor_produtos: 50.00, valor_gorjeta: 10.00 },
-    { id: 105, cliente: "RODRIGO FARIA", servico: "Combo Premium", barbeiro: "Lucas Barber", data: (() => { let d = new Date(); d.setDate(d.getDate()-4); return d.toISOString().split('T')[0]; })(), hora: "18:30", pagamento: "Cartão de Crédito", status: "Concluído", valor_produtos: 10.00, valor_gorjeta: 0.00 }
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -72,6 +66,18 @@ document.addEventListener("DOMContentLoaded", () => {
     
     atualizarSeletoresEFormulariosDeEquipe();
 });
+
+// FUNÇÃO PARA PUXAR AGENDAMENTOS DO BANCO DE DADOS
+async function sincronizarAgendamentos() {
+    try {
+        const res = await fetch(`${API_URL}/agendamentos`);
+        if (res.ok) {
+            DADOS_AGENDAMENTOS = await res.json();
+        }
+    } catch (e) {
+        console.error("Aviso: Falha ao sincronizar com banco. Verifique a API.", e);
+    }
+}
 
 function isSlotPast(dateStr, timeStr) {
     const agora = new Date();
@@ -197,21 +203,54 @@ async function executarCadastro() {
     const celular = document.getElementById('cad-celular').value.trim();
     const senha = document.getElementById('cad-senha').value;
     const confirmar = document.getElementById('cad-confirmar-senha').value;
+    const btnCadastrar = document.getElementById('btn-cadastrar');
 
     if(!nome || !login || !senha) return alert("Preencha os dados básicos!");
     if(senha !== confirmar) return alert("As senhas informadas não conferem.");
 
-    usuarioLogado = login;
-    perfilLogado = "cliente";
-    nomeUsuarioLogado = nome;
+    if(btnCadastrar) {
+        btnCadastrar.innerText = "Criando conta no Banco...";
+        btnCadastrar.disabled = true;
+    }
 
-    alert("✨ Conta criada com sucesso!");
-    ativarAcessoAoPainelProfissional();
+    const payload = {
+        login: login,
+        senha: senha,
+        nome: nome,
+        celular: celular,
+        plano_assinatura: "Nenhum"
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/usuarios/cadastro`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        if(res.ok) {
+            usuarioLogado = login;
+            perfilLogado = "cliente";
+            nomeUsuarioLogado = nome;
+            alert("✨ Conta criada com sucesso!");
+            ativarAcessoAoPainelProfissional();
+        } else {
+            alert("Erro ao criar conta. Este usuário já pode existir.");
+        }
+    } catch(e) {
+        alert("Erro na rede. Verifique a API.");
+    } finally {
+        if(btnCadastrar) {
+            btnCadastrar.innerText = "Salvar Cadastro Oficial";
+            btnCadastrar.disabled = false;
+        }
+    }
 }
 
 async function executarLogin() {
     const loginInput = document.getElementById('login-usuario');
     const senhaInput = document.getElementById('login-senha');
+    const btnEntrar = document.getElementById('btn-entrar');
     if(!loginInput || !senhaInput) return;
 
     const login = loginInput.value.trim().toLowerCase();
@@ -219,21 +258,23 @@ async function executarLogin() {
 
     if(!login || !senha) return alert("Preencha os campos de acesso.");
 
-    const barbeiroAlvo = ESTRUTURA_BARBEIROS.find(b => b.login === login);
-    if(barbeiroAlvo) {
-        if(barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin') {
-            perfilLogado = 'admin';
-        } else {
-            if(barbeiroAlvo.senha && barbeiroAlvo.senha !== senha) return alert("Senha incorreta.");
-            perfilLogado = 'barbeiro';
-        }
-        usuarioLogado = barbeiroAlvo.login;
-        nomeUsuarioLogado = barbeiroAlvo.nome;
-        ativarAcessoAoPainelProfissional();
-        return;
+    // FEEDBACK VISUAL PRO RENDER ACORDAR
+    if(btnEntrar) {
+        btnEntrar.innerText = "Conectando ao banco... aguarde";
+        btnEntrar.disabled = true;
     }
 
     try {
+        // Validação interna do dono primeiro
+        const barbeiroAlvo = ESTRUTURA_BARBEIROS.find(b => b.login === login);
+        if(barbeiroAlvo && (barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin' || barbeiroAlvo.senha === senha)) {
+            perfilLogado = (barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin') ? 'admin' : 'barbeiro';
+            usuarioLogado = barbeiroAlvo.login;
+            nomeUsuarioLogado = barbeiroAlvo.nome;
+            await ativarAcessoAoPainelProfissional();
+            return;
+        }
+
         const res = await fetch(`${API_URL}/usuarios/login`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -243,7 +284,7 @@ async function executarLogin() {
         if(res.ok) {
             const user = await res.json();
             usuarioLogado = user.login;
-            if(login === "admin") {
+            if(login === "admin" || user.perfil === "admin") {
                 perfilLogado = 'admin';
             } else if (ESTRUTURA_BARBEIROS.some(b => b.login === login)) {
                 perfilLogado = 'barbeiro';
@@ -251,14 +292,19 @@ async function executarLogin() {
                 perfilLogado = user.perfil || user.role || 'cliente';
             }
             nomeUsuarioLogado = user.nome;
-            ativarAcessoAoPainelProfissional();
+            await ativarAcessoAoPainelProfissional();
         } else {
             if(login === "admin" && senha === "admin") forçarLoginContingencia();
-            else alert("Acesso negado.");
+            else alert("Acesso negado. Verifique login e senha.");
         }
     } catch(e) {
         if(login === "admin" && senha === "admin") forçarLoginContingencia();
-        else alert("Erro na rede. Ativando cache operacional local.");
+        else alert("Erro na rede ao tentar conectar.");
+    } finally {
+        if(btnEntrar) {
+            btnEntrar.innerText = "Entrar no System";
+            btnEntrar.disabled = false;
+        }
     }
 }
 
@@ -267,20 +313,24 @@ function forçarLoginContingencia() {
     ativarAcessoAoPainelProfissional();
 }
 
-function colocarEmSelected(elemento) {
-    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado'));
-    elemento.classList.add('selecionado');
-}
-
-function mudarStatusAgendamento(id, novoStatus) {
-    const agendamento = MOCK_AGENDAMENTOS_TESTE.find(a => a.id === id);
-    if(agendamento) {
-        agendamento.status = novoStatus;
+async function mudarStatusAgendamento(id, novoStatus) {
+    try {
+        await fetch(`${API_URL}/agendamentos/${id}/status`, {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ status: novoStatus })
+        });
+        await sincronizarAgendamentos();
         recarregarAbaAtivaAdm();
+    } catch(e) {
+        console.error("Erro ao mudar status: ", e);
     }
 }
 
-function ativarAcessoAoPainelProfissional() {
+async function ativarAcessoAoPainelProfissional() {
+    // Sincroniza sempre o banco na hora de entrar
+    await sincronizarAgendamentos();
+
     document.getElementById('tela-autenticacao')?.classList.add('escondido');
     document.getElementById('conteudo-app')?.classList.remove('escondido');
 
@@ -317,20 +367,6 @@ function ativarAcessoAoPainelProfissional() {
     }
 
     inicializarListenersPosLogin();
-}
-
-function direcionarFluxoInicial(perfil, nomeUsuario) {
-    if(perfil === 'admin' || perfil === 'barbeiro') {
-        document.getElementById('bloco-filtros-global-adm')?.classList.remove('escondido');
-        alternarTela('adm-dash');
-    } else {
-        document.getElementById('bloco-filtros-global-adm')?.classList.add('escondido');
-        alternarTela('home');
-        const bv = document.getElementById('boas-vistas-cliente');
-        if(bv) bv.innerText = `Olá, ${nomeUsuario}!`;
-        renderizarFormularioCliente();
-        carregarMeusAgendamentosDoBanco();
-    }
 }
 
 function inicializarListenersPosLogin() {
@@ -374,32 +410,57 @@ function inicializarListenersPosLogin() {
     if(btnConfirmarModal) {
         btnConfirmarModal.addEventListener('click', async (e) => {
             e.preventDefault();
+            const btn = e.target;
+            btn.innerText = "Enviando...";
+            btn.disabled = true;
+
             const dataSelecionada = document.getElementById('data').value;
             const bNome = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome;
             
             const payload = {
-                id: Date.now(),
                 cliente: nomeUsuarioLogado ? nomeUsuarioLogado.toUpperCase() : "CLIENTE ANÔNIMO",
                 servico: servicoSelecionado,
                 barbeiro: bNome,
                 data: dataSelecionada,
                 hora: horarioSelecionado,
                 pagamento: pagamentoSelecionado,
-                status: "agendado",
+                status: "Agendado",
                 valor_produtos: 0.00,
                 valor_gorjeta: 0.00
             };
 
-            MOCK_AGENDAMENTOS_TESTE.push(payload);
-            document.getElementById('modal-confirmacao')?.classList.add('escondido');
-            alert("✨ Reserva efetuada!");
-            renderizarGradeHorariosReais();
+            try {
+                const res = await fetch(`${API_URL}/agendamentos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if(res.ok) {
+                    document.getElementById('modal-confirmacao')?.classList.add('escondido');
+                    alert("✨ Reserva efetuada com sucesso!");
+                    await sincronizarAgendamentos();
+                    renderizarGradeHorariosReais();
+                    carregarMeusAgendamentosDoBanco();
+                } else {
+                    alert("Erro ao confirmar reserva.");
+                }
+            } catch(error) {
+                alert("Falha de comunicação com o servidor.");
+            } finally {
+                btn.innerText = "Confirmar Oficialmente";
+                btn.disabled = false;
+            }
         });
     }
 
     const btnExecutarEncaixe = document.getElementById('btn-executar-encaixe');
     if(btnExecutarEncaixe) {
-        btnExecutarEncaixe.addEventListener('click', async () => {
+        btnExecutarEncaixe.addEventListener('click', async (e) => {
+            const btn = e.target;
+            btn.innerText = "Salvando...";
+            btn.disabled = true;
+
             const nome = document.getElementById('encaixe-nome')?.value.trim();
             const servico = document.getElementById('encaixe-servico')?.value;
             const barbeiro = document.getElementById('encaixe-barbeiro')?.value;
@@ -407,19 +468,43 @@ function inicializarListenersPosLogin() {
             const gorjeta = parseFloat(document.getElementById('encaixe-gorjeta')?.value || 0);
             const pagamento = document.getElementById('encaixe-pagamento')?.value;
 
-            if(!nome) return alert("Insira o nome do cliente.");
+            if(!nome) {
+                btn.innerText = "Lançar Encaixe Concluído";
+                btn.disabled = false;
+                return alert("Insira o nome do cliente.");
+            }
 
             const payload = {
-                id: Date.now(),
                 cliente: `WALK-IN: ${nome.toUpperCase()}`,
-                servico, barbeiro, data: new Date().toISOString().split('T')[0],
-                hora, pagamento, status: "Concluído", valor_produtos: 0.00, valor_gorjeta: gorjeta
+                servico: servico,
+                barbeiro: barbeiro,
+                data: new Date().toISOString().split('T')[0],
+                hora: hora,
+                pagamento: pagamento,
+                status: "Concluído",
+                valor_produtos: 0.00,
+                valor_gorjeta: gorjeta
             };
 
-            MOCK_AGENDAMENTOS_TESTE.push(payload);
-            alert("⚡ Encaixe registrado com sucesso!");
-            document.getElementById('encaixe-nome').value = "";
-            recarregarAbaAtivaAdm();
+            try {
+                const res = await fetch(`${API_URL}/agendamentos`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if(res.ok) {
+                    alert("⚡ Encaixe registrado com sucesso!");
+                    document.getElementById('encaixe-nome').value = "";
+                    await sincronizarAgendamentos();
+                    recarregarAbaAtivaAdm();
+                }
+            } catch (err) {
+                alert("Erro ao registrar encaixe.");
+            } finally {
+                btn.innerText = "Lançar Encaixe Concluído";
+                btn.disabled = false;
+            }
         });
     }
 }
@@ -492,7 +577,7 @@ function recarregarAbaAtivaAdm() {
 
 async function carregarDadosEstrategicosDoNeon() {
     try {
-        const agendamentos = MOCK_AGENDAMENTOS_TESTE.filter(filtrarAgendamentoPorRegraGlobal);
+        const agendamentos = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
 
         let faturamentoTotal = 0, faturamentoServicosBrutos = 0, faturamentoProdutosBrutos = 0, atendimentosFinalizados = 0, totalFaltasNoShow = 0;
         let balançoEquipe = {};
@@ -511,7 +596,10 @@ async function carregarDadosEstrategicosDoNeon() {
             const taxaMaquininha = (forma.includes('cartao') || forma.includes('credito') || forma.includes('debito')) ? 0.025 : 0.00;
             const valorServicoLiquido = valorServico - (valorServico * taxaMaquininha);
 
-            if(a.status !== 'Falta' && a.status !== 'cancelado') {
+            // Considerar Maiúsculo e Minúsculo
+            const statusAtual = a.status ? a.status.toLowerCase() : "";
+
+            if(statusAtual !== 'falta' && statusAtual !== 'cancelado') {
                 faturamentoServicosBrutos += valorServico; faturamentoProdutosBrutos += valorProd;
                 faturamentoTotal += (valorServico + valorProd + valorGorjeta); atendimentosFinalizados++;
                 
@@ -560,11 +648,13 @@ async function carregarDadosEstrategicosDoNeon() {
 
 async function carregarModoRecepcaoKanban() {
     const container = document.getElementById('container-kanban-recepcao'); if(!container) return;
-    const dadosFiltrados = MOCK_AGENDAMENTOS_TESTE.filter(filtrarAgendamentoPorRegraGlobal);
+    const dadosFiltrados = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
     container.innerHTML = dadosFiltrados.length === 0 ? "<p style='color:var(--text-muted); text-align:center;'>Nenhum registro para o escopo.</p>" : "";
+    
     dadosFiltrados.forEach(item => {
+        const isConcluido = item.status && item.status.toLowerCase() === 'concluído';
         container.innerHTML += `
-            <div class="item-backoffice" style="border-left: 4px solid ${item.status === 'Concluído' ? 'var(--success-color)' : 'var(--accent-color)'}">
+            <div class="item-backoffice" style="border-left: 4px solid ${isConcluido ? 'var(--success-color)' : 'var(--accent-color)'}">
                 <div><strong>👤 ${item.cliente} (${item.status})</strong><br><span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${item.hora} [Barbeiro: ${item.barbeiro}]</span></div>
                 <div style="display:flex; gap:6px;">
                     <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
@@ -576,7 +666,7 @@ async function carregarModoRecepcaoKanban() {
 
 async function carregarPainelAnalytics() {
     const containerMapa = document.getElementById('analytics-heatmap'); if(!containerMapa) return;
-    const agendamentos = MOCK_AGENDAMENTOS_TESTE.filter(filtrarAgendamentoPorRegraGlobal);
+    const agendamentos = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
 
     const turnos = { "Manhã": 0, "Tarde": 0, "Noite": 0 };
     const dias = { "Segunda-feira": 0, "Terça-feira": 0, "Quarta-feira": 0, "Quinta-feira": 0, "Sexta-feira": 0, "Sábado": 0, "Domingo": 0 };
@@ -635,15 +725,19 @@ async function carregarPainelAnalytics() {
     }
 }
 
-// FUNÇÃO TOTALMENTE CORRIGIDA E ADAPTADA PARA O SEU INDEX.HTML
-async function renderizarGradeHorariosReais() {
+// CORREÇÃO: Estrutura do botão agora força a classe perfeitamente usando "btn"
+function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios'); 
     if (!container) return;
     
     const dataSel = document.getElementById('data').value;
     const bNome = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome;
     
-    let ocupados = MOCK_AGENDAMENTOS_TESTE.filter(a => a.data === dataSel && a.barbeiro === bNome && a.status !== 'Falta').map(a => a.hora.trim());
+    // Puxando da base global real
+    let ocupados = DADOS_AGENDAMENTOS
+        .filter(a => a.data === dataSel && a.barbeiro === bNome && (a.status ? a.status.toLowerCase() !== 'falta' : true))
+        .map(a => a.hora.trim());
+        
     container.innerHTML = "";
     
     HORARIOS_PADRAO.forEach(g => {
@@ -655,7 +749,7 @@ async function renderizarGradeHorariosReais() {
             const btn = document.createElement('button'); 
             btn.className = "btn-horario"; 
             btn.innerText = h;
-            btn.type = "button"; // Evita submissão de formulário invisível
+            btn.type = "button";
             
             if (isSlotPast(dataSel, h.trim())) { 
                 btn.disabled = true; 
@@ -665,16 +759,15 @@ async function renderizarGradeHorariosReais() {
                 btn.disabled = true; 
                 btn.innerText = "Ocupado"; 
             } else { 
-                // CORREÇÃO DA CLASSE: Mudado de 'selected' para 'selecionado' para alinhar ao index.html
                 if(horarioSelecionado === h.trim()) {
                     btn.classList.add('selecionado');
                 }
                 
-                // Mapeia o clique isolado contornando conflito de escopo reativo (Manhã/Tarde)
-                btn.addEventListener('click', function(e) {
+                // CORREÇÃO CHAVE: Usando arrow function isolada apontando para "btn" diretamente
+                btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
-                    this.classList.add('selecionado'); 
+                    btn.classList.add('selecionado'); 
                     horarioSelecionado = h.trim(); 
                 });
             }
@@ -700,7 +793,7 @@ function renderizarFormularioCliente() {
     });
 
     const boxP = document.getElementById('container-pagamentos'); if(boxP) boxP.innerHTML = "";
-    ["Pix", "Cartão de Crédito", "Cartão de Débito"].forEach(p => {
+    ["Pix", "Cartão de Crédito", "Cartão de Débito", "Dinheiro"].forEach(p => {
         const div = document.createElement('div'); div.className = "modern-card"; div.innerHTML = `<div class="title">${p}</div>`;
         div.onclick = () => { document.querySelectorAll('#container-pagamentos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); pagamentoSelecionado = p; };
         if(boxP) boxP.appendChild(div);
@@ -714,15 +807,26 @@ async function carregarListaMarketingReal() {
         <div class="item-backoffice"><div><strong>Guilherme M.</strong><br><span style="font-size:11px;color:var(--text-muted);color:var(--danger-color);">Inativo há 34 dias • 11977776666</span></div><button class="btn-status badge-perigo" onclick="alert('Disparando API de Engajamento Wpp...')">Resgatar</button></div>`;
 }
 
-async function carregarMeusAgendamentosDoBanco() {
+// ONDE AS RESERVAS VÃO APARECER PARA O CLIENTE
+function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos'); if(!container) return;
-    const meus = MOCK_AGENDAMENTOS_TESTE.filter(a => a.cliente === usuarioLogado?.toUpperCase());
-    container.innerHTML = meus.length === 0 ? "<p style='font-size:13px; color:var(--text-muted);'>Nenhum corte agendado.</p>" : "";
-    meus.forEach(item => { container.innerHTML += `<div class="card"><strong>${item.servico}</strong><br><span style="font-size:12px;color:var(--text-muted);">${item.barbeiro} • ${item.data} às ${item.hora}</span></div>`; });
+    // Puxa do array global já sincronizado com o banco Neon
+    const meus = DADOS_AGENDAMENTOS.filter(a => a.cliente && usuarioLogado && a.cliente.toLowerCase() === usuarioLogado.toLowerCase());
+    
+    container.innerHTML = meus.length === 0 ? "<p style='font-size:13px; color:var(--text-muted);'>Nenhum corte agendado no sistema.</p>" : "";
+    
+    meus.forEach(item => { 
+        container.innerHTML += `
+        <div class="card" style="border-left: 4px solid var(--accent-color)">
+            <strong style="color:white; font-size: 16px;">${item.servico}</strong><br>
+            <span style="font-size:13px;color:var(--text-muted);">Profissional: ${item.barbeiro} • Dia: ${item.data} às ${item.hora}</span><br>
+            <span style="font-size:11px;color:var(--success-color); font-weight: bold;">Status: ${item.status}</span>
+        </div>`; 
+    });
 }
 
 function montarMenuNavegacao(role) {
-    const nav = document.getElementById('menu-navigation'); // Fallback seguro caso o ID varie
+    const nav = document.getElementById('menu-navigation'); 
     const menuNav = document.getElementById('menu-navegacao') || nav; 
     if (!menuNav) return;
     if (role === 'admin' || role === 'barbeiro') {
@@ -743,4 +847,5 @@ function alternarTela(idAba) {
     document.querySelectorAll('.nav-inferior .nav-item').forEach(btn => btn.classList.remove('ativo'));
 
     recarregarAbaAtivaAdm();
+    if(idAba === 'estilo') carregarMeusAgendamentosDoBanco();
 }
