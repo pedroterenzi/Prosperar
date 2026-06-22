@@ -103,8 +103,9 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
         .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto;}
         
-        .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(22, 23, 26, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 14px 4px; border-radius: 20px; z-index: 999; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif; }
+        /* Ajuste no Nav para caber as novas abas de forma elegante */
+        .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(22, 23, 26, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 10px 4px; border-radius: 20px; z-index: 999; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-x: auto;}
+        .nav-item { background: none; border: none; color: var(--text-muted); font-size: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif; padding: 4px; white-space: nowrap;}
         .nav-item.ativo { color: var(--accent-color); }
         
         .escondido { display: none !important; }
@@ -120,7 +121,6 @@
 
 <div class="app-container">
 
-    <!-- TELA DE LOGIN E CADASTRO -->
     <div id="tela-autenticacao" class="card" style="margin-top: 30px;">
         <div class="toggle-auth">
             <button id="tab-login" class="active" onclick="alternarAbasAuth('login')">ENTRAR</button>
@@ -172,10 +172,8 @@
         </div>
     </div>
 
-    <!-- CONTEÚDO OPERACIONAL DO CORE APP -->
     <div id="conteudo-app" class="escondido">
         
-        <!-- SELETOR E FILTRO GLOBAL -->
         <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color);">
             <h4 style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral:</h4>
             
@@ -207,7 +205,6 @@
             </div>
         </div>
 
-        <!-- ABA DO CLIENTE: AGENDAMENTO -->
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 20px;">
                 <h2 id="boas-vistas-cliente" style="font-size: 22px; margin-bottom: 4px;">Olá!</h2>
@@ -234,13 +231,11 @@
             </div>
         </section>
 
-        <!-- ABA DO CLIENTE: MEUS CORTES -->
         <section id="aba-estilo" class="escondido">
             <h3>Meus Agendamentos</h3>
             <div id="container-meus-agendamentos"></div>
         </section>
 
-        <!-- ABA BACKOFFICE: MONITOR FINANCEIRO & EQUIPE -->
         <section id="aba-adm-dash" class="escondido">
             <h2 class="gold-text" style="margin-bottom: 4px;">Métricas de Faturamento</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores baseados no período selecionado:</p>
@@ -264,7 +259,6 @@
                 </div>
             </div>
 
-            <!-- Visão de Ganhos Privados do Colaborador Logado -->
             <div class="card escondido" id="card-rendimentos-barbeiro">
                 <h3 class="gold-text">Minha Carteira Pro</h3>
                 <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.3);">
@@ -285,7 +279,6 @@
                 <div class="lista-backoffice" id="lista-split-comissoes-equipe"></div>
             </div>
 
-            <!-- CADASTRO E GERENCIAMENTO DE EQUIPE -->
             <div class="card restrito-adm" style="border-color: rgba(204,153,51,0.25);">
                 <h3>👥 Gerenciamento de Barbeiros</h3>
                 <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione colaboradores e salve as informações no banco de dados.</p>
@@ -324,7 +317,36 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: CRM & COMUNICAÇÃO -->
+        <section id="aba-adm-servicos" class="escondido restrito-adm">
+            <h3>Gestão de Serviços</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Adicione, edite ou exclua os serviços do aplicativo:</p>
+            
+            <div class="card">
+                <h4>➕ Registrar Novo Serviço</h4>
+                <div class="form-group">
+                    <label>Nome do Serviço:</label>
+                    <input type="text" id="servico-nome" placeholder="Ex: Platinado">
+                </div>
+                <div class="intervalo-custom-grid">
+                    <div class="form-group">
+                        <label>Preço (R$):</label>
+                        <input type="number" id="servico-preco" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Descrição/Duração:</label>
+                        <input type="text" id="servico-sub" placeholder="Ex: Duração: 40 min">
+                    </div>
+                </div>
+                <button class="btn-gold" id="btn-salvar-servico" style="margin-top: 10px;" onclick="salvarNovoServico()">Adicionar Serviço</button>
+            </div>
+
+            <div class="card">
+                <h4>Serviços Ativos</h4>
+                <div class="lista-backoffice" id="lista-servicos-cadastrados" style="max-height: 400px; overflow-y: auto;">
+                    </div>
+            </div>
+        </section>
+
         <section id="aba-adm-mkt" class="escondido restrito-adm">
             <h3>CRM e Comunicação Ativa</h3>
             <div class="card" style="margin-bottom:15px;">
@@ -334,7 +356,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: KANBAN MONITOR -->
         <section id="aba-adm-recepcao" class="escondido">
             <h3>Monitor de Atendimentos</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia:</p>
@@ -348,19 +369,11 @@
                 </div>
                 <div class="form-group">
                     <label>Serviço Desejado:</label>
-                    <select id="encaixe-servico">
-                        <option value="Corte Simples">Corte Simples (R$ 40,00)</option>
-                        <option value="Corte + Sobrancelha">Corte + Sobrancelha (R$ 55,00)</option>
-                        <option value="Barba Completa">Barba Completa (R$ 35,00)</option>
-                        <option value="Combo Premium">Combo Premium (R$ 85,00)</option>
-                    </select>
+                    <select id="encaixe-servico"></select>
                 </div>
                 <div class="form-group">
                     <label>Profissional Designado:</label>
-                    <select id="encaixe-barbeiro">
-                        <option value="Gabriel (Proprietário)">Gabriel (Proprietário)</option>
-                        <option value="Lucas Barber">Lucas Barber</option>
-                    </select>
+                    <select id="encaixe-barbeiro"></select>
                 </div>
                 <div class="intervalo-custom-grid">
                     <div class="form-group">
@@ -389,7 +402,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: DESPESAS -->
         <section id="aba-adm-despesas" class="escondido restrito-adm">
             <h3>Gestão de Despesas</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle os custos da sua barbearia:</p>
@@ -423,12 +435,10 @@
             <div class="card">
                 <h4>Histórico de Lançamentos</h4>
                 <div class="lista-backoffice" id="lista-despesas-cadastradas" style="max-height: 300px; overflow-y: auto;">
-                    <!-- Preenchido via JS -->
-                </div>
+                    </div>
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: BUSINESS INTELLIGENCE -->
         <section id="aba-adm-analytics" class="escondido">
             <h3>Business Intelligence</h3>
             
@@ -445,14 +455,11 @@
             </div>
         </section>
 
-        <!-- MENU INFERIOR -->
         <nav class="nav-inferior" id="menu-navegacao"></nav>
 
     </div>
 </div>
 
-<!-- POP-UPS -->
-<!-- POP-UP CONFIRMAÇÃO DE NOVA RESERVA -->
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Confirmar sua Cadeira?</h3>
@@ -462,7 +469,6 @@
     </div>
 </div>
 
-<!-- MODAL EDITAR RESERVA DO CLIENTE -->
 <div id="modal-editar-reserva" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Modificar Agendamento</h3>
@@ -482,7 +488,6 @@
             </div>
             <div class="form-group">
                 <label>Horário:</label>
-                <!-- AQUI O INPUT DE HORA VIROU UM SELECT DINÂMICO -->
                 <select id="edit-reserva-hora"></select>
             </div>
         </div>
@@ -500,7 +505,6 @@
     </div>
 </div>
 
-<!-- MODAL EDITAR BARBEIRO -->
 <div id="modal-editar-barbeiro" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Editar Profissional</h3>
@@ -527,7 +531,6 @@
     </div>
 </div>
 
-<!-- MODAL EDITAR DESPESA -->
 <div id="modal-editar-despesa" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Editar Despesa</h3>
@@ -548,6 +551,29 @@
         </div>
         <button class="btn-gold" style="margin-top: 10px;" onclick="salvarEdicaoDespesa()">Salvar Nova Despesa</button>
         <button class="btn-danger" onclick="fecharModal('modal-editar-despesa')">Cancelar</button>
+    </div>
+</div>
+
+<div id="modal-editar-servico" class="modal-overlay escondido">
+    <div class="modal-content">
+        <h3>Editar Serviço</h3>
+        <input type="hidden" id="edit-servico-id">
+        <div class="form-group">
+            <label>Nome do Serviço:</label>
+            <input type="text" id="edit-servico-nome">
+        </div>
+        <div class="intervalo-custom-grid">
+            <div class="form-group">
+                <label>Preço (R$):</label>
+                <input type="number" id="edit-servico-preco" step="0.01">
+            </div>
+            <div class="form-group">
+                <label>Descrição/Duração:</label>
+                <input type="text" id="edit-servico-sub">
+            </div>
+        </div>
+        <button class="btn-gold" style="margin-top: 10px;" onclick="salvarEdicaoServico()">Salvar Alterações</button>
+        <button class="btn-danger" onclick="fecharModal('modal-editar-servico')">Cancelar</button>
     </div>
 </div>
 
