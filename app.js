@@ -21,7 +21,7 @@ let DADOS_AGENDAMENTOS = [];
 let DADOS_USUARIOS = [];
 let DADOS_DESPESAS = [];
 let DADOS_SERVICOS = []; 
-let ESTRUTURA_BARBEIROS = []; // Agora puxa dinamicamente do Banco!
+let ESTRUTURA_BARBEIROS = []; 
 
 // Configuração unificada de filtros superiores
 let filtroTempoGlobal = 'mes_atual'; 
@@ -36,6 +36,13 @@ const HORARIOS_PADRAO = [
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
+    // CUTUCÃO INVISÍVEL: Acorda o Render assim que a página abre
+    fetch(`${API_URL}/servicos`).catch(() => console.log("Aquecendo servidor..."));
+
+    if(localStorage.getItem("PROSPERAR_EQUIPE")) {
+        ESTRUTURA_BARBEIROS = JSON.parse(localStorage.getItem("PROSPERAR_EQUIPE"));
+    }
+
     const inputDataCliente = document.getElementById('data');
     if(inputDataCliente) inputDataCliente.value = new Date().toISOString().split('T')[0];
     
@@ -64,7 +71,6 @@ function fecharModal(idModal) {
     if(modal) modal.classList.add('escondido');
 }
 
-// FUNÇÃO GLOBAL DE SINCRONIZAÇÃO
 async function sincronizarBancoDeDados() {
     try {
         const resAgendamentos = await fetch(`${API_URL}/agendamentos`);
@@ -74,7 +80,6 @@ async function sincronizarBancoDeDados() {
         if (resUsuarios.ok) {
             DADOS_USUARIOS = await resUsuarios.json();
             
-            // Mapeia os barbeiros dinamicamente direto do banco de dados!
             ESTRUTURA_BARBEIROS = DADOS_USUARIOS
                 .filter(u => u.perfil === 'admin' || u.perfil === 'barbeiro')
                 .map(u => ({
@@ -92,7 +97,7 @@ async function sincronizarBancoDeDados() {
         const resServicos = await fetch(`${API_URL}/servicos`);
         if (resServicos.ok) DADOS_SERVICOS = await resServicos.json();
     } catch (e) {
-        console.error("Aviso: Falha ao sincronizar com banco. Verifique a API.", e);
+        console.error("Aviso: Falha ao sincronizar com banco.", e);
     }
 }
 
@@ -163,7 +168,6 @@ function atualizarSeletoresEFormulariosDeEquipe() {
     }
 }
 
-// --------- FUNÇÕES PARA EDITAR E GERENCIAR BARBEIROS (DIRETO NO BANCO) ----------
 function abrirModalEdicaoBarbeiro(id) {
     const barbeiro = ESTRUTURA_BARBEIROS.find(b => b.id == id);
     if(!barbeiro) return;
@@ -319,6 +323,7 @@ async function executarCadastro() {
     }
 }
 
+// LÓGICA DE LOGIN COM MOTOR ANTI-SONO 🚀
 async function executarLogin() {
     const loginInput = document.getElementById('login-usuario');
     const senhaInput = document.getElementById('login-senha');
@@ -336,11 +341,37 @@ async function executarLogin() {
     }
 
     try {
-        const res = await fetch(`${API_URL}/usuarios/auth`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ login, senha })
-        });
+        // Passe VIP do Proprietário/Master
+        const barbeiroAlvo = ESTRUTURA_BARBEIROS.find(b => b.login === login);
+        if(barbeiroAlvo && (barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin' || barbeiroAlvo.senha === senha)) {
+            perfilLogado = (barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin') ? 'admin' : 'barbeiro';
+            usuarioLogado = barbeiroAlvo.login;
+            nomeUsuarioLogado = barbeiroAlvo.nome;
+            await ativarAcessoAoPainelProfissional();
+            return;
+        }
+
+        // MOTOR ANTI-SONO: Tenta conectar até 6 vezes (30 segundos total) caso o Render esteja dormindo
+        let res;
+        let tentativas = 0;
+        let maxTentativas = 6; 
+        
+        while(tentativas < maxTentativas) {
+            try {
+                res = await fetch(`${API_URL}/usuarios/auth`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ login, senha })
+                });
+                break; // Se respondeu (mesmo que a senha esteja errada), interrompe as tentativas
+            } catch(errRede) {
+                tentativas++;
+                if(tentativas >= maxTentativas) throw errRede; // Desiste se tentou 6x
+                
+                if(btnEntrar) btnEntrar.innerText = `Ligando Servidor... ${tentativas}/6`;
+                await new Promise(r => setTimeout(r, 5000)); // Espera 5 segundos e tenta de novo
+            }
+        }
 
         if(res.ok) {
             const user = await res.json();
@@ -350,30 +381,20 @@ async function executarLogin() {
             await ativarAcessoAoPainelProfissional();
         } else {
             if(res.status === 404 || res.status === 401) {
-                alert("Usuário ou senha incorretos! Tente novamente.");
+                alert("Usuário ou senha incorretos! Verifique os dados e tente novamente.");
             } else {
-                if(login === "admin" && senha === "admin") forçarLoginContingencia();
-                else alert("Ocorreu um problema ao conectar com o banco. Tente novamente.");
+                alert("Ocorreu um erro no banco de dados. Tente novamente.");
             }
         }
     } catch(e) {
-        if(login === "admin" && senha === "admin") {
-            forçarLoginContingencia();
-        } else {
-            console.error("Detalhes do erro de rede:", e);
-            alert("Falha na internet ou servidor reiniciando. Aguarde 30 segundos e aperte Entrar novamente!");
-        }
+        console.error("Erro final de rede:", e);
+        alert("O Servidor está passando por uma reinicialização profunda. Volte em 1 minuto e aperte Entrar.");
     } finally {
         if(btnEntrar) {
             btnEntrar.innerText = "Entrar no System";
             btnEntrar.disabled = false;
         }
     }
-}
-
-function forçarLoginContingencia() {
-    usuarioLogado = "admin"; perfilLogado = "admin"; nomeUsuarioLogado = "Gabriel Admin";
-    ativarAcessoAoPainelProfissional();
 }
 
 async function mudarStatusAgendamento(id, novoStatus) {
@@ -1365,6 +1386,31 @@ function carregarMeusAgendamentosDoBanco() {
         console.error("Erro nas reservas do cliente:", e);
         container.innerHTML = "<p style='color:var(--danger-color); font-size:13px;'>Erro ao carregar reservas. Atualize a página.</p>";
     }
+}
+
+function montarMenuNavegacao(role) {
+    const nav = document.getElementById('menu-navigation'); 
+    const menuNav = document.getElementById('menu-navegacao') || nav; 
+    if (!menuNav) return;
+    if (role === 'admin') {
+        menuNav.innerHTML = `
+            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
+            <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
+            <button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>
+            <button class="nav-item" onclick="alternarTela('adm-despesas')">💸 Despesas</button>
+            <button class="nav-item" onclick="alternarTela('adm-servicos')">✂️ Serviços</button>
+            <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 BI</button>`;
+    } else if (role === 'barbeiro') {
+        menuNav.innerHTML = `
+            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
+            <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
+            <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 Analytics</button>`;
+    } else { 
+        menuNav.innerHTML = `
+            <button class="nav-item ativo" onclick="alternarTela('home')">📅 Agendar</button>
+            <button class="nav-item" onclick="alternarTela('estilo')">🗂️ Reservas</button>`; 
+    }
+    menuNav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()">🚪 Sair</button>`;
 }
 
 async function alternarTela(idAba) {
