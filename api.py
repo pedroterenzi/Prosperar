@@ -36,7 +36,6 @@ def inicializar_banco():
             );
         """)
         
-        # Adiciona colunas extras para finanças sem quebrar tabelas já existentes (Proteção)
         try:
             cursor.execute("ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS valor_produtos NUMERIC DEFAULT 0.00;")
             cursor.execute("ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS valor_gorjeta NUMERIC DEFAULT 0.00;")
@@ -58,7 +57,7 @@ def inicializar_banco():
             );
         """)
 
-        # Tabela de Despesas (Nova)
+        # Tabela de Despesas
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS despesas (
                 id SERIAL PRIMARY KEY,
@@ -201,6 +200,22 @@ def atualizar_status(id: int, obj: ModeloStatus):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.put("/agendamentos/{id}")
+def editar_agendamento(id: int, obj: ModeloAgendamento):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE agendamentos SET servico = %s, barbeiro = %s, data = %s, hora = %s, pagamento = %s WHERE id = %s;",
+            (obj.servico, obj.barbeiro, obj.data, obj.hora, obj.pagamento, id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "atualizado"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.delete("/agendamentos/{id}")
 def remover_agendamento(id: int):
     try:
@@ -242,5 +257,34 @@ def listar_despesas():
         cursor.close()
         conn.close()
         return dados
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/despesas/{id}")
+def editar_despesa(id: int, obj: ModeloDespesa):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE despesas SET descricao = %s, valor = %s, data = %s WHERE id = %s;",
+            (obj.descricao, obj.valor, obj.data, id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "atualizado"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/despesas/{id}")
+def remover_despesa(id: int):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM despesas WHERE id = %s;", (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "removido"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
