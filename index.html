@@ -56,7 +56,7 @@
         .gold-text { color: var(--accent-color); }
         
         .step-label { display: block; margin: 24px 0 12px; font-weight: 700; color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-        input[type="date"] { width: 100%; padding: 14px; background: #1f2125; border: 1px solid var(--border-color); border-radius: 10px; color: white; font-size: 15px; box-sizing: border-box; }
+        input[type="date"], input[type="time"] { width: 100%; padding: 14px; background: #1f2125; border: 1px solid var(--border-color); border-radius: 10px; color: white; font-size: 15px; box-sizing: border-box; }
 
         .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
         .btn-gold:hover { background: var(--accent-hover); transform: translateY(-1px); }
@@ -106,7 +106,6 @@
         .escondido { display: none !important; }
         .btn-status { padding: 6px 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
         
-        /* Novas Classes para Barras Analíticas Premium */
         .analytics-bar-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
         .analytics-bar-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; }
         .analytics-bar-bg { width: 100%; background: #2b2d35; height: 8px; border-radius: 99px; overflow: hidden; margin-top: 4px; }
@@ -172,14 +171,13 @@
     <!-- CONTEÚDO OPERACIONAL DO CORE APP -->
     <div id="conteudo-app" class="escondido">
         
-        <!-- SELETOR E FILTRO GLOBAL (PROPRIETÁRIOS E COLABORADORES) (image_2a07be.png) -->
+        <!-- SELETOR E FILTRO GLOBAL (PROPRIETÁRIOS E COLABORADORES) -->
         <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color);">
             <h4 style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral:</h4>
             
             <div class="form-group" style="margin-bottom: 14px;">
                 <label>Visualizar dados de:</label>
                 <select id="filtro-barbeiro-alvo" style="background: #1f2125;" onchange="recarregarAbaAtivaAdm()">
-                    <!-- AJUSTE SEGURO: Opções preventivas e estáticas inseridas para evitar quebra reativa do DOM -->
                     <option value="todos">-- Todos os Barbeiros (Geral) --</option>
                     <option value="gabriel">Gabriel (Proprietário)</option>
                     <option value="lucas">Lucas Barber</option>
@@ -262,7 +260,7 @@
                 </div>
             </div>
 
-            <!-- Visão de Ganh Ganhos Privados do Colaborador Logado -->
+            <!-- Visão de Ganhos Privados do Colaborador Logado -->
             <div class="card escondido" id="card-rendimentos-barbeiro">
                 <h3 class="gold-text">Minha Carteira Pro</h3>
                 <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.3);">
@@ -283,7 +281,7 @@
                 <div class="lista-backoffice" id="lista-split-comissoes-equipe"></div>
             </div>
 
-            <!-- CADASTRO E GERENCIAMENTO DE EQUIPE (image_2a1286.png) -->
+            <!-- CADASTRO E GERENCIAMENTO DE EQUIPE -->
             <div class="card restrito-adm" style="border-color: rgba(204,153,51,0.25);">
                 <h3>👥 Gerenciamento de Barbeiros</h3>
                 <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione colaboradores e salve as informações no banco de dados.</p>
@@ -327,19 +325,8 @@
             <h3>CRM e Comunicação Ativa</h3>
             <div class="card" style="margin-bottom:15px;">
                 <h4>Carteira de Clientes Cadastrados</h4>
-                <div class="lista-backoffice" id="lista-marketing-clientes" style="margin-bottom:15px; max-height:200px; overflow-y:auto;"></div>
-            </div>
-
-            <div class="card">
-                <h4>Clube de Assinatura Recorrente</h4>
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                    <span>Assinantes Ativos:</span>
-                    <strong id="mkt-total-assinantes">0</strong>
-                </div>
-                <div style="display:flex; justify-content:space-between;">
-                    <span>Receita Mensal em Carteira:</span>
-                    <span style="color: var(--success-color); font-weight:700;" id="mkt-faturamento-recorrente">R$ 0,00</span>
-                </div>
+                <p style="color:var(--text-muted); font-size: 12px;">Clientes sem agendamentos nos últimos 30 dias podem ser resgatados.</p>
+                <div class="lista-backoffice" id="lista-marketing-clientes" style="margin-bottom:15px; max-height:400px; overflow-y:auto;"></div>
             </div>
         </section>
 
@@ -367,20 +354,24 @@
                 <div class="form-group">
                     <label>Profissional Designado:</label>
                     <select id="encaixe-barbeiro">
-                        <!-- AJUSTE SEGURO: Opções preventivas inseridas para evitar quebras por referências nulas -->
                         <option value="Gabriel (Proprietário)">Gabriel (Proprietário)</option>
                         <option value="Lucas Barber">Lucas Barber</option>
                     </select>
                 </div>
+                <!-- NOVO: Adicionado seletor de Data além do Horário -->
                 <div class="intervalo-custom-grid">
                     <div class="form-group">
-                        <label>Horário:</label>
-                        <input type="text" id="encaixe-hora" value="14:00">
+                        <label>Data:</label>
+                        <input type="date" id="encaixe-data">
                     </div>
                     <div class="form-group">
-                        <label>Gorjeta Opcional (R$):</label>
-                        <input type="number" id="encaixe-gorjeta" value="0" min="0" step="0.01">
+                        <label>Horário:</label>
+                        <input type="time" id="encaixe-hora" value="14:00">
                     </div>
+                </div>
+                <div class="form-group" style="margin-top:10px;">
+                    <label>Gorjeta Opcional (R$):</label>
+                    <input type="number" id="encaixe-gorjeta" value="0" min="0" step="0.01">
                 </div>
                 <div class="form-group">
                     <label>Forma de Pagamento:</label>
@@ -395,11 +386,49 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: BUSINESS INTELLIGENCE (image_2a0b3e.png) -->
+        <!-- ABA BACKOFFICE: DESPESAS (NOVA) -->
+        <section id="aba-adm-despesas" class="escondido restrito-adm">
+            <h3>Gestão de Despesas</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle os custos da sua barbearia:</p>
+            
+            <div class="grid-indicadores" style="grid-template-columns: 1fr;">
+                <div class="kpi-card" style="border-color: rgba(239, 68, 68, 0.4);">
+                    <div class="kpi-label">Total de Despesas (Período Filtrado)</div>
+                    <div class="kpi-val" id="kpi-despesas-total" style="color: var(--danger-color);">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h4>➕ Registrar Nova Despesa</h4>
+                <div class="form-group">
+                    <label>Descrição do Gasto:</label>
+                    <input type="text" id="despesa-descricao" placeholder="Ex: Conta de Luz, Compra de Pomadas...">
+                </div>
+                <div class="intervalo-custom-grid">
+                    <div class="form-group">
+                        <label>Valor (R$):</label>
+                        <input type="number" id="despesa-valor" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Data:</label>
+                        <input type="date" id="despesa-data">
+                    </div>
+                </div>
+                <button class="btn-gold" id="btn-salvar-despesa" style="margin-top: 10px;">Lançar Despesa no Banco</button>
+            </div>
+
+            <div class="card">
+                <h4>Histórico de Lançamentos</h4>
+                <div class="lista-backoffice" id="lista-despesas-cadastradas" style="max-height: 300px; overflow-y: auto;">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA BACKOFFICE: BUSINESS INTELLIGENCE -->
         <section id="aba-adm-analytics" class="escondido">
             <h3>Business Intelligence</h3>
             
-            <!-- CENTRALIZADO E MODERNIZADO LADO A LADO -->
             <div id="analytics-retencao" style="display: flex; justify-content: center; width: 100%; gap: 12px; margin-bottom: 20px;"></div>
 
             <div class="card">
