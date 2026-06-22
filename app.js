@@ -1,5 +1,5 @@
 /**
- * ARQUITETURA CORE DE FINANÇAS - PROSPERAR CLUB
+ * ARQUITETURA CORE DE FINANÇAS E GESTÃO - PROSPERAR CLUB
  * Implementação Reativa Multi-Barbeiros Sincronizada com o Banco de Dados.
  */
 
@@ -16,8 +16,10 @@ let horarioSelecionado = null;
 let pagamentoSelecionado = null;
 let precoServico = 0;
 
-// Banco Dinâmico Sincronizado do Frontend para Agendamentos
+// Bancos Dinâmicos Sincronizados do Frontend
 let DADOS_AGENDAMENTOS = [];
+let DADOS_USUARIOS = [];
+let DADOS_DESPESAS = [];
 
 // Configuração unificada de filtros superiores
 let filtroTempoGlobal = 'mes_atual'; 
@@ -49,9 +51,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const inputDataCliente = document.getElementById('data');
-    if(inputDataCliente) {
-        inputDataCliente.value = new Date().toISOString().split('T')[0];
-    }
+    if(inputDataCliente) inputDataCliente.value = new Date().toISOString().split('T')[0];
+    
+    // Seta data de hoje nos forms de admin também
+    const inputEncaixeData = document.getElementById('encaixe-data');
+    if(inputEncaixeData) inputEncaixeData.value = new Date().toISOString().split('T')[0];
+    
+    const inputDespesaData = document.getElementById('despesa-data');
+    if(inputDespesaData) inputDespesaData.value = new Date().toISOString().split('T')[0];
 
     const btnCadastrar = document.getElementById('btn-cadastrar');
     if(btnCadastrar) btnCadastrar.addEventListener('click', executarCadastro);
@@ -67,13 +74,17 @@ document.addEventListener("DOMContentLoaded", () => {
     atualizarSeletoresEFormulariosDeEquipe();
 });
 
-// FUNÇÃO PARA PUXAR AGENDAMENTOS DO BANCO DE DADOS
-async function sincronizarAgendamentos() {
+// FUNÇÃO GLOBAL DE SINCRONIZAÇÃO
+async function sincronizarBancoDeDados() {
     try {
-        const res = await fetch(`${API_URL}/agendamentos`);
-        if (res.ok) {
-            DADOS_AGENDAMENTOS = await res.json();
-        }
+        const resAgendamentos = await fetch(`${API_URL}/agendamentos`);
+        if (resAgendamentos.ok) DADOS_AGENDAMENTOS = await resAgendamentos.json();
+        
+        const resUsuarios = await fetch(`${API_URL}/usuarios`);
+        if (resUsuarios.ok) DADOS_USUARIOS = await resUsuarios.json();
+
+        const resDespesas = await fetch(`${API_URL}/despesas`);
+        if (resDespesas.ok) DADOS_DESPESAS = await resDespesas.json();
     } catch (e) {
         console.error("Aviso: Falha ao sincronizar com banco. Verifique a API.", e);
     }
@@ -318,7 +329,7 @@ async function mudarStatusAgendamento(id, novoStatus) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ status: novoStatus })
         });
-        await sincronizarAgendamentos();
+        await sincronizarBancoDeDados();
         recarregarAbaAtivaAdm();
     } catch(e) {
         console.error("Erro ao mudar status: ", e);
@@ -326,7 +337,7 @@ async function mudarStatusAgendamento(id, novoStatus) {
 }
 
 async function ativarAcessoAoPainelProfissional() {
-    await sincronizarAgendamentos();
+    await sincronizarBancoDeDados();
 
     document.getElementById('tela-autenticacao')?.classList.add('escondido');
     document.getElementById('conteudo-app')?.classList.remove('escondido');
@@ -436,7 +447,7 @@ function inicializarListenersPosLogin() {
                 if(res.ok) {
                     document.getElementById('modal-confirmacao')?.classList.add('escondido');
                     alert("✨ Reserva efetuada com sucesso!");
-                    await sincronizarAgendamentos();
+                    await sincronizarBancoDeDados();
                     renderizarGradeHorariosReais();
                     carregarMeusAgendamentosDoBanco();
                 } else {
@@ -461,21 +472,22 @@ function inicializarListenersPosLogin() {
             const nome = document.getElementById('encaixe-nome')?.value.trim();
             const servico = document.getElementById('encaixe-servico')?.value;
             const barbeiro = document.getElementById('encaixe-barbeiro')?.value;
+            const dataEncaixe = document.getElementById('encaixe-data')?.value; // NOVO
             const hora = document.getElementById('encaixe-hora')?.value;
             const gorjeta = parseFloat(document.getElementById('encaixe-gorjeta')?.value || 0);
             const pagamento = document.getElementById('encaixe-pagamento')?.value;
 
-            if(!nome) {
+            if(!nome || !dataEncaixe) {
                 btn.innerText = "Lançar Encaixe Concluído";
                 btn.disabled = false;
-                return alert("Insira o nome do cliente.");
+                return alert("Insira o nome do cliente e a data correta.");
             }
 
             const payload = {
                 cliente: `WALK-IN: ${nome.toUpperCase()}`,
                 servico: servico,
                 barbeiro: barbeiro,
-                data: new Date().toISOString().split('T')[0],
+                data: dataEncaixe,
                 hora: hora,
                 pagamento: pagamento,
                 status: "Concluído",
@@ -493,7 +505,7 @@ function inicializarListenersPosLogin() {
                 if(res.ok) {
                     alert("⚡ Encaixe registrado com sucesso!");
                     document.getElementById('encaixe-nome').value = "";
-                    await sincronizarAgendamentos();
+                    await sincronizarBancoDeDados();
                     recarregarAbaAtivaAdm();
                 }
             } catch (err) {
@@ -504,6 +516,67 @@ function inicializarListenersPosLogin() {
             }
         });
     }
+
+    const btnSalvarDespesa = document.getElementById('btn-salvar-despesa');
+    if(btnSalvarDespesa) {
+        btnSalvarDespesa.addEventListener('click', async (e) => {
+            const descricao = document.getElementById('despesa-descricao').value.trim();
+            const valor = parseFloat(document.getElementById('despesa-valor').value);
+            const data = document.getElementById('despesa-data').value;
+
+            if (!descricao || isNaN(valor) || !data) return alert("Preencha todos os campos da despesa corretamente.");
+
+            const btn = e.target;
+            btn.innerText = "Lançando...";
+            btn.disabled = true;
+
+            const payload = { descricao, valor, data };
+
+            try {
+                const res = await fetch(`${API_URL}/despesas`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+
+                if(res.ok) {
+                    alert("💸 Despesa registrada com sucesso!");
+                    document.getElementById('despesa-descricao').value = "";
+                    document.getElementById('despesa-valor').value = "";
+                    await sincronizarBancoDeDados();
+                    renderizarDespesas();
+                }
+            } catch (err) {
+                alert("Erro ao salvar despesa.");
+            } finally {
+                btn.innerText = "Lançar Despesa no Banco";
+                btn.disabled = false;
+            }
+        });
+    }
+}
+
+// Funções de Filtro de Tempo (Agendamentos e Despesas usam as mesmas regras)
+function regraDeFiltroDeTempo(dataOriginal) {
+    const dataAlvo = new Date(dataOriginal + 'T00:00:00');
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    
+    if (filtroTempoGlobal === 'hoje') return dataAlvo.getTime() === hoje.getTime();
+    if (filtroTempoGlobal === 'ontem') {
+        const ontem = new Date(hoje); ontem.setDate(hoje.getDate() - 1);
+        return dataAlvo.getTime() === ontem.getTime();
+    }
+    if (filtroTempoGlobal === '7dias') {
+        const seteDiasAtras = new Date(hoje); seteDiasAtras.setDate(hoje.getDate() - 7);
+        return dataAlvo >= seteDiasAtras && dataAlvo <= hoje;
+    }
+    if (filtroTempoGlobal === 'mes_atual') return dataAlvo.getMonth() === hoje.getMonth() && dataAlvo.getFullYear() === hoje.getFullYear();
+    if (filtroTempoGlobal === 'personalizado') {
+        const dInicio = new Date(dataFiltroInicio + 'T00:00:00');
+        const dFim = new Date(dataFiltroFim + 'T00:00:00');
+        return dataAlvo >= dInicio && dataAlvo <= dFim;
+    }
+    return true;
 }
 
 function filtrarAgendamentoPorRegraGlobal(a) {
@@ -511,26 +584,7 @@ function filtrarAgendamentoPorRegraGlobal(a) {
         const profissionalAlvo = ESTRUTURA_BARBEIROS.find(b => b.id === filtroBarbeiroAlvo);
         if(!profissionalAlvo || a.barbeiro !== profissionalAlvo.nome) return false;
     }
-
-    const dataAtendimento = new Date(a.data + 'T00:00:00');
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    
-    if (filtroTempoGlobal === 'hoje') return dataAtendimento.getTime() === hoje.getTime();
-    if (filtroTempoGlobal === 'ontem') {
-        const ontem = new Date(hoje); ontem.setDate(hoje.getDate() - 1);
-        return dataAtendimento.getTime() === ontem.getTime();
-    }
-    if (filtroTempoGlobal === '7dias') {
-        const seteDiasAtras = new Date(hoje); seteDiasAtras.setDate(hoje.getDate() - 7);
-        return dataAtendimento >= seteDiasAtras && dataAtendimento <= hoje;
-    }
-    if (filtroTempoGlobal === 'mes_atual') return dataAtendimento.getMonth() === hoje.getMonth() && dataAtendimento.getFullYear() === hoje.getFullYear();
-    if (filtroTempoGlobal === 'personalizado') {
-        const dInicio = new Date(dataFiltroInicio + 'T00:00:00');
-        const dFim = new Date(dataFiltroFim + 'T00:00:00');
-        return dataAtendimento >= dInicio && dataAtendimento <= dFim;
-    }
-    return true;
+    return regraDeFiltroDeTempo(a.data);
 }
 
 function mudarFiltroGlobalAdm(periodo, elementoClicado) {
@@ -556,7 +610,7 @@ function atualizarFiltroDataRange() {
 }
 
 function recarregarAbaAtivaAdm() {
-    const abas = ['adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-analytics'];
+    const abas = ['adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-analytics'];
     let abaAtiva = 'adm-dash';
     abas.forEach(id => {
         const el = document.getElementById(`aba-${id}`);
@@ -569,6 +623,7 @@ function recarregarAbaAtivaAdm() {
     if(abaAtiva === 'adm-dash') carregarDadosEstrategicosDoNeon();
     if(abaAtiva === 'adm-mkt' && perfilLogado === 'admin') carregarListaMarketingReal();
     if(abaAtiva === 'adm-recepcao') carregarModoRecepcaoKanban();
+    if(abaAtiva === 'adm-despesas' && perfilLogado === 'admin') renderizarDespesas();
     if(abaAtiva === 'adm-analytics') carregarPainelAnalytics();
 }
 
@@ -645,19 +700,52 @@ async function carregarDadosEstrategicosDoNeon() {
 async function carregarModoRecepcaoKanban() {
     const container = document.getElementById('container-kanban-recepcao'); if(!container) return;
     const dadosFiltrados = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
+    
+    // Bônus: Ordena o Kanban pelo horário para ficar certinho do primeiro ao último do dia
+    dadosFiltrados.sort((a, b) => new Date(`${a.data}T${a.hora}:00`) - new Date(`${b.data}T${b.hora}:00`));
+
     container.innerHTML = dadosFiltrados.length === 0 ? "<p style='color:var(--text-muted); text-align:center;'>Nenhum registro para o escopo.</p>" : "";
     
     dadosFiltrados.forEach(item => {
         const isConcluido = item.status && item.status.toLowerCase() === 'concluído';
         container.innerHTML += `
             <div class="item-backoffice" style="border-left: 4px solid ${isConcluido ? 'var(--success-color)' : 'var(--accent-color)'}">
-                <div><strong>👤 ${item.cliente} (${item.status})</strong><br><span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${item.hora} [Barbeiro: ${item.barbeiro}]</span></div>
+                <div><strong>👤 ${item.cliente} (${item.status})</strong><br><span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${item.data.split('-').reverse().join('/')} às ${item.hora} [Barbeiro: ${item.barbeiro}]</span></div>
                 <div style="display:flex; gap:6px;">
                     <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
                     <button class="btn-status" style="background:var(--danger-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Falta')">✖</button>
                 </div>
             </div>`;
     });
+}
+
+function renderizarDespesas() {
+    const container = document.getElementById('lista-despesas-cadastradas');
+    const labelTotal = document.getElementById('kpi-despesas-total');
+    if(!container || !labelTotal) return;
+
+    // Filtra as despesas seguindo o mesmo filtro de tempo do dashboard (Hoje, Mês Atual, etc)
+    const despesasFiltradas = DADOS_DESPESAS.filter(d => regraDeFiltroDeTempo(d.data));
+    
+    let somaDespesas = 0;
+    container.innerHTML = despesasFiltradas.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhuma despesa para este período.</p>" : "";
+
+    despesasFiltradas.forEach(d => {
+        const valor = parseFloat(d.valor);
+        somaDespesas += valor;
+        const dataBr = d.data.split('-').reverse().join('/');
+        container.innerHTML += `
+            <div class="item-backoffice" style="border-left: 4px solid var(--danger-color); margin-bottom: 8px;">
+                <div>
+                    <strong>${d.descricao}</strong><br>
+                    <span style="font-size:11px; color:var(--text-muted);">Data: ${dataBr}</span>
+                </div>
+                <div style="color: var(--danger-color); font-weight:800;">R$ ${valor.toFixed(2)}</div>
+            </div>
+        `;
+    });
+
+    labelTotal.innerText = `R$ ${somaDespesas.toFixed(2)}`;
 }
 
 async function carregarPainelAnalytics() {
@@ -797,24 +885,73 @@ function renderizarFormularioCliente() {
     });
 }
 
-async function carregarListaMarketingReal() {
+function carregarListaMarketingReal() {
     const container = document.getElementById('lista-marketing-clientes'); if(!container) return;
-    container.innerHTML = `
-        <div class="item-backoffice"><div><strong>Matheus Ribeiro</strong><br><span style="font-size:11px;color:var(--text-muted);">Ativo • 11999998888</span></div><span class="btn-status badge-sucesso">Fiel</span></div>
-        <div class="item-backoffice"><div><strong>Guilherme M.</strong><br><span style="font-size:11px;color:var(--text-muted);color:var(--danger-color);">Inativo há 34 dias • 11977776666</span></div><button class="btn-status badge-perigo" onclick="alert('Disparando API de Engajamento Wpp...')">Resgatar</button></div>`;
+    container.innerHTML = "";
+
+    // Pega só os usuários que são "cliente" no banco de dados real
+    const clientes = DADOS_USUARIOS.filter(u => u.perfil === 'cliente');
+
+    if(clientes.length === 0) {
+        container.innerHTML = "<p style='color:var(--text-muted); font-size:12px;'>Nenhum cliente cadastrado ainda.</p>";
+        return;
+    }
+
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+
+    clientes.forEach(cliente => {
+        // Pega todos os agendamentos desse cliente no banco
+        const agendamentosCliente = DADOS_AGENDAMENTOS.filter(a => a.cliente && a.cliente.toLowerCase() === cliente.nome.toLowerCase());
+        
+        // Ordena para pegar o agendamento mais recente
+        agendamentosCliente.sort((a, b) => new Date(`${b.data}T00:00:00`) - new Date(`${a.data}T00:00:00`));
+
+        let diasInativo = 999; 
+        
+        if (agendamentosCliente.length > 0) {
+            const ultimaData = new Date(`${agendamentosCliente[0].data}T00:00:00`);
+            const diffTime = Math.abs(hoje - ultimaData);
+            diasInativo = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+
+        // Limpa o número de celular (Remove parênteses, traços, etc) para o link do Wpp
+        const celularLimpo = cliente.celular ? cliente.celular.replace(/\D/g, '') : '';
+        const msgTexto = encodeURIComponent(`Fala ${cliente.nome.split(' ')[0]}, sumido hein! Aqui é da Prosperar Club, estamos com uma promoção exclusiva pra você dar aquele trato no visual essa semana. Bora agendar?`);
+        const linkWpp = `https://wa.me/55${celularLimpo}?text=${msgTexto}`;
+
+        // Se o cliente não vem há mais de 30 dias (ou nunca veio), mostramos o Resgatar
+        if (diasInativo > 30) {
+            container.innerHTML += `
+                <div class="item-backoffice">
+                    <div>
+                        <strong>${cliente.nome}</strong><br>
+                        <span style="font-size:11px;color:var(--danger-color);">Inativo há ${diasInativo === 999 ? 'muito tempo' : diasInativo + ' dias'} • ${cliente.celular || 'S/ Tel'}</span>
+                    </div>
+                    ${celularLimpo ? `<a href="${linkWpp}" target="_blank" class="btn-status badge-perigo" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; text-decoration: none; border: 1px solid rgba(239,68,68,0.3); padding: 6px 12px; border-radius: 6px;">Resgatar</a>` : '<span style="font-size:10px;color:gray">Sem Num.</span>'}
+                </div>`;
+        } else {
+            container.innerHTML += `
+                <div class="item-backoffice">
+                    <div>
+                        <strong>${cliente.nome}</strong><br>
+                        <span style="font-size:11px;color:var(--text-muted);">Ativo • Último corte há ${diasInativo} dias</span>
+                    </div>
+                    <span class="btn-status badge-sucesso" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); padding: 6px 12px; border-radius: 6px;">Fiel</span>
+                </div>`;
+        }
+    });
 }
 
 function carregarMeusAgendamentosDoBanco() {
     const container = document.getElementById('container-meus-agendamentos'); if(!container) return;
     
-    // CORREÇÃO AQUI: Agora ele compara o Nome Salvo do cliente com o nomeUsuarioLogado
     let meus = DADOS_AGENDAMENTOS.filter(a => 
         a.cliente && 
         nomeUsuarioLogado && 
         a.cliente.trim().toLowerCase() === nomeUsuarioLogado.trim().toLowerCase()
     );
 
-    // BÔNUS: Ordena os agendamentos pela data (os mais recentes ou futuros primeiro)
     meus.sort((a, b) => {
         const dataHoraA = new Date(`${a.data}T${a.hora}:00`);
         const dataHoraB = new Date(`${b.data}T${b.hora}:00`);
@@ -824,15 +961,15 @@ function carregarMeusAgendamentosDoBanco() {
     container.innerHTML = meus.length === 0 ? "<p style='font-size:13px; color:var(--text-muted);'>Nenhum corte agendado no sistema.</p>" : "";
     
     meus.forEach(item => { 
-        // Lógica de cor visual para quando for concluído
         const isConcluido = item.status && item.status.toLowerCase() === 'concluído';
         const corBorda = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
         const corTextoStatus = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
+        const dataBr = item.data.split('-').reverse().join('/');
 
         container.innerHTML += `
         <div class="card" style="border-left: 4px solid ${corBorda}; margin-bottom: 12px; padding: 16px;">
             <strong style="color:white; font-size: 16px;">${item.servico}</strong><br>
-            <span style="font-size:13px;color:var(--text-muted);">Profissional: ${item.barbeiro} • Dia: ${item.data} às ${item.hora}</span><br>
+            <span style="font-size:13px;color:var(--text-muted);">Profissional: ${item.barbeiro} • Dia: ${dataBr} às ${item.hora}</span><br>
             <span style="font-size:11px;color:${corTextoStatus}; font-weight: bold;">Status: ${item.status}</span>
         </div>`; 
     });
@@ -842,18 +979,28 @@ function montarMenuNavegacao(role) {
     const nav = document.getElementById('menu-navigation'); 
     const menuNav = document.getElementById('menu-navegacao') || nav; 
     if (!menuNav) return;
-    if (role === 'admin' || role === 'barbeiro') {
+    if (role === 'admin') {
         menuNav.innerHTML = `
             <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
-            ${role === 'admin' ? `<button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>` : ''}
+            <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
+            <button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>
+            <button class="nav-item" onclick="alternarTela('adm-despesas')">💸 Despesas</button>
+            <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 BI</button>`;
+    } else if (role === 'barbeiro') {
+        menuNav.innerHTML = `
+            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
             <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
             <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 Analytics</button>`;
-    } else { menuNav.innerHTML = `<button class="nav-item ativo" onclick="alternarTela('home')">📅 Agendar</button><button class="nav-item" onclick="alternarTela('estilo')">🗂️ Reservas</button>`; }
+    } else { 
+        menuNav.innerHTML = `
+            <button class="nav-item ativo" onclick="alternarTela('home')">📅 Agendar</button>
+            <button class="nav-item" onclick="alternarTela('estilo')">🗂️ Reservas</button>`; 
+    }
     menuNav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()">🚪 Sair</button>`;
 }
 
 function alternarTela(idAba) {
-    ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-analytics'].forEach(id => {
+    ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-analytics'].forEach(id => {
         const el = document.getElementById(`aba-${id}`); if (el) el.classList.add('escondido');
     });
     const abaAlvo = document.getElementById(`aba-${idAba}`); if (abaAlvo) abaAlvo.classList.remove('escondido');
