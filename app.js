@@ -39,7 +39,6 @@ let ESTRUTURA_BARBEIROS = [
     { id: "lucas", login: "lucasbarber", nome: "Lucas Barber", celular: "11988888888", comissao: 0.40 }
 ];
 
-// O HORÁRIO DE 15:00 E 15:30 FOI ADICIONADO AQUI NA TARDE
 const HORARIOS_PADRAO = [
     { turno: "☀️ Manhã", horas: ["09:00", "09:30", "11:00", "11:30"] },
     { turno: "🌤️ Tarde", horas: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"] },
@@ -615,6 +614,47 @@ async function excluirAgendamento(id) {
     }
 }
 
+// NOVA LÓGICA: Cria as opções do Select de Horários bloqueando as ocupadas (e ignora a atual pra não bloquear a edição de si mesmo)
+function atualizarHorariosEdicaoReserva(idAtual, horaAtualSelecionada) {
+    const dataSel = document.getElementById('edit-reserva-data').value;
+    const bNome = document.getElementById('edit-reserva-barbeiro').value;
+    const selectHora = document.getElementById('edit-reserva-hora');
+    
+    if (!dataSel || !bNome) return;
+
+    let ocupados = DADOS_AGENDAMENTOS
+        .filter(a => a.data === dataSel && a.barbeiro === bNome && (a.status ? a.status.toLowerCase() !== 'falta' : true) && a.id != idAtual)
+        .map(a => a.hora.trim());
+
+    selectHora.innerHTML = "";
+
+    HORARIOS_PADRAO.forEach(g => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = g.turno;
+
+        g.horas.forEach(h => {
+            const opt = document.createElement('option');
+            opt.value = h.trim();
+            opt.text = h.trim();
+
+            if (isSlotPast(dataSel, h.trim())) {
+                opt.disabled = true;
+                opt.text += " (Expirado)";
+            } else if (ocupados.includes(h.trim())) {
+                opt.disabled = true;
+                opt.text += " (Ocupado)";
+            }
+
+            if (h.trim() === horaAtualSelecionada) {
+                opt.selected = true;
+            }
+
+            optgroup.appendChild(opt);
+        });
+        selectHora.appendChild(optgroup);
+    });
+}
+
 function abrirModalEdicaoReserva(id) {
     const agendamento = DADOS_AGENDAMENTOS.find(a => a.id === id);
     if(!agendamento) return;
@@ -628,9 +668,15 @@ function abrirModalEdicaoReserva(id) {
     selBarbeiro.innerHTML = ESTRUTURA_BARBEIROS.map(b => `<option value="${b.nome}" ${b.nome === agendamento.barbeiro ? 'selected' : ''}>${b.nome}</option>`).join('');
     
     document.getElementById('edit-reserva-data').value = agendamento.data;
-    document.getElementById('edit-reserva-hora').value = agendamento.hora;
     document.getElementById('edit-reserva-pagamento').value = agendamento.pagamento;
     
+    // Alimenta os horários baseado na data e no barbeiro
+    atualizarHorariosEdicaoReserva(id, agendamento.hora);
+    
+    // Atualiza os horários caso o cliente altere a data ou o barbeiro dentro do modal
+    document.getElementById('edit-reserva-data').onchange = () => atualizarHorariosEdicaoReserva(id, agendamento.hora);
+    document.getElementById('edit-reserva-barbeiro').onchange = () => atualizarHorariosEdicaoReserva(id, agendamento.hora);
+
     document.getElementById('modal-editar-reserva').classList.remove('escondido');
 }
 
@@ -1127,7 +1173,6 @@ function carregarMeusAgendamentosDoBanco() {
         const corTextoStatus = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
         const dataBr = item.data.split('-').reverse().join('/');
 
-        // OS BOTÕES DE EDIÇÃO DO CLIENTE APARECEM AQUI:
         container.innerHTML += `
         <div class="card" style="border-left: 4px solid ${corBorda}; margin-bottom: 12px; padding: 16px;">
             <strong style="color:white; font-size: 16px;">${item.servico}</strong><br>
