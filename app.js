@@ -21,17 +21,13 @@ let DADOS_AGENDAMENTOS = [];
 let DADOS_USUARIOS = [];
 let DADOS_DESPESAS = [];
 let DADOS_SERVICOS = []; 
+let ESTRUTURA_BARBEIROS = []; // Agora puxa dinamicamente do Banco!
 
 // Configuração unificada de filtros superiores
 let filtroTempoGlobal = 'mes_atual'; 
 let filtroBarbeiroAlvo = 'todos'; 
 let dataFiltroInicio = new Date().toISOString().split('T')[0];
 let dataFiltroFim = new Date().toISOString().split('T')[0];
-
-let ESTRUTURA_BARBEIROS = [
-    { id: "gabriel", login: "admin", nome: "Gabriel (Proprietário)", celular: "11999999999", comissao: 0.50 },
-    { id: "lucas", login: "lucasbarber", nome: "Lucas Barber", celular: "11988888888", comissao: 0.40 }
-];
 
 const HORARIOS_PADRAO = [
     { turno: "☀️ Manhã", horas: ["09:00", "09:30", "11:00", "11:30"] },
@@ -40,10 +36,6 @@ const HORARIOS_PADRAO = [
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
-    if(localStorage.getItem("PROSPERAR_EQUIPE")) {
-        ESTRUTURA_BARBEIROS = JSON.parse(localStorage.getItem("PROSPERAR_EQUIPE"));
-    }
-
     const inputDataCliente = document.getElementById('data');
     if(inputDataCliente) inputDataCliente.value = new Date().toISOString().split('T')[0];
     
@@ -64,8 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if(inputInicio) inputInicio.value = dataFiltroInicio;
     if(inputFim) inputFim.value = dataFiltroFim;
     
-    atualizarSeletoresEFormulariosDeEquipe();
-    inicializarListenersEstaticos(); // PREVINE QUE OS BOTÕES FIQUEM MORTOS!
+    inicializarListenersEstaticos(); 
 });
 
 function fecharModal(idModal) {
@@ -80,7 +71,20 @@ async function sincronizarBancoDeDados() {
         if (resAgendamentos.ok) DADOS_AGENDAMENTOS = await resAgendamentos.json();
         
         const resUsuarios = await fetch(`${API_URL}/usuarios`);
-        if (resUsuarios.ok) DADOS_USUARIOS = await resUsuarios.json();
+        if (resUsuarios.ok) {
+            DADOS_USUARIOS = await resUsuarios.json();
+            
+            // Mapeia os barbeiros dinamicamente direto do banco de dados!
+            ESTRUTURA_BARBEIROS = DADOS_USUARIOS
+                .filter(u => u.perfil === 'admin' || u.perfil === 'barbeiro')
+                .map(u => ({
+                    id: u.id, 
+                    login: u.login, 
+                    nome: u.nome, 
+                    celular: u.celular, 
+                    comissao: parseFloat(u.comissao || 0.40)
+                }));
+        }
 
         const resDespesas = await fetch(`${API_URL}/despesas`);
         if (resDespesas.ok) DADOS_DESPESAS = await resDespesas.json();
@@ -145,12 +149,12 @@ function atualizarSeletoresEFormulariosDeEquipe() {
             item.innerHTML = `
                 <div style="flex:1;">
                     <strong>${b.nome}</strong><br>
-                    <span style="font-size:11px; color:var(--text-muted);">User: ${b.login} | Tel: ${b.celular || 'N/A'} | Split: ${(b.comissao*100)}%</span>
+                    <span style="font-size:11px; color:var(--text-muted);">User: ${b.login} | Tel: ${b.celular || 'N/A'} | Split: ${(b.comissao*100).toFixed(0)}%</span>
                 </div>
-                ${b.id !== 'gabriel' ? `
+                ${b.login !== 'admin' && b.login !== 'gabriel' ? `
                     <div style="display: flex; gap: 4px; flex-direction: column;">
-                        <button class="btn-small-edit" onclick="abrirModalEdicaoBarbeiro('${b.id}')">Editar</button>
-                        <button class="btn-small-delete" onclick="removerBarbeiroSistema('${b.id}')" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
+                        <button class="btn-small-edit" onclick="abrirModalEdicaoBarbeiro(${b.id})">Editar</button>
+                        <button class="btn-small-delete" onclick="removerBarbeiroSistema(${b.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
                     </div>
                 ` : '<span style="font-size:11px; color:var(--accent-color); font-weight:600;">Proprietário Master</span>'}
             `;
@@ -159,9 +163,9 @@ function atualizarSeletoresEFormulariosDeEquipe() {
     }
 }
 
-// --------- FUNÇÕES PARA EDITAR E GERENCIAR BARBEIROS ----------
+// --------- FUNÇÕES PARA EDITAR E GERENCIAR BARBEIROS (DIRETO NO BANCO) ----------
 function abrirModalEdicaoBarbeiro(id) {
-    const barbeiro = ESTRUTURA_BARBEIROS.find(b => b.id === id);
+    const barbeiro = ESTRUTURA_BARBEIROS.find(b => b.id == id);
     if(!barbeiro) return;
     document.getElementById('edit-barbeiro-id').value = barbeiro.id;
     document.getElementById('edit-barbeiro-nome').value = barbeiro.nome;
@@ -170,7 +174,7 @@ function abrirModalEdicaoBarbeiro(id) {
     document.getElementById('modal-editar-barbeiro').classList.remove('escondido');
 }
 
-function salvarEdicaoBarbeiro() {
+async function salvarEdicaoBarbeiro() {
     const id = document.getElementById('edit-barbeiro-id').value;
     const nome = document.getElementById('edit-barbeiro-nome').value.trim();
     const celular = document.getElementById('edit-barbeiro-celular').value.trim();
@@ -178,17 +182,22 @@ function salvarEdicaoBarbeiro() {
     
     if(!nome) return alert("O nome não pode ficar vazio.");
 
-    const index = ESTRUTURA_BARBEIROS.findIndex(b => b.id === id);
-    if(index > -1) {
-        ESTRUTURA_BARBEIROS[index].nome = nome;
-        ESTRUTURA_BARBEIROS[index].celular = celular;
-        ESTRUTURA_BARBEIROS[index].comissao = comissao;
-        localStorage.setItem("PROSPERAR_EQUIPE", JSON.stringify(ESTRUTURA_BARBEIROS));
-        
-        alert("Profissional atualizado com sucesso!");
-        fecharModal('modal-editar-barbeiro');
-        atualizarSeletoresEFormulariosDeEquipe();
-        recarregarAbaAtivaAdm();
+    try {
+        const res = await fetch(`${API_URL}/usuarios/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nome, celular, comissao })
+        });
+
+        if(res.ok) {
+            alert("Profissional atualizado no banco de dados!");
+            fecharModal('modal-editar-barbeiro');
+            await sincronizarBancoDeDados();
+            atualizarSeletoresEFormulariosDeEquipe();
+            recarregarAbaAtivaAdm();
+        }
+    } catch(e) {
+        alert("Erro ao editar o profissional.");
     }
 }
 
@@ -201,17 +210,18 @@ async function incluirBarbeiroSistema() {
 
     if(!nome || !login || !celular || !senha) return alert("Por favor, preencha todos os campos obrigatórios!");
 
-    const jaExiste = ESTRUTURA_BARBEIROS.some(b => b.login === login || b.nome.toLowerCase() === nome.toLowerCase());
-    if(jaExiste) return alert("Erro: Login ou profissional já existente!");
-
     const payload = {
         login: login,
         senha: senha,
         nome: nome,
         celular: celular,
         perfil: "barbeiro",
-        plano_assinatura: "Nenhum"
+        plano_assinatura: "Nenhum",
+        comissao: comissao
     };
+
+    const btn = document.querySelector('button[onclick="incluirBarbeiroSistema()"]');
+    btn.innerText = "Salvando no Banco..."; btn.disabled = true;
 
     try {
         const res = await fetch(`${API_URL}/usuarios/cadastro`, {
@@ -220,32 +230,40 @@ async function incluirBarbeiroSistema() {
             body: JSON.stringify(payload)
         });
 
-        if(res.ok || res.status === 404) { 
-            const novaId = "barber_" + Date.now();
-            ESTRUTURA_BARBEIROS.push({ id: novaId, login, senha, nome, celular, comissao });
-            localStorage.setItem("PROSPERAR_EQUIPE", JSON.stringify(ESTRUTURA_BARBEIROS));
-            
+        if(res.ok) { 
             alert(`✨ Profissional ${nome} cadastrado com sucesso e salvo no banco de dados!`);
-            
             document.getElementById('adm-barbeiro-nome').value = '';
             document.getElementById('adm-barbeiro-login').value = '';
             document.getElementById('adm-barbeiro-celular').value = '';
             document.getElementById('adm-barbeiro-senha').value = '';
 
+            await sincronizarBancoDeDados();
+            atualizarSeletoresEFormulariosDeEquipe();
+            recarregarAbaAtivaAdm();
+        } else {
+            alert("Erro ao cadastrar: Esse login (nome de usuário) já existe. Escolha outro.");
+        }
+    } catch(e) {
+        alert("Falha de comunicação com o servidor.");
+    } finally {
+        btn.innerText = "Salvar Novo Membro"; btn.disabled = false;
+    }
+}
+
+async function removerBarbeiroSistema(id) {
+    if(!confirm("Atenção: Deseja deletar permanentemente este profissional do banco de dados?")) return;
+    
+    try {
+        const res = await fetch(`${API_URL}/usuarios/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+            alert("Profissional removido com sucesso!");
+            await sincronizarBancoDeDados();
             atualizarSeletoresEFormulariosDeEquipe();
             recarregarAbaAtivaAdm();
         }
     } catch(e) {
-        alert("Falha de comunicação. Salvo localmente em contingência de cache.");
+        alert("Erro ao remover o profissional.");
     }
-}
-
-function removerBarbeiroSistema(id) {
-    if(!confirm("Deseja deletar este profissional? O acesso será revogado.")) return;
-    ESTRUTURA_BARBEIROS = ESTRUTURA_BARBEIROS.filter(b => b.id !== id);
-    localStorage.setItem("PROSPERAR_EQUIPE", JSON.stringify(ESTRUTURA_BARBEIROS));
-    atualizarSeletoresEFormulariosDeEquipe();
-    recarregarAbaAtivaAdm();
 }
 
 async function executarCadastro() {
@@ -269,7 +287,8 @@ async function executarCadastro() {
         senha: senha,
         nome: nome,
         celular: celular,
-        plano_assinatura: "Nenhum"
+        plano_assinatura: "Nenhum",
+        perfil: "cliente"
     };
 
     try {
@@ -317,15 +336,6 @@ async function executarLogin() {
     }
 
     try {
-        const barbeiroAlvo = ESTRUTURA_BARBEIROS.find(b => b.login === login);
-        if(barbeiroAlvo && (barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin' || barbeiroAlvo.senha === senha)) {
-            perfilLogado = (barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin') ? 'admin' : 'barbeiro';
-            usuarioLogado = barbeiroAlvo.login;
-            nomeUsuarioLogado = barbeiroAlvo.nome;
-            await ativarAcessoAoPainelProfissional();
-            return;
-        }
-
         const res = await fetch(`${API_URL}/usuarios/auth`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -335,13 +345,7 @@ async function executarLogin() {
         if(res.ok) {
             const user = await res.json();
             usuarioLogado = user.login;
-            if(login === "admin" || user.perfil === "admin") {
-                perfilLogado = 'admin';
-            } else if (ESTRUTURA_BARBEIROS.some(b => b.login === login)) {
-                perfilLogado = 'barbeiro';
-            } else {
-                perfilLogado = user.perfil || user.role || 'cliente';
-            }
+            perfilLogado = user.perfil || 'cliente';
             nomeUsuarioLogado = user.nome;
             await ativarAcessoAoPainelProfissional();
         } else {
@@ -388,6 +392,7 @@ async function mudarStatusAgendamento(id, novoStatus) {
 
 async function ativarAcessoAoPainelProfissional() {
     await sincronizarBancoDeDados();
+    atualizarSeletoresEFormulariosDeEquipe();
 
     document.getElementById('tela-autenticacao')?.classList.add('escondido');
     document.getElementById('conteudo-app')?.classList.remove('escondido');
@@ -429,7 +434,6 @@ async function ativarAcessoAoPainelProfissional() {
     }
 }
 
-// INICIALIZAÇÃO DE BOTÕES PERMANENTE (Impede os botões de morrerem em caso de crash de tela)
 function inicializarListenersEstaticos() {
     const inputData = document.getElementById('data');
     if(inputData) {
@@ -749,7 +753,6 @@ function atualizarHorariosEdicaoReserva(idAtual, horaAtualSelecionada) {
     
     if (!dataSel || !bNome) return;
 
-    // Filtro Protegido contra dados velhos/quebrados
     let ocupados = DADOS_AGENDAMENTOS
         .filter(a => a && a.data === dataSel && a.barbeiro === bNome && (a.status ? a.status.toLowerCase() !== 'falta' : true) && a.id != idAtual)
         .map(a => a.hora ? a.hora.trim() : '');
@@ -891,8 +894,6 @@ async function salvarEdicaoDespesa() {
     }
 }
 
-
-// Funções de Filtro de Tempo
 function regraDeFiltroDeTempo(dataOriginal) {
     if(!dataOriginal) return false;
     const dataAlvo = new Date(dataOriginal + 'T00:00:00');
@@ -1323,7 +1324,6 @@ function carregarMeusAgendamentosDoBanco() {
             return;
         }
 
-        // Filtro ultra protegido
         let meus = (DADOS_AGENDAMENTOS || []).filter(a => 
             a && a.cliente && typeof a.cliente === 'string' && 
             nomeUsuarioLogado && typeof nomeUsuarioLogado === 'string' && 
@@ -1365,31 +1365,6 @@ function carregarMeusAgendamentosDoBanco() {
         console.error("Erro nas reservas do cliente:", e);
         container.innerHTML = "<p style='color:var(--danger-color); font-size:13px;'>Erro ao carregar reservas. Atualize a página.</p>";
     }
-}
-
-function montarMenuNavegacao(role) {
-    const nav = document.getElementById('menu-navigation'); 
-    const menuNav = document.getElementById('menu-navegacao') || nav; 
-    if (!menuNav) return;
-    if (role === 'admin') {
-        menuNav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
-            <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
-            <button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>
-            <button class="nav-item" onclick="alternarTela('adm-despesas')">💸 Despesas</button>
-            <button class="nav-item" onclick="alternarTela('adm-servicos')">✂️ Serviços</button>
-            <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 BI</button>`;
-    } else if (role === 'barbeiro') {
-        menuNav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
-            <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
-            <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 Analytics</button>`;
-    } else { 
-        menuNav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('home')">📅 Agendar</button>
-            <button class="nav-item" onclick="alternarTela('estilo')">🗂️ Reservas</button>`; 
-    }
-    menuNav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()">🚪 Sair</button>`;
 }
 
 async function alternarTela(idAba) {
