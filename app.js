@@ -20,19 +20,13 @@ let precoServico = 0;
 let DADOS_AGENDAMENTOS = [];
 let DADOS_USUARIOS = [];
 let DADOS_DESPESAS = [];
+let DADOS_SERVICOS = []; // Substitui os serviços manuais
 
 // Configuração unificada de filtros superiores
 let filtroTempoGlobal = 'mes_atual'; 
 let filtroBarbeiroAlvo = 'todos'; 
 let dataFiltroInicio = new Date().toISOString().split('T')[0];
 let dataFiltroFim = new Date().toISOString().split('T')[0];
-
-const ESTRUTURA_SERVICOS = [
-    { id: "corte", nome: "Corte Simples", preco: 40.00, sub: "Duração: 30 min" },
-    { id: "corte_sob", nome: "Corte + Sobrancelha", preco: 55.00, sub: "Duração: 45 min" },
-    { id: "barba", nome: "Barba Completa", preco: 35.00, sub: "Duração: 30 min" },
-    { id: "combo", nome: "Combo Premium", preco: 85.00, sub: "Corte + Barba + Sobrancelha" }
-];
 
 let ESTRUTURA_BARBEIROS = [
     { id: "gabriel", login: "admin", nome: "Gabriel (Proprietário)", celular: "11999999999", comissao: 0.50 },
@@ -78,7 +72,7 @@ function fecharModal(idModal) {
     if(modal) modal.classList.add('escondido');
 }
 
-// FUNÇÃO GLOBAL DE SINCRONIZAÇÃO
+// FUNÇÃO GLOBAL DE SINCRONIZAÇÃO (ATUALIZADO COM OS SERVIÇOS)
 async function sincronizarBancoDeDados() {
     try {
         const resAgendamentos = await fetch(`${API_URL}/agendamentos`);
@@ -89,6 +83,9 @@ async function sincronizarBancoDeDados() {
 
         const resDespesas = await fetch(`${API_URL}/despesas`);
         if (resDespesas.ok) DADOS_DESPESAS = await resDespesas.json();
+
+        const resServicos = await fetch(`${API_URL}/servicos`);
+        if (resServicos.ok) DADOS_SERVICOS = await resServicos.json();
     } catch (e) {
         console.error("Aviso: Falha ao sincronizar com banco. Verifique a API.", e);
     }
@@ -598,6 +595,122 @@ function inicializarListenersPosLogin() {
     }
 }
 
+// --------- FUNÇÕES PARA GERENCIAR SERVIÇOS (ADMIN) ---------
+function preencherSelectServicosEncaixe() {
+    const selEncaixe = document.getElementById('encaixe-servico');
+    if(selEncaixe) {
+        selEncaixe.innerHTML = DADOS_SERVICOS.map(s => 
+            `<option value="${s.nome}">${s.nome} (R$ ${parseFloat(s.preco).toFixed(2)})</option>`
+        ).join('');
+    }
+}
+
+async function salvarNovoServico() {
+    const nome = document.getElementById('servico-nome').value.trim();
+    const preco = parseFloat(document.getElementById('servico-preco').value);
+    const sub = document.getElementById('servico-sub').value.trim();
+
+    if (!nome || isNaN(preco)) return alert("Preencha o nome e o preço do serviço.");
+
+    const btn = document.getElementById('btn-salvar-servico');
+    btn.innerText = "Salvando..."; btn.disabled = true;
+
+    try {
+        const res = await fetch(`${API_URL}/servicos`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nome, preco, sub })
+        });
+        if(res.ok) {
+            alert("Serviço adicionado à barbearia!");
+            document.getElementById('servico-nome').value = "";
+            document.getElementById('servico-preco').value = "";
+            document.getElementById('servico-sub').value = "";
+            await sincronizarBancoDeDados();
+            renderizarServicosAdmin();
+        }
+    } catch(e) {
+        alert("Erro ao salvar serviço.");
+    } finally {
+        btn.innerText = "Adicionar Serviço"; btn.disabled = false;
+    }
+}
+
+function renderizarServicosAdmin() {
+    const container = document.getElementById('lista-servicos-cadastrados');
+    if(!container) return;
+    
+    container.innerHTML = DADOS_SERVICOS.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhum serviço cadastrado.</p>" : "";
+
+    DADOS_SERVICOS.forEach(s => {
+        container.innerHTML += `
+            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color); margin-bottom: 8px;">
+                <div style="flex:1;">
+                    <strong>${s.nome}</strong><br>
+                    <span style="font-size:11px; color:var(--text-muted);">${s.sub || ''}</span>
+                    <div style="color: var(--success-color); font-weight:800; margin-top: 2px;">R$ ${parseFloat(s.preco).toFixed(2)}</div>
+                </div>
+                <div style="display: flex; gap: 4px; flex-direction: column;">
+                    <button class="btn-small-edit" onclick="abrirModalEdicaoServico(${s.id})">Editar</button>
+                    <button class="btn-small-delete" onclick="excluirServico(${s.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
+                </div>
+            </div>
+        `;
+    });
+
+    preencherSelectServicosEncaixe();
+}
+
+function abrirModalEdicaoServico(id) {
+    const s = DADOS_SERVICOS.find(serv => serv.id === id);
+    if(!s) return;
+    document.getElementById('edit-servico-id').value = s.id;
+    document.getElementById('edit-servico-nome').value = s.nome;
+    document.getElementById('edit-servico-preco').value = parseFloat(s.preco).toFixed(2);
+    document.getElementById('edit-servico-sub').value = s.sub;
+    document.getElementById('modal-editar-servico').classList.remove('escondido');
+}
+
+async function salvarEdicaoServico() {
+    const id = document.getElementById('edit-servico-id').value;
+    const nome = document.getElementById('edit-servico-nome').value.trim();
+    const preco = parseFloat(document.getElementById('edit-servico-preco').value);
+    const sub = document.getElementById('edit-servico-sub').value.trim();
+    
+    if(!nome || isNaN(preco)) return alert("Preencha corretamente.");
+    
+    try {
+        const res = await fetch(`${API_URL}/servicos/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nome, preco, sub })
+        });
+        if(res.ok) {
+            alert("Serviço editado com sucesso!");
+            fecharModal('modal-editar-servico');
+            await sincronizarBancoDeDados();
+            renderizarServicosAdmin();
+            if(abaAtivaAtual === 'adm-dash') carregarDadosEstrategicosDoNeon();
+        }
+    } catch(e) {
+        alert("Erro ao editar o serviço.");
+    }
+}
+
+async function excluirServico(id) {
+    if(!confirm("Atenção: Tem certeza que deseja apagar este serviço da barbearia?")) return;
+    try {
+        const res = await fetch(`${API_URL}/servicos/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+            alert("Serviço apagado permanentemente.");
+            await sincronizarBancoDeDados();
+            renderizarServicosAdmin();
+        }
+    } catch(e) {
+        alert("Erro ao tentar excluir serviço.");
+    }
+}
+
 // --------- EDIÇÃO E EXCLUSÃO DE RESERVAS (CLIENTE) ---------
 async function excluirAgendamento(id) {
     if(!confirm("Tem certeza que deseja cancelar e excluir esta reserva?")) return;
@@ -614,7 +727,6 @@ async function excluirAgendamento(id) {
     }
 }
 
-// NOVA LÓGICA: Cria as opções do Select de Horários bloqueando as ocupadas (e ignora a atual pra não bloquear a edição de si mesmo)
 function atualizarHorariosEdicaoReserva(idAtual, horaAtualSelecionada) {
     const dataSel = document.getElementById('edit-reserva-data').value;
     const bNome = document.getElementById('edit-reserva-barbeiro').value;
@@ -662,7 +774,7 @@ function abrirModalEdicaoReserva(id) {
     document.getElementById('edit-reserva-id').value = id;
     
     const selServico = document.getElementById('edit-reserva-servico');
-    selServico.innerHTML = ESTRUTURA_SERVICOS.map(s => `<option value="${s.nome}" ${s.nome === agendamento.servico ? 'selected' : ''}>${s.nome}</option>`).join('');
+    selServico.innerHTML = DADOS_SERVICOS.map(s => `<option value="${s.nome}" ${s.nome === agendamento.servico ? 'selected' : ''}>${s.nome}</option>`).join('');
     
     const selBarbeiro = document.getElementById('edit-reserva-barbeiro');
     selBarbeiro.innerHTML = ESTRUTURA_BARBEIROS.map(b => `<option value="${b.nome}" ${b.nome === agendamento.barbeiro ? 'selected' : ''}>${b.nome}</option>`).join('');
@@ -670,10 +782,8 @@ function abrirModalEdicaoReserva(id) {
     document.getElementById('edit-reserva-data').value = agendamento.data;
     document.getElementById('edit-reserva-pagamento').value = agendamento.pagamento;
     
-    // Alimenta os horários baseado na data e no barbeiro
     atualizarHorariosEdicaoReserva(id, agendamento.hora);
     
-    // Atualiza os horários caso o cliente altere a data ou o barbeiro dentro do modal
     document.getElementById('edit-reserva-data').onchange = () => atualizarHorariosEdicaoReserva(id, agendamento.hora);
     document.getElementById('edit-reserva-barbeiro').onchange = () => atualizarHorariosEdicaoReserva(id, agendamento.hora);
 
@@ -766,7 +876,7 @@ async function salvarEdicaoDespesa() {
 }
 
 
-// Funções de Filtro de Tempo (Agendamentos e Despesas usam as mesmas regras)
+// Funções de Filtro de Tempo
 function regraDeFiltroDeTempo(dataOriginal) {
     const dataAlvo = new Date(dataOriginal + 'T00:00:00');
     const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -819,22 +929,23 @@ function atualizarFiltroDataRange() {
     }
 }
 
+let abaAtivaAtual = 'adm-dash';
 function recarregarAbaAtivaAdm() {
-    const abas = ['adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-analytics'];
-    let abaAtiva = 'adm-dash';
+    const abas = ['adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-analytics'];
     abas.forEach(id => {
         const el = document.getElementById(`aba-${id}`);
-        if (el && !el.classList.contains('escondido')) abaAtiva = id;
+        if (el && !el.classList.contains('escondido')) abaAtivaAtual = id;
     });
 
     const seletor = document.getElementById('filtro-barbeiro-alvo');
     if(seletor) filtroBarbeiroAlvo = seletor.value;
 
-    if(abaAtiva === 'adm-dash') carregarDadosEstrategicosDoNeon();
-    if(abaAtiva === 'adm-mkt' && perfilLogado === 'admin') carregarListaMarketingReal();
-    if(abaAtiva === 'adm-recepcao') carregarModoRecepcaoKanban();
-    if(abaAtiva === 'adm-despesas' && perfilLogado === 'admin') renderizarDespesas();
-    if(abaAtiva === 'adm-analytics') carregarPainelAnalytics();
+    if(abaAtivaAtual === 'adm-dash') carregarDadosEstrategicosDoNeon();
+    if(abaAtivaAtual === 'adm-mkt' && perfilLogado === 'admin') carregarListaMarketingReal();
+    if(abaAtivaAtual === 'adm-recepcao') carregarModoRecepcaoKanban();
+    if(abaAtivaAtual === 'adm-despesas' && perfilLogado === 'admin') renderizarDespesas();
+    if(abaAtivaAtual === 'adm-servicos' && perfilLogado === 'admin') renderizarServicosAdmin();
+    if(abaAtivaAtual === 'adm-analytics') carregarPainelAnalytics();
 }
 
 async function carregarDadosEstrategicosDoNeon() {
@@ -849,8 +960,9 @@ async function carregarDadosEstrategicosDoNeon() {
         });
 
         agendamentos.forEach(a => {
-            const serv = ESTRUTURA_SERVICOS.find(s => s.nome === a.servico);
-            const valorServico = serv ? serv.preco : 40.00;
+            // O CALCULO AGORA PUXA DINAMICAMENTE DA TABELA DO BANCO!
+            const serv = DADOS_SERVICOS.find(s => s.nome === a.servico);
+            const valorServico = serv ? parseFloat(serv.preco) : 40.00;
             const valorProd = parseFloat(a.valor_produtos || 0);
             const valorGorjeta = parseFloat(a.valor_gorjeta || 0);
             
@@ -926,41 +1038,10 @@ async function carregarModoRecepcaoKanban() {
                 </div>
             </div>`;
     });
+    preencherSelectServicosEncaixe();
 }
 
-function renderizarDespesas() {
-    const container = document.getElementById('lista-despesas-cadastradas');
-    const labelTotal = document.getElementById('kpi-despesas-total');
-    if(!container || !labelTotal) return;
-
-    const despesasFiltradas = DADOS_DESPESAS.filter(d => regraDeFiltroDeTempo(d.data));
-    
-    let somaDespesas = 0;
-    container.innerHTML = despesasFiltradas.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhuma despesa para este período.</p>" : "";
-
-    despesasFiltradas.forEach(d => {
-        const valor = parseFloat(d.valor);
-        somaDespesas += valor;
-        const dataBr = d.data.split('-').reverse().join('/');
-        
-        container.innerHTML += `
-            <div class="item-backoffice" style="border-left: 4px solid var(--danger-color); margin-bottom: 8px;">
-                <div style="flex:1;">
-                    <strong>${d.descricao}</strong><br>
-                    <span style="font-size:11px; color:var(--text-muted);">Data: ${dataBr}</span>
-                    <div style="color: var(--danger-color); font-weight:800; margin-top: 2px;">R$ ${valor.toFixed(2)}</div>
-                </div>
-                <div style="display: flex; gap: 4px; flex-direction: column;">
-                    <button class="btn-small-edit" onclick="abrirModalEdicaoDespesa(${d.id})">Editar</button>
-                    <button class="btn-small-delete" onclick="excluirDespesa(${d.id})">Excluir</button>
-                </div>
-            </div>
-        `;
-    });
-
-    labelTotal.innerText = `R$ ${somaDespesas.toFixed(2)}`;
-}
-
+// Bônus visual de tela de Business Intelligence (só pra agrupar no final do arquivo)
 async function carregarPainelAnalytics() {
     const containerMapa = document.getElementById('analytics-heatmap'); if(!containerMapa) return;
     const agendamentos = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
@@ -1022,64 +1103,12 @@ async function carregarPainelAnalytics() {
     }
 }
 
-function renderizarGradeHorariosReais() {
-    const container = document.getElementById('container-horarios'); 
-    if (!container) return;
-    
-    const dataSel = document.getElementById('data').value;
-    const bNome = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome;
-    
-    let ocupados = DADOS_AGENDAMENTOS
-        .filter(a => a.data === dataSel && a.barbeiro === bNome && (a.status ? a.status.toLowerCase() !== 'falta' : true))
-        .map(a => a.hora.trim());
-        
-    container.innerHTML = ""; 
-    
-    HORARIOS_PADRAO.forEach(g => {
-        const tituloTurno = document.createElement('div');
-        tituloTurno.className = "turno-title";
-        tituloTurno.innerText = g.turno;
-        container.appendChild(tituloTurno);
-        
-        const grid = document.createElement('div'); 
-        grid.className = "grid-horarios";
-        
-        g.horas.forEach(h => {
-            const btn = document.createElement('button'); 
-            btn.className = "btn-horario"; 
-            btn.innerText = h;
-            btn.type = "button";
-            
-            if (isSlotPast(dataSel, h.trim())) { 
-                btn.disabled = true; 
-                btn.style.opacity = "0.3"; 
-                btn.innerText = "Expirado"; 
-            } else if (ocupados.includes(h.trim())) { 
-                btn.disabled = true; 
-                btn.innerText = "Ocupado"; 
-            } else { 
-                if(horarioSelecionado === h.trim()) {
-                    btn.classList.add('selecionado');
-                }
-                
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
-                    btn.classList.add('selecionado'); 
-                    horarioSelecionado = h.trim(); 
-                });
-            }
-            grid.appendChild(btn);
-        });
-        container.appendChild(grid);
-    });
-}
-
 function renderizarFormularioCliente() {
     const boxS = document.getElementById('container-servicos'); if(boxS) boxS.innerHTML = "";
-    ESTRUTURA_SERVICOS.forEach(s => {
-        const div = document.createElement('div'); div.className = "modern-card"; div.innerHTML = `<div class="title">${s.nome}</div><div class="price">R$ ${s.preco.toFixed(2)}</div>`;
-        div.onclick = () => { document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); servicoSelecionado = s.nome; precoServico = s.preco; };
+    DADOS_SERVICOS.forEach(s => {
+        const div = document.createElement('div'); div.className = "modern-card"; 
+        div.innerHTML = `<div class="title">${s.nome} <span style="font-size:11px;color:gray;font-weight:normal;display:block;">${s.sub||''}</span></div><div class="price">R$ ${parseFloat(s.preco).toFixed(2)}</div>`;
+        div.onclick = () => { document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); servicoSelecionado = s.nome; precoServico = parseFloat(s.preco); };
         if(boxS) boxS.appendChild(div);
     });
 
@@ -1098,94 +1127,6 @@ function renderizarFormularioCliente() {
     });
 }
 
-function carregarListaMarketingReal() {
-    const container = document.getElementById('lista-marketing-clientes'); if(!container) return;
-    container.innerHTML = "";
-
-    const clientes = DADOS_USUARIOS.filter(u => u.perfil === 'cliente');
-
-    if(clientes.length === 0) {
-        container.innerHTML = "<p style='color:var(--text-muted); font-size:12px;'>Nenhum cliente cadastrado ainda.</p>";
-        return;
-    }
-
-    const hoje = new Date();
-    hoje.setHours(0,0,0,0);
-
-    clientes.forEach(cliente => {
-        const agendamentosCliente = DADOS_AGENDAMENTOS.filter(a => a.cliente && a.cliente.toLowerCase() === cliente.nome.toLowerCase());
-        agendamentosCliente.sort((a, b) => new Date(`${b.data}T00:00:00`) - new Date(`${a.data}T00:00:00`));
-
-        let diasInativo = 999; 
-        
-        if (agendamentosCliente.length > 0) {
-            const ultimaData = new Date(`${agendamentosCliente[0].data}T00:00:00`);
-            const diffTime = Math.abs(hoje - ultimaData);
-            diasInativo = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        }
-
-        const celularLimpo = cliente.celular ? cliente.celular.replace(/\D/g, '') : '';
-        const msgTexto = encodeURIComponent(`Fala ${cliente.nome.split(' ')[0]}, sumido hein! Aqui é da Prosperar Club, estamos com uma promoção exclusiva pra você dar aquele trato no visual essa semana. Bora agendar?`);
-        const linkWpp = `https://wa.me/55${celularLimpo}?text=${msgTexto}`;
-
-        if (diasInativo > 30) {
-            container.innerHTML += `
-                <div class="item-backoffice">
-                    <div>
-                        <strong>${cliente.nome}</strong><br>
-                        <span style="font-size:11px;color:var(--danger-color);">Inativo há ${diasInativo === 999 ? 'muito tempo' : diasInativo + ' dias'} • ${cliente.celular || 'S/ Tel'}</span>
-                    </div>
-                    ${celularLimpo ? `<a href="${linkWpp}" target="_blank" class="btn-status badge-perigo" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; text-decoration: none; border: 1px solid rgba(239,68,68,0.3); padding: 6px 12px; border-radius: 6px;">Resgatar</a>` : '<span style="font-size:10px;color:gray">Sem Num.</span>'}
-                </div>`;
-        } else {
-            container.innerHTML += `
-                <div class="item-backoffice">
-                    <div>
-                        <strong>${cliente.nome}</strong><br>
-                        <span style="font-size:11px;color:var(--text-muted);">Ativo • Último corte há ${diasInativo} dias</span>
-                    </div>
-                    <span class="btn-status badge-sucesso" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); padding: 6px 12px; border-radius: 6px;">Fiel</span>
-                </div>`;
-        }
-    });
-}
-
-function carregarMeusAgendamentosDoBanco() {
-    const container = document.getElementById('container-meus-agendamentos'); if(!container) return;
-    
-    let meus = DADOS_AGENDAMENTOS.filter(a => 
-        a.cliente && 
-        nomeUsuarioLogado && 
-        a.cliente.trim().toLowerCase() === nomeUsuarioLogado.trim().toLowerCase()
-    );
-
-    meus.sort((a, b) => {
-        const dataHoraA = new Date(`${a.data}T${a.hora}:00`);
-        const dataHoraB = new Date(`${b.data}T${b.hora}:00`);
-        return dataHoraB - dataHoraA; 
-    });
-    
-    container.innerHTML = meus.length === 0 ? "<p style='font-size:13px; color:var(--text-muted);'>Nenhum corte agendado no sistema.</p>" : "";
-    
-    meus.forEach(item => { 
-        const isConcluido = item.status && item.status.toLowerCase() === 'concluído';
-        const corBorda = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
-        const corTextoStatus = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
-        const dataBr = item.data.split('-').reverse().join('/');
-
-        container.innerHTML += `
-        <div class="card" style="border-left: 4px solid ${corBorda}; margin-bottom: 12px; padding: 16px;">
-            <strong style="color:white; font-size: 16px;">${item.servico}</strong><br>
-            <span style="font-size:13px;color:var(--text-muted);">Profissional: ${item.barbeiro} • Dia: ${dataBr} às ${item.hora}</span><br>
-            <span style="font-size:11px;color:${corTextoStatus}; font-weight: bold;">Status: ${item.status}</span>
-            <div class="btn-actions-group" style="margin-top: 10px;">
-                <button class="btn-small-edit" onclick="abrirModalEdicaoReserva(${item.id})">Editar Reserva</button>
-                <button class="btn-small-delete" onclick="excluirAgendamento(${item.id})">Cancelar / Excluir</button>
-            </div>
-        </div>`; 
-    });
-}
-
 function montarMenuNavegacao(role) {
     const nav = document.getElementById('menu-navigation'); 
     const menuNav = document.getElementById('menu-navegacao') || nav; 
@@ -1196,6 +1137,7 @@ function montarMenuNavegacao(role) {
             <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
             <button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>
             <button class="nav-item" onclick="alternarTela('adm-despesas')">💸 Despesas</button>
+            <button class="nav-item" onclick="alternarTela('adm-servicos')">✂️ Serviços</button>
             <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 BI</button>`;
     } else if (role === 'barbeiro') {
         menuNav.innerHTML = `
@@ -1211,7 +1153,7 @@ function montarMenuNavegacao(role) {
 }
 
 function alternarTela(idAba) {
-    ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-analytics'].forEach(id => {
+    ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-analytics'].forEach(id => {
         const el = document.getElementById(`aba-${id}`); if (el) el.classList.add('escondido');
     });
     const abaAlvo = document.getElementById(`aba-${idAba}`); if (abaAlvo) abaAlvo.classList.remove('escondido');
@@ -1219,4 +1161,5 @@ function alternarTela(idAba) {
 
     recarregarAbaAtivaAdm();
     if(idAba === 'estilo') carregarMeusAgendamentosDoBanco();
+    if(idAba === 'home') renderizarFormularioCliente(); // Garante que a tela de cliente puxa os serviços atualizados
 }
