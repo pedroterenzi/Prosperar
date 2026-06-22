@@ -57,6 +57,16 @@ def inicializar_banco():
                 plano_assinatura VARCHAR(100) DEFAULT 'Nenhum'
             );
         """)
+
+        # Tabela de Despesas (Nova)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS despesas (
+                id SERIAL PRIMARY KEY,
+                descricao VARCHAR(255) NOT NULL,
+                valor NUMERIC NOT NULL,
+                data VARCHAR(50) NOT NULL
+            );
+        """)
         
         cursor.execute("SELECT * FROM usuarios WHERE login = 'gabriel';")
         if not cursor.fetchone():
@@ -94,6 +104,11 @@ class ModeloAgendamento(BaseModel):
 
 class ModeloStatus(BaseModel):
     status: str
+
+class ModeloDespesa(BaseModel):
+    descricao: str
+    valor: float
+    data: str
 
 # --- ROTAS DE AUTENTICAÇÃO E USUÁRIOS ---
 @app.post("/usuarios/cadastro")
@@ -196,5 +211,36 @@ def remover_agendamento(id: int):
         cursor.close()
         conn.close()
         return {"status": "removido"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- ROTAS DE DESPESAS ---
+@app.post("/despesas")
+def salvar_despesa(obj: ModeloDespesa):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO despesas (descricao, valor, data) VALUES (%s, %s, %s) RETURNING id;",
+            (obj.descricao, obj.valor, obj.data)
+        )
+        novo_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "sucesso", "id": novo_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/despesas")
+def listar_despesas():
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("SELECT * FROM despesas ORDER BY data DESC;")
+        dados = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return dados
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
