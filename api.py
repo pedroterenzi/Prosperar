@@ -67,7 +67,7 @@ def inicializar_banco():
             );
         """)
 
-        # Tabela de Serviços (NOVA)
+        # Tabela de Serviços
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS servicos (
                 id SERIAL PRIMARY KEY,
@@ -77,7 +77,6 @@ def inicializar_banco():
             );
         """)
         
-        # Inserir serviços padrões se a tabela estiver vazia
         cursor.execute("SELECT COUNT(*) FROM servicos;")
         if cursor.fetchone()[0] == 0:
             cursor.execute("""
@@ -149,13 +148,15 @@ def cadastrar_usuario(obj: ModeloCadastro):
         cursor.close()
         conn.close()
         return {"status": "sucesso"}
-    except psycopg2.errors.UniqueViolation:
-        raise HTTPException(status_code=400, detail="Este login já está cadastrado.")
     except Exception as e:
+        error_msg = str(e).lower()
+        if "unique" in error_msg or "duplicate" in error_msg:
+            raise HTTPException(status_code=400, detail="Este login já está cadastrado.")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/usuarios/login")
 def login_usuario(obj: dict):
+    usuario = None
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -163,11 +164,13 @@ def login_usuario(obj: dict):
         usuario = cursor.fetchone()
         cursor.close()
         conn.close()
-        if usuario:
-            return usuario
-        raise HTTPException(status_code=404, detail="Usuário ou senha incorretos.")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Erro interno de conexão: {str(e)}")
+    
+    if usuario:
+        return usuario
+    
+    raise HTTPException(status_code=404, detail="Usuário ou senha incorretos.")
 
 @app.get("/usuarios")
 def listar_usuarios():
