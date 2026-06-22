@@ -64,6 +64,11 @@
         .btn-small-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
         .btn-small-danger:hover { background: var(--danger-color); color: #fff; }
 
+        /* NOVAS CLASSES PARA BOTÕES DE EDIÇÃO */
+        .btn-actions-group { display: flex; gap: 6px; margin-top: 6px; }
+        .btn-small-edit { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-small-edit:hover { background: #3b82f6; color: white; }
+
         .cards-container { display: flex; flex-direction: column; gap: 10px; }
         .modern-card { background: #1f2125; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
         .modern-card:hover { border-color: #383a40; }
@@ -97,7 +102,7 @@
         .toggle-auth button.active { color: var(--accent-color); border-bottom: 2px solid var(--accent-color); }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; width: 100%; max-width: 400px; }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto;}
         
         .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(22, 23, 26, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 14px 4px; border-radius: 20px; z-index: 999; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .nav-item { background: none; border: none; color: var(--text-muted); font-size: 11px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif; }
@@ -171,7 +176,7 @@
     <!-- CONTEÚDO OPERACIONAL DO CORE APP -->
     <div id="conteudo-app" class="escondido">
         
-        <!-- SELETOR E FILTRO GLOBAL (PROPRIETÁRIOS E COLABORADORES) -->
+        <!-- SELETOR E FILTRO GLOBAL -->
         <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color);">
             <h4 style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral:</h4>
             
@@ -358,7 +363,6 @@
                         <option value="Lucas Barber">Lucas Barber</option>
                     </select>
                 </div>
-                <!-- NOVO: Adicionado seletor de Data além do Horário -->
                 <div class="intervalo-custom-grid">
                     <div class="form-group">
                         <label>Data:</label>
@@ -386,7 +390,7 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: DESPESAS (NOVA) -->
+        <!-- ABA BACKOFFICE: DESPESAS -->
         <section id="aba-adm-despesas" class="escondido restrito-adm">
             <h3>Gestão de Despesas</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle os custos da sua barbearia:</p>
@@ -448,13 +452,102 @@
     </div>
 </div>
 
-<!-- POP-UP CONFIRMAÇÃO -->
+<!-- POP-UPS -->
+<!-- POP-UP CONFIRMAÇÃO DE NOVA RESERVA -->
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Confirmar sua Cadeira?</h3>
         <p id="modal-resumo-detalhes" style="font-size: 14px; line-height: 1.6; color: var(--text-muted);"></p>
         <button class="btn-gold" id="btn-confirmar-modal">Confirmar Oficialmente</button>
-        <button class="btn-danger" onclick="document.getElementById('modal-confirmacao').classList.add('escondido')">Voltar / Cancelar</button>
+        <button class="btn-danger" onclick="fecharModal('modal-confirmacao')">Voltar / Cancelar</button>
+    </div>
+</div>
+
+<!-- MODAL EDITAR RESERVA DO CLIENTE -->
+<div id="modal-editar-reserva" class="modal-overlay escondido">
+    <div class="modal-content">
+        <h3>Modificar Agendamento</h3>
+        <input type="hidden" id="edit-reserva-id">
+        <div class="form-group">
+            <label>Serviço:</label>
+            <select id="edit-reserva-servico"></select>
+        </div>
+        <div class="form-group">
+            <label>Barbeiro:</label>
+            <select id="edit-reserva-barbeiro"></select>
+        </div>
+        <div class="intervalo-custom-grid">
+            <div class="form-group">
+                <label>Data:</label>
+                <input type="date" id="edit-reserva-data">
+            </div>
+            <div class="form-group">
+                <label>Horário:</label>
+                <input type="time" id="edit-reserva-hora">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Pagamento Local:</label>
+            <select id="edit-reserva-pagamento">
+                <option value="Pix">Pix</option>
+                <option value="Cartão de Crédito">Cartão de Crédito</option>
+                <option value="Cartão de Débito">Cartão de Débito</option>
+                <option value="Dinheiro">Dinheiro</option>
+            </select>
+        </div>
+        <button class="btn-gold" style="margin-top: 10px;" onclick="salvarEdicaoReserva()">Salvar Alterações</button>
+        <button class="btn-danger" onclick="fecharModal('modal-editar-reserva')">Cancelar</button>
+    </div>
+</div>
+
+<!-- MODAL EDITAR BARBEIRO -->
+<div id="modal-editar-barbeiro" class="modal-overlay escondido">
+    <div class="modal-content">
+        <h3>Editar Profissional</h3>
+        <input type="hidden" id="edit-barbeiro-id">
+        <div class="form-group">
+            <label>Nome Completo:</label>
+            <input type="text" id="edit-barbeiro-nome">
+        </div>
+        <div class="form-group">
+            <label>WhatsApp / Celular:</label>
+            <input type="text" id="edit-barbeiro-celular">
+        </div>
+        <div class="form-group">
+            <label>Comissão Contratual (%):</label>
+            <select id="edit-barbeiro-comissao">
+                <option value="0.30">30%</option>
+                <option value="0.40">40%</option>
+                <option value="0.50">50%</option>
+                <option value="0.60">60%</option>
+            </select>
+        </div>
+        <button class="btn-gold" style="margin-top: 10px;" onclick="salvarEdicaoBarbeiro()">Salvar Profissional</button>
+        <button class="btn-danger" onclick="fecharModal('modal-editar-barbeiro')">Cancelar</button>
+    </div>
+</div>
+
+<!-- MODAL EDITAR DESPESA -->
+<div id="modal-editar-despesa" class="modal-overlay escondido">
+    <div class="modal-content">
+        <h3>Editar Despesa</h3>
+        <input type="hidden" id="edit-despesa-id">
+        <div class="form-group">
+            <label>Descrição:</label>
+            <input type="text" id="edit-despesa-descricao">
+        </div>
+        <div class="intervalo-custom-grid">
+            <div class="form-group">
+                <label>Valor (R$):</label>
+                <input type="number" id="edit-despesa-valor" step="0.01">
+            </div>
+            <div class="form-group">
+                <label>Data:</label>
+                <input type="date" id="edit-despesa-data">
+            </div>
+        </div>
+        <button class="btn-gold" style="margin-top: 10px;" onclick="salvarEdicaoDespesa()">Salvar Nova Despesa</button>
+        <button class="btn-danger" onclick="fecharModal('modal-editar-despesa')">Cancelar</button>
     </div>
 </div>
 
