@@ -42,7 +42,7 @@ def inicializar_banco():
         except Exception:
             pass
             
-        # Tabela de Usuários 
+        # Tabela de Usuários Atualizada (Adicionada coluna comissao)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
                 id SERIAL PRIMARY KEY,
@@ -56,6 +56,11 @@ def inicializar_banco():
                 plano_assinatura VARCHAR(100) DEFAULT 'Nenhum'
             );
         """)
+
+        try:
+            cursor.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS comissao NUMERIC DEFAULT 0.00;")
+        except Exception:
+            pass
 
         # Tabela de Despesas
         cursor.execute("""
@@ -87,14 +92,14 @@ def inicializar_banco():
                 ('Combo Premium', 85.00, 'Corte + Barba + Sobrancelha');
             """)
 
-        # --- INJETANDO SEUS CLIENTES ANTIGOS DO JSON NO BANCO NOVO ---
+        # --- INJETANDO CLIENTES E O PROPRIETÁRIO NO BANCO ---
         clientes_antigos = [
-            ('gabriel', '123456', 'Gabriel Proprietário', 'admin', '11999999999', 'Premium'),
-            ('pedroterenzi', 'pedrinho2013', 'pedro henrique', 'cliente', '19971374936', 'Nenhum'),
-            ('denis', 'denis123', 'denis pompollino', 'cliente', '19 99749-4174', 'Nenhum'),
-            ('cccc', '123456789', 'hchch', 'cliente', '191971347859', 'Nenhum'),
-            ('pedrosilva', '123456', 'pedro silva', 'cliente', '19971232678', 'Nenhum'),
-            ('joasilva', '123456', 'joao', 'cliente', '19987234567', 'Nenhum')
+            ('gabriel', '123456', 'Gabriel Proprietário', 'admin', '11999999999', 'Premium', 0.50),
+            ('pedroterenzi', 'pedrinho2013', 'pedro henrique', 'cliente', '19971374936', 'Nenhum', 0.0),
+            ('denis', 'denis123', 'denis pompollino', 'cliente', '19 99749-4174', 'Nenhum', 0.0),
+            ('cccc', '123456789', 'hchch', 'cliente', '191971347859', 'Nenhum', 0.0),
+            ('pedrosilva', '123456', 'pedro silva', 'cliente', '19971232678', 'Nenhum', 0.0),
+            ('joasilva', '123456', 'joao', 'cliente', '19987234567', 'Nenhum', 0.0)
         ]
         
         for c in clientes_antigos:
@@ -102,8 +107,8 @@ def inicializar_banco():
                 cursor.execute("SELECT id FROM usuarios WHERE login = %s;", (c[0],))
                 if not cursor.fetchone():
                     cursor.execute("""
-                        INSERT INTO usuarios (login, senha, nome, perfil, celular, plano_assinatura)
-                        VALUES (%s, %s, %s, %s, %s, %s);
+                        INSERT INTO usuarios (login, senha, nome, perfil, celular, plano_assinatura, comissao)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s);
                     """, c)
             except Exception:
                 pass
@@ -124,8 +129,14 @@ class ModeloCadastro(BaseModel):
     nome: str
     celular: str
     plano_assinatura: Optional[str] = "Nenhum"
+    perfil: Optional[str] = "cliente"
+    comissao: Optional[float] = 0.0
 
-# Schema de Autenticação Segura (Evita bloqueios do Chrome)
+class ModeloEdicaoUsuario(BaseModel):
+    nome: str
+    celular: str
+    comissao: float
+
 class ModeloAuth(BaseModel):
     login: str
     senha: str
@@ -154,6 +165,7 @@ class ModeloServico(BaseModel):
     preco: float
     sub: str
 
+
 # --- ROTAS DE AUTENTICAÇÃO E USUÁRIOS ---
 @app.post("/usuarios/cadastro")
 def cadastrar_usuario(obj: ModeloCadastro):
@@ -161,8 +173,8 @@ def cadastrar_usuario(obj: ModeloCadastro):
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO usuarios (login, senha, nome, perfil, celular, plano_assinatura) VALUES (%s, %s, %s, 'cliente', %s, %s);",
-            (obj.login.strip().lower(), obj.senha, obj.nome, obj.celular, obj.plano_assinatura)
+            "INSERT INTO usuarios (login, senha, nome, perfil, celular, plano_assinatura, comissao) VALUES (%s, %s, %s, %s, %s, %s, %s);",
+            (obj.login.strip().lower(), obj.senha, obj.nome, obj.perfil, obj.celular, obj.plano_assinatura, obj.comissao)
         )
         conn.commit()
         cursor.close()
@@ -174,7 +186,6 @@ def cadastrar_usuario(obj: ModeloCadastro):
             raise HTTPException(status_code=400, detail="Este login já está cadastrado.")
         raise HTTPException(status_code=500, detail=str(e))
 
-# ROTA NOVA E SEGURA CONTRA ADBLOCKERS
 @app.post("/usuarios/auth")
 def autenticar_usuario(obj: ModeloAuth):
     try:
@@ -199,13 +210,43 @@ def listar_usuarios():
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT id, login, nome, perfil, celular, pontos_fidelidade, plano_assinatura FROM usuarios;")
+        cursor.execute("SELECT id, login, nome, perfil, celular, pontos_fidelidade, plano_assinatura, comissao FROM usuarios;")
         usuarios = cursor.fetchall()
         cursor.close()
         conn.close()
         return usuarios
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/usuarios/{id}")
+def editar_usuario(id: int, obj: ModeloEdicaoUsuario):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE usuarios SET nome = %s, celular = %s, comissao = %s WHERE id = %s;",
+            (obj.nome, obj.celular, obj.comissao, id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "atualizado"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/usuarios/{id}")
+def remover_usuario(id: int):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM usuarios WHERE id = %s;", (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "removido"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # --- ROTAS DE AGENDAMENTOS ---
 @app.post("/agendamentos")
