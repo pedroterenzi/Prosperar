@@ -65,6 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if(inputFim) inputFim.value = dataFiltroFim;
     
     atualizarSeletoresEFormulariosDeEquipe();
+    inicializarListenersEstaticos(); // PREVINE QUE OS BOTÕES FIQUEM MORTOS!
 });
 
 function fecharModal(idModal) {
@@ -149,7 +150,7 @@ function atualizarSeletoresEFormulariosDeEquipe() {
                 ${b.id !== 'gabriel' ? `
                     <div style="display: flex; gap: 4px; flex-direction: column;">
                         <button class="btn-small-edit" onclick="abrirModalEdicaoBarbeiro('${b.id}')">Editar</button>
-                        <button class="btn-small-delete" onclick="removerBarbeiroSistema('${b.id}')">Excluir</button>
+                        <button class="btn-small-delete" onclick="removerBarbeiroSistema('${b.id}')" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
                     </div>
                 ` : '<span style="font-size:11px; color:var(--accent-color); font-weight:600;">Proprietário Master</span>'}
             `;
@@ -158,6 +159,7 @@ function atualizarSeletoresEFormulariosDeEquipe() {
     }
 }
 
+// --------- FUNÇÕES PARA EDITAR E GERENCIAR BARBEIROS ----------
 function abrirModalEdicaoBarbeiro(id) {
     const barbeiro = ESTRUTURA_BARBEIROS.find(b => b.id === id);
     if(!barbeiro) return;
@@ -298,7 +300,6 @@ async function executarCadastro() {
     }
 }
 
-// FUNÇÃO DE LOGIN TOTALMENTE REFEITA PARA DESVIAR DE ERROS E ADBLOCKERS
 async function executarLogin() {
     const loginInput = document.getElementById('login-usuario');
     const senhaInput = document.getElementById('login-senha');
@@ -316,7 +317,6 @@ async function executarLogin() {
     }
 
     try {
-        // 1. Verificação local do proprietário para garantir segurança
         const barbeiroAlvo = ESTRUTURA_BARBEIROS.find(b => b.login === login);
         if(barbeiroAlvo && (barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin' || barbeiroAlvo.senha === senha)) {
             perfilLogado = (barbeiroAlvo.id === 'gabriel' || barbeiroAlvo.login === 'admin') ? 'admin' : 'barbeiro';
@@ -326,7 +326,6 @@ async function executarLogin() {
             return;
         }
 
-        // 2. Chamada à rota segura /auth
         const res = await fetch(`${API_URL}/usuarios/auth`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -354,7 +353,6 @@ async function executarLogin() {
             }
         }
     } catch(e) {
-        // Se cair aqui, é porque a rede falhou de verdade
         if(login === "admin" && senha === "admin") {
             forçarLoginContingencia();
         } else {
@@ -419,17 +417,20 @@ async function ativarAcessoAoPainelProfissional() {
     } else {
         document.getElementById('bloco-filtros-global-adm')?.classList.add('escondido');
         const bv = document.getElementById('boas-vistas-cliente');
-        if(bv) bv.innerText = `Olá, ${nomeUsuarioLogado}!`;
+        if(bv) bv.innerText = `Olá, ${nomeUsuarioLogado || 'Cliente'}!`;
         
-        renderizarFormularioCliente();
-        carregarMeusAgendamentosDoBanco();
+        try {
+            renderizarFormularioCliente();
+            carregarMeusAgendamentosDoBanco();
+        } catch (err) {
+            console.error("Proteção Ativada: Ignorando dados antigos incompatíveis.", err);
+        }
         alternarTela('home');
     }
-
-    inicializarListenersPosLogin();
 }
 
-function inicializarListenersPosLogin() {
+// INICIALIZAÇÃO DE BOTÕES PERMANENTE (Impede os botões de morrerem em caso de crash de tela)
+function inicializarListenersEstaticos() {
     const inputData = document.getElementById('data');
     if(inputData) {
         inputData.addEventListener('change', () => {
@@ -439,7 +440,7 @@ function inicializarListenersPosLogin() {
 
     const btnPreAgendar = document.getElementById('btnPreAgendar');
     if(btnPreAgendar) {
-        btnPreAgendar.onclick = (e) => {
+        btnPreAgendar.addEventListener('click', (e) => {
             e.preventDefault();
             if (!servicoSelecionado || !barbeiroSelecionado || !horarioSelecionado || !pagamentoSelecionado) {
                 return alert("Por favor, selecione: Serviço, Profissional, Horário e Pagamento.");
@@ -463,7 +464,7 @@ function inicializarListenersPosLogin() {
                 `;
             }
             document.getElementById('modal-confirmacao')?.classList.remove('escondido');
-        };
+        });
     }
 
     const btnConfirmarModal = document.getElementById('btn-confirmar-modal');
@@ -502,6 +503,7 @@ function inicializarListenersPosLogin() {
                     await sincronizarBancoDeDados();
                     renderizarGradeHorariosReais();
                     carregarMeusAgendamentosDoBanco();
+                    alternarTela('estilo');
                 } else {
                     alert("Erro ao confirmar reserva.");
                 }
@@ -608,6 +610,7 @@ function inicializarListenersPosLogin() {
     }
 }
 
+// --------- FUNÇÕES PARA GERENCIAR SERVIÇOS (ADMIN) ---------
 function preencherSelectServicosEncaixe() {
     const selEncaixe = document.getElementById('encaixe-servico');
     if(selEncaixe) {
@@ -723,6 +726,7 @@ async function excluirServico(id) {
     }
 }
 
+// --------- EDIÇÃO E EXCLUSÃO DE RESERVAS (CLIENTE) ---------
 async function excluirAgendamento(id) {
     if(!confirm("Tem certeza que deseja cancelar e excluir esta reserva?")) return;
     try {
@@ -745,9 +749,10 @@ function atualizarHorariosEdicaoReserva(idAtual, horaAtualSelecionada) {
     
     if (!dataSel || !bNome) return;
 
+    // Filtro Protegido contra dados velhos/quebrados
     let ocupados = DADOS_AGENDAMENTOS
-        .filter(a => a.data === dataSel && a.barbeiro === bNome && (a.status ? a.status.toLowerCase() !== 'falta' : true) && a.id != idAtual)
-        .map(a => a.hora.trim());
+        .filter(a => a && a.data === dataSel && a.barbeiro === bNome && (a.status ? a.status.toLowerCase() !== 'falta' : true) && a.id != idAtual)
+        .map(a => a.hora ? a.hora.trim() : '');
 
     selectHora.innerHTML = "";
 
@@ -836,6 +841,7 @@ async function salvarEdicaoReserva() {
     }
 }
 
+// --------- EDIÇÃO E EXCLUSÃO DE DESPESAS (ADMIN) ---------
 async function excluirDespesa(id) {
     if(!confirm("Tem certeza que deseja apagar permanentemente esta despesa?")) return;
     try {
@@ -885,7 +891,10 @@ async function salvarEdicaoDespesa() {
     }
 }
 
+
+// Funções de Filtro de Tempo
 function regraDeFiltroDeTempo(dataOriginal) {
+    if(!dataOriginal) return false;
     const dataAlvo = new Date(dataOriginal + 'T00:00:00');
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     
@@ -908,6 +917,7 @@ function regraDeFiltroDeTempo(dataOriginal) {
 }
 
 function filtrarAgendamentoPorRegraGlobal(a) {
+    if(!a) return false;
     if(filtroBarbeiroAlvo !== 'todos') {
         const profissionalAlvo = ESTRUTURA_BARBEIROS.find(b => b.id === filtroBarbeiroAlvo);
         if(!profissionalAlvo || a.barbeiro !== profissionalAlvo.nome) return false;
@@ -1023,89 +1033,139 @@ async function carregarDadosEstrategicosDoNeon() {
                 document.getElementById('minha-breakdown-comissao').innerText = `Serviços: R$ ${d.servicosLiquidos.toFixed(2)} | Vendas: R$ ${d.produtos.toFixed(2)} | Dicas/Gorjetas: R$ ${d.gorjetas.toFixed(2)}`;
             }
         }
-    } catch(e) {}
+    } catch(e) {
+        console.error("Erro dados estratégicos:", e);
+    }
 }
 
 async function carregarModoRecepcaoKanban() {
     const container = document.getElementById('container-kanban-recepcao'); if(!container) return;
-    const dadosFiltrados = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
-    
-    dadosFiltrados.sort((a, b) => new Date(`${a.data}T${a.hora}:00`) - new Date(`${b.data}T${b.hora}:00`));
+    try {
+        const dadosFiltrados = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
+        
+        dadosFiltrados.sort((a, b) => new Date(`${a.data||''}T${a.hora||''}:00`) - new Date(`${b.data||''}T${b.hora||''}:00`));
 
-    container.innerHTML = dadosFiltrados.length === 0 ? "<p style='color:var(--text-muted); text-align:center;'>Nenhum registro para o escopo.</p>" : "";
-    
-    dadosFiltrados.forEach(item => {
-        const isConcluido = item.status && item.status.toLowerCase() === 'concluído';
-        container.innerHTML += `
-            <div class="item-backoffice" style="border-left: 4px solid ${isConcluido ? 'var(--success-color)' : 'var(--accent-color)'}">
-                <div><strong>👤 ${item.cliente} (${item.status})</strong><br><span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${item.data.split('-').reverse().join('/')} às ${item.hora} [Barbeiro: ${item.barbeiro}]</span></div>
-                <div style="display:flex; gap:6px;">
-                    <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
-                    <button class="btn-status" style="background:var(--danger-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Falta')">✖</button>
+        container.innerHTML = dadosFiltrados.length === 0 ? "<p style='color:var(--text-muted); text-align:center;'>Nenhum registro para o escopo.</p>" : "";
+        
+        dadosFiltrados.forEach(item => {
+            const isConcluido = item.status && item.status.toLowerCase() === 'concluído';
+            const dataBr = item.data && item.data.includes('-') ? item.data.split('-').reverse().join('/') : (item.data||'');
+            
+            container.innerHTML += `
+                <div class="item-backoffice" style="border-left: 4px solid ${isConcluido ? 'var(--success-color)' : 'var(--accent-color)'}">
+                    <div><strong>👤 ${item.cliente} (${item.status})</strong><br><span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${dataBr} às ${item.hora||''} [Barbeiro: ${item.barbeiro}]</span></div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
+                        <button class="btn-status" style="background:var(--danger-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Falta')">✖</button>
+                    </div>
+                </div>`;
+        });
+        preencherSelectServicosEncaixe();
+    } catch(e) {
+        console.error("Erro no Kanban:", e);
+    }
+}
+
+function renderizarDespesas() {
+    const container = document.getElementById('lista-despesas-cadastradas');
+    const labelTotal = document.getElementById('kpi-despesas-total');
+    if(!container || !labelTotal) return;
+
+    try {
+        const despesasFiltradas = DADOS_DESPESAS.filter(d => regraDeFiltroDeTempo(d.data));
+        
+        let somaDespesas = 0;
+        container.innerHTML = despesasFiltradas.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhuma despesa para este período.</p>" : "";
+
+        despesasFiltradas.forEach(d => {
+            const valor = parseFloat(d.valor);
+            somaDespesas += valor;
+            const dataBr = d.data && d.data.includes('-') ? d.data.split('-').reverse().join('/') : (d.data||'');
+            
+            container.innerHTML += `
+                <div class="item-backoffice" style="border-left: 4px solid var(--danger-color); margin-bottom: 8px;">
+                    <div style="flex:1;">
+                        <strong>${d.descricao}</strong><br>
+                        <span style="font-size:11px; color:var(--text-muted);">Data: ${dataBr}</span>
+                        <div style="color: var(--danger-color); font-weight:800; margin-top: 2px;">R$ ${valor.toFixed(2)}</div>
+                    </div>
+                    <div style="display: flex; gap: 4px; flex-direction: column;">
+                        <button class="btn-small-edit" onclick="abrirModalEdicaoDespesa(${d.id})">Editar</button>
+                        <button class="btn-small-delete" onclick="excluirDespesa(${d.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
+                    </div>
                 </div>
-            </div>`;
-    });
-    preencherSelectServicosEncaixe();
+            `;
+        });
+
+        labelTotal.innerText = `R$ ${somaDespesas.toFixed(2)}`;
+    } catch(e) {
+        console.error("Erro nas despesas:", e);
+    }
 }
 
 async function carregarPainelAnalytics() {
     const containerMapa = document.getElementById('analytics-heatmap'); if(!containerMapa) return;
-    const agendamentos = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
+    try {
+        const agendamentos = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
 
-    const turnos = { "Manhã": 0, "Tarde": 0, "Noite": 0 };
-    const dias = { "Segunda-feira": 0, "Terça-feira": 0, "Quarta-feira": 0, "Quinta-feira": 0, "Sexta-feira": 0, "Sábado": 0, "Domingo": 0 };
-    const nomesDias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+        const turnos = { "Manhã": 0, "Tarde": 0, "Noite": 0 };
+        const dias = { "Segunda-feira": 0, "Terça-feira": 0, "Quarta-feira": 0, "Quinta-feira": 0, "Sexta-feira": 0, "Sábado": 0, "Domingo": 0 };
+        const nomesDias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
-    agendamentos.forEach(a => {
-        const h = parseInt(a.hora.split(':')[0]);
-        if(h >= 9 && h < 12) turnos["Manhã"]++; else if(h >= 12 && h < 18) turnos["Tarde"]++; else turnos["Noite"]++;
-        const dNome = nomesDias[new Date(a.data + 'T00:00:00').getDay()];
-        if(dias[dNome] !== undefined) dias[dNome]++;
-    });
+        agendamentos.forEach(a => {
+            if(!a.hora || !a.data) return;
+            const h = parseInt(a.hora.split(':')[0]);
+            if(h >= 9 && h < 12) turnos["Manhã"]++; else if(h >= 12 && h < 18) turnos["Tarde"]++; else turnos["Noite"]++;
+            const dNome = nomesDias[new Date(a.data + 'T00:00:00').getDay()];
+            if(dias[dNome] !== undefined) dias[dNome]++;
+        });
 
-    containerMapa.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 10px; background: #1f2125; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; font-size:14px;">
-            <div style="display:flex; justify-content:space-between;"><span>🌅 Manhã (09h - 12h):</span> <strong>${turnos['Manhã']} atendimentos</strong></div>
-            <div style="display:flex; justify-content:space-between; padding: 4px 0;"><span>🌤️ Tarde (12h - 18h):</span> <strong>${turnos['Tarde']} atendimentos</strong></div>
-            <div style="display:flex; justify-content:space-between;"><span>🌙 Noite (18h - 20h):</span> <strong>${turnos['Noite']} atendimentos</strong></div>
-        </div>`;
+        containerMapa.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 10px; background: #1f2125; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; font-size:14px;">
+                <div style="display:flex; justify-content:space-between;"><span>🌅 Manhã (09h - 12h):</span> <strong>${turnos['Manhã']} atendimentos</strong></div>
+                <div style="display:flex; justify-content:space-between; padding: 4px 0;"><span>🌤️ Tarde (12h - 18h):</span> <strong>${turnos['Tarde']} atendimentos</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>🌙 Noite (18h - 20h):</span> <strong>${turnos['Noite']} atendimentos</strong></div>
+            </div>`;
 
-    const containerDias = document.getElementById('analytics-dias-semana');
-    if(containerDias) {
-        containerDias.innerHTML = '';
-        const wrapper = document.createElement('div');
-        wrapper.style.cssText = "display: flex; flex-direction: column; gap: 12px; background: #1f2125; border: 1px solid var(--border-color); padding: 18px; border-radius: 12px;";
+        const containerDias = document.getElementById('analytics-dias-semana');
+        if(containerDias) {
+            containerDias.innerHTML = '';
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = "display: flex; flex-direction: column; gap: 12px; background: #1f2125; border: 1px solid var(--border-color); padding: 18px; border-radius: 12px;";
+            
+            for(let dia in dias) {
+                const pct = agendamentos.length > 0 ? Math.min((dias[dia] / agendamentos.length) * 100, 100) : 0;
+                wrapper.innerHTML += `
+                    <div class="analytics-bar-container">
+                        <div class="analytics-bar-header">
+                            <span>${dia}</span>
+                            <strong style="color: ${dias[dia] > 0 ? 'var(--accent-color)' : 'var(--text-muted)'}">${dias[dia]} clientes</strong>
+                        </div>
+                        <div class="analytics-bar-bg">
+                            <div class="analytics-bar-fill" style="width: ${pct}%"></div>
+                        </div>
+                    </div>`;
+            }
+            containerDias.appendChild(wrapper);
+        }
+
+        const uClientes = [...new Set(agendamentos.map(a => a.cliente))];
+        let rec = 0; uClientes.forEach(c => { if(agendamentos.filter(a => a.cliente === c).length > 1) rec++; });
         
-        for(let dia in dias) {
-            const pct = agendamentos.length > 0 ? Math.min((dias[dia] / agendamentos.length) * 100, 100) : 0;
-            wrapper.innerHTML += `
-                <div class="analytics-bar-container">
-                    <div class="analytics-bar-header">
-                        <span>${dia}</span>
-                        <strong style="color: ${dias[dia] > 0 ? 'var(--accent-color)' : 'var(--text-muted)'}">${dias[dia]} clientes</strong>
-                    </div>
-                    <div class="analytics-bar-bg">
-                        <div class="analytics-bar-fill" style="width: ${pct}%"></div>
-                    </div>
+        const containerRetencao = document.getElementById('analytics-retencao');
+        if(containerRetencao) {
+            containerRetencao.innerHTML = `
+                <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
+                    <div class="kpi-label">Taxa de Retenção</div>
+                    <div class="kpi-val" style="color: var(--accent-color); font-size: 24px;">${uClientes.length > 0 ? Math.round((rec / uClientes.length) * 100) : 0}%</div>
+                </div>
+                <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
+                    <div class="kpi-label">LTV do Período</div>
+                    <div class="kpi-val" style="color: var(--success-color); font-size: 24px;">R$ ${(uClientes.length > 0 ? 62 * (agendamentos.length / uClientes.length) : 0).toFixed(2)}</div>
                 </div>`;
         }
-        containerDias.appendChild(wrapper);
-    }
-
-    const uClientes = [...new Set(agendamentos.map(a => a.cliente))];
-    let rec = 0; uClientes.forEach(c => { if(agendamentos.filter(a => a.cliente === c).length > 1) rec++; });
-    
-    const containerRetencao = document.getElementById('analytics-retencao');
-    if(containerRetencao) {
-        containerRetencao.innerHTML = `
-            <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
-                <div class="kpi-label">Taxa de Retenção</div>
-                <div class="kpi-val" style="color: var(--accent-color); font-size: 24px;">${uClientes.length > 0 ? Math.round((rec / uClientes.length) * 100) : 0}%</div>
-            </div>
-            <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
-                <div class="kpi-label">LTV do Período</div>
-                <div class="kpi-val" style="color: var(--success-color); font-size: 24px;">R$ ${(uClientes.length > 0 ? 62 * (agendamentos.length / uClientes.length) : 0).toFixed(2)}</div>
-            </div>`;
+    } catch(e) {
+        console.error("Erro no BI:", e);
     }
 }
 
@@ -1113,84 +1173,198 @@ function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios'); 
     if (!container) return;
     
-    const dataSel = document.getElementById('data').value;
-    const bInfo = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado);
-    
-    container.innerHTML = ""; 
+    try {
+        const dataSel = document.getElementById('data').value || '';
+        const bInfo = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado);
+        
+        container.innerHTML = ""; 
 
-    if (!bInfo) {
-        container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; margin: 10px 0;'>👆 Selecione o profissional acima para ver os horários.</p>";
-        return;
-    }
+        if (!bInfo) {
+            container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; margin: 10px 0;'>👆 Selecione o profissional acima para ver os horários.</p>";
+            return;
+        }
 
-    let ocupados = DADOS_AGENDAMENTOS
-        .filter(a => a.data === dataSel && a.barbeiro === bInfo.nome && (a.status ? a.status.toLowerCase() !== 'falta' : true))
-        .map(a => a.hora.trim());
-        
-    HORARIOS_PADRAO.forEach(g => {
-        const tituloTurno = document.createElement('div');
-        tituloTurno.className = "turno-title";
-        tituloTurno.innerText = g.turno;
-        container.appendChild(tituloTurno);
-        
-        const grid = document.createElement('div'); 
-        grid.className = "grid-horarios";
-        
-        g.horas.forEach(h => {
-            const btn = document.createElement('button'); 
-            btn.className = "btn-horario"; 
-            btn.innerText = h;
-            btn.type = "button";
+        let ocupados = DADOS_AGENDAMENTOS
+            .filter(a => a && a.data === dataSel && a.barbeiro === bInfo.nome && (a.status ? a.status.toLowerCase() !== 'falta' : true))
+            .map(a => a.hora ? a.hora.trim() : '');
             
-            if (isSlotPast(dataSel, h.trim())) { 
-                btn.disabled = true; 
-                btn.style.opacity = "0.3"; 
-                btn.innerText = "Expirado"; 
-            } else if (ocupados.includes(h.trim())) { 
-                btn.disabled = true; 
-                btn.innerText = "Ocupado"; 
-            } else { 
-                if(horarioSelecionado === h.trim()) {
-                    btn.classList.add('selecionado');
-                }
+        HORARIOS_PADRAO.forEach(g => {
+            const tituloTurno = document.createElement('div');
+            tituloTurno.className = "turno-title";
+            tituloTurno.innerText = g.turno;
+            container.appendChild(tituloTurno);
+            
+            const grid = document.createElement('div'); 
+            grid.className = "grid-horarios";
+            
+            g.horas.forEach(h => {
+                const btn = document.createElement('button'); 
+                btn.className = "btn-horario"; 
+                btn.innerText = h;
+                btn.type = "button";
                 
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
-                    btn.classList.add('selecionado'); 
-                    horarioSelecionado = h.trim(); 
-                });
-            }
-            grid.appendChild(btn);
+                if (isSlotPast(dataSel, h.trim())) { 
+                    btn.disabled = true; 
+                    btn.style.opacity = "0.3"; 
+                    btn.innerText = "Expirado"; 
+                } else if (ocupados.includes(h.trim())) { 
+                    btn.disabled = true; 
+                    btn.innerText = "Ocupado"; 
+                } else { 
+                    if(horarioSelecionado === h.trim()) {
+                        btn.classList.add('selecionado');
+                    }
+                    
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
+                        btn.classList.add('selecionado'); 
+                        horarioSelecionado = h.trim(); 
+                    });
+                }
+                grid.appendChild(btn);
+            });
+            container.appendChild(grid);
         });
-        container.appendChild(grid);
-    });
+    } catch (e) {
+        console.error("Erro nos horários:", e);
+    }
 }
 
 function renderizarFormularioCliente() {
-    const boxS = document.getElementById('container-servicos'); if(boxS) boxS.innerHTML = "";
-    DADOS_SERVICOS.forEach(s => {
-        const div = document.createElement('div'); div.className = "modern-card"; 
-        div.innerHTML = `<div class="title">${s.nome} <span style="font-size:11px;color:gray;font-weight:normal;display:block;">${s.sub||''}</span></div><div class="price">R$ ${parseFloat(s.preco).toFixed(2)}</div>`;
-        div.onclick = () => { document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); servicoSelecionado = s.nome; precoServico = parseFloat(s.preco); };
-        if(boxS) boxS.appendChild(div);
-    });
+    try {
+        const boxS = document.getElementById('container-servicos'); if(boxS) boxS.innerHTML = "";
+        DADOS_SERVICOS.forEach(s => {
+            const div = document.createElement('div'); div.className = "modern-card"; 
+            div.innerHTML = `<div class="title">${s.nome} <span style="font-size:11px;color:gray;font-weight:normal;display:block;">${s.sub||''}</span></div><div class="price">R$ ${parseFloat(s.preco).toFixed(2)}</div>`;
+            div.onclick = () => { document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); servicoSelecionado = s.nome; precoServico = parseFloat(s.preco); };
+            if(boxS) boxS.appendChild(div);
+        });
 
-    const boxB = document.getElementById('container-barbeiros'); if(boxB) boxB.innerHTML = "";
-    ESTRUTURA_BARBEIROS.forEach(b => {
-        const div = document.createElement('div'); div.className = "modern-card"; div.innerHTML = `<div class="title">${b.nome}</div>`;
-        div.onclick = () => { document.querySelectorAll('#container-barbeiros .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); barbeiroSelecionado = b.id; renderizarGradeHorariosReais(); };
-        if(boxB) boxB.appendChild(div);
-    });
+        const boxB = document.getElementById('container-barbeiros'); if(boxB) boxB.innerHTML = "";
+        ESTRUTURA_BARBEIROS.forEach(b => {
+            const div = document.createElement('div'); div.className = "modern-card"; div.innerHTML = `<div class="title">${b.nome}</div>`;
+            div.onclick = () => { document.querySelectorAll('#container-barbeiros .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); barbeiroSelecionado = b.id; renderizarGradeHorariosReais(); };
+            if(boxB) boxB.appendChild(div);
+        });
 
-    const boxP = document.getElementById('container-pagamentos'); if(boxP) boxP.innerHTML = "";
-    ["Pix", "Cartão de Crédito", "Cartão de Débito", "Dinheiro"].forEach(p => {
-        const div = document.createElement('div'); div.className = "modern-card"; div.innerHTML = `<div class="title">${p}</div>`;
-        div.onclick = () => { document.querySelectorAll('#container-pagamentos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); pagamentoSelecionado = p; };
-        if(boxP) boxP.appendChild(div);
-    });
+        const boxP = document.getElementById('container-pagamentos'); if(boxP) boxP.innerHTML = "";
+        ["Pix", "Cartão de Crédito", "Cartão de Débito", "Dinheiro"].forEach(p => {
+            const div = document.createElement('div'); div.className = "modern-card"; div.innerHTML = `<div class="title">${p}</div>`;
+            div.onclick = () => { document.querySelectorAll('#container-pagamentos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); pagamentoSelecionado = p; };
+            if(boxP) boxP.appendChild(div);
+        });
 
-    renderizarGradeHorariosReais(); 
+        renderizarGradeHorariosReais(); 
+    } catch(e) {
+        console.error("Erro no formulário:", e);
+    }
+}
+
+function carregarListaMarketingReal() {
+    const container = document.getElementById('lista-marketing-clientes'); if(!container) return;
+    try {
+        container.innerHTML = "";
+        const clientes = DADOS_USUARIOS.filter(u => u.perfil === 'cliente');
+
+        if(clientes.length === 0) {
+            container.innerHTML = "<p style='color:var(--text-muted); font-size:12px;'>Nenhum cliente cadastrado ainda.</p>";
+            return;
+        }
+
+        const hoje = new Date();
+        hoje.setHours(0,0,0,0);
+
+        clientes.forEach(cliente => {
+            const agendamentosCliente = DADOS_AGENDAMENTOS.filter(a => a && a.cliente && a.cliente.toLowerCase() === cliente.nome.toLowerCase());
+            agendamentosCliente.sort((a, b) => new Date(`${b.data||''}T00:00:00`) - new Date(`${a.data||''}T00:00:00`));
+
+            let diasInativo = 999; 
+            
+            if (agendamentosCliente.length > 0 && agendamentosCliente[0].data) {
+                const ultimaData = new Date(`${agendamentosCliente[0].data}T00:00:00`);
+                const diffTime = Math.abs(hoje - ultimaData);
+                diasInativo = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+
+            const celularLimpo = cliente.celular ? cliente.celular.replace(/\D/g, '') : '';
+            const msgTexto = encodeURIComponent(`Fala ${cliente.nome.split(' ')[0]}, sumido hein! Aqui é da Prosperar Club, estamos com uma promoção exclusiva pra você dar aquele trato no visual essa semana. Bora agendar?`);
+            const linkWpp = `https://wa.me/55${celularLimpo}?text=${msgTexto}`;
+
+            if (diasInativo > 30) {
+                container.innerHTML += `
+                    <div class="item-backoffice">
+                        <div>
+                            <strong>${cliente.nome}</strong><br>
+                            <span style="font-size:11px;color:var(--danger-color);">Inativo há ${diasInativo === 999 ? 'muito tempo' : diasInativo + ' dias'} • ${cliente.celular || 'S/ Tel'}</span>
+                        </div>
+                        ${celularLimpo ? `<a href="${linkWpp}" target="_blank" class="btn-status badge-perigo" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; text-decoration: none; border: 1px solid rgba(239,68,68,0.3); padding: 6px 12px; border-radius: 6px;">Resgatar</a>` : '<span style="font-size:10px;color:gray">Sem Num.</span>'}
+                    </div>`;
+            } else {
+                container.innerHTML += `
+                    <div class="item-backoffice">
+                        <div>
+                            <strong>${cliente.nome}</strong><br>
+                            <span style="font-size:11px;color:var(--text-muted);">Ativo • Último corte há ${diasInativo} dias</span>
+                        </div>
+                        <span class="btn-status badge-sucesso" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); padding: 6px 12px; border-radius: 6px;">Fiel</span>
+                    </div>`;
+            }
+        });
+    } catch(e) { console.error("Erro marketing", e); }
+}
+
+function carregarMeusAgendamentosDoBanco() {
+    const container = document.getElementById('container-meus-agendamentos'); if(!container) return;
+    
+    try {
+        if(!nomeUsuarioLogado) {
+            container.innerHTML = "<p style='font-size:13px; color:var(--text-muted);'>Faça login para ver suas reservas.</p>";
+            return;
+        }
+
+        // Filtro ultra protegido
+        let meus = (DADOS_AGENDAMENTOS || []).filter(a => 
+            a && a.cliente && typeof a.cliente === 'string' && 
+            nomeUsuarioLogado && typeof nomeUsuarioLogado === 'string' && 
+            a.cliente.trim().toLowerCase() === nomeUsuarioLogado.trim().toLowerCase()
+        );
+
+        meus.sort((a, b) => {
+            const dataA = a.data || ""; const horaA = a.hora || "";
+            const dataB = b.data || ""; const horaB = b.hora || "";
+            return new Date(`${dataB}T${horaB}:00`) - new Date(`${dataA}T${horaA}:00`); 
+        });
+        
+        container.innerHTML = meus.length === 0 ? "<p style='font-size:13px; color:var(--text-muted);'>Nenhum corte agendado no sistema.</p>" : "";
+        
+        meus.forEach(item => { 
+            const status = item.status || 'Agendado';
+            const isConcluido = status.toLowerCase() === 'concluído';
+            const corBorda = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
+            const corTextoStatus = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
+            
+            const dataStr = item.data || '';
+            const dataBr = dataStr.includes('-') ? dataStr.split('-').reverse().join('/') : dataStr;
+            const servicoStr = item.servico || 'Serviço Indefinido';
+            const barbeiroStr = item.barbeiro || 'Não Atribuído';
+            const horaStr = item.hora || '--:--';
+
+            container.innerHTML += `
+            <div class="card" style="border-left: 4px solid ${corBorda}; margin-bottom: 12px; padding: 16px;">
+                <strong style="color:white; font-size: 16px;">${servicoStr}</strong><br>
+                <span style="font-size:13px;color:var(--text-muted);">Profissional: ${barbeiroStr} • Dia: ${dataBr} às ${horaStr}</span><br>
+                <span style="font-size:11px;color:${corTextoStatus}; font-weight: bold;">Status: ${status}</span>
+                <div class="btn-actions-group" style="margin-top: 10px;">
+                    <button class="btn-small-edit" onclick="abrirModalEdicaoReserva(${item.id})">Editar Reserva</button>
+                    <button class="btn-small-delete" onclick="excluirAgendamento(${item.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Cancelar / Excluir</button>
+                </div>
+            </div>`; 
+        });
+    } catch(e) {
+        console.error("Erro nas reservas do cliente:", e);
+        container.innerHTML = "<p style='color:var(--danger-color); font-size:13px;'>Erro ao carregar reservas. Atualize a página.</p>";
+    }
 }
 
 function montarMenuNavegacao(role) {
@@ -1219,23 +1393,27 @@ function montarMenuNavegacao(role) {
 }
 
 async function alternarTela(idAba) {
-    ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-analytics'].forEach(id => {
-        const el = document.getElementById(`aba-${id}`); if (el) el.classList.add('escondido');
-    });
-    const abaAlvo = document.getElementById(`aba-${idAba}`); if (abaAlvo) abaAlvo.classList.remove('escondido');
-    document.querySelectorAll('.nav-inferior .nav-item').forEach(btn => btn.classList.remove('ativo'));
+    try {
+        ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-analytics'].forEach(id => {
+            const el = document.getElementById(`aba-${id}`); if (el) el.classList.add('escondido');
+        });
+        const abaAlvo = document.getElementById(`aba-${idAba}`); if (abaAlvo) abaAlvo.classList.remove('escondido');
+        document.querySelectorAll('.nav-inferior .nav-item').forEach(btn => btn.classList.remove('ativo'));
 
-    if(idAba === 'estilo') {
-        const container = document.getElementById('container-meus-agendamentos');
-        if(container) container.innerHTML = "<p style='font-size:13px; color:var(--accent-color);'>Sincronizando reservas...</p>";
-        await sincronizarBancoDeDados();
-        carregarMeusAgendamentosDoBanco();
-    }
-    
-    if(idAba === 'home') {
-        await sincronizarBancoDeDados();
-        renderizarFormularioCliente(); 
-    }
+        if(idAba === 'estilo') {
+            const container = document.getElementById('container-meus-agendamentos');
+            if(container) container.innerHTML = "<p style='font-size:13px; color:var(--accent-color);'>Sincronizando reservas...</p>";
+            await sincronizarBancoDeDados();
+            carregarMeusAgendamentosDoBanco();
+        }
+        
+        if(idAba === 'home') {
+            await sincronizarBancoDeDados();
+            renderizarFormularioCliente(); 
+        }
 
-    recarregarAbaAtivaAdm();
+        recarregarAbaAtivaAdm();
+    } catch(e) {
+        console.error("Erro ao mudar de tela:", e);
+    }
 }
