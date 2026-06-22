@@ -39,9 +39,10 @@ let ESTRUTURA_BARBEIROS = [
     { id: "lucas", login: "lucasbarber", nome: "Lucas Barber", celular: "11988888888", comissao: 0.40 }
 ];
 
+// O HORÁRIO DE 15:00 E 15:30 FOI ADICIONADO AQUI NA TARDE
 const HORARIOS_PADRAO = [
     { turno: "☀️ Manhã", horas: ["09:00", "09:30", "11:00", "11:30"] },
-    { turno: "🌤️ Tarde", horas: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "16:00", "16:30", "17:00", "17:30"] },
+    { turno: "🌤️ Tarde", horas: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"] },
     { turno: "🌙 Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
 ];
 
@@ -53,7 +54,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const inputDataCliente = document.getElementById('data');
     if(inputDataCliente) inputDataCliente.value = new Date().toISOString().split('T')[0];
     
-    // Seta data de hoje nos forms de admin também
     const inputEncaixeData = document.getElementById('encaixe-data');
     if(inputEncaixeData) inputEncaixeData.value = new Date().toISOString().split('T')[0];
     
@@ -73,6 +73,11 @@ document.addEventListener("DOMContentLoaded", () => {
     
     atualizarSeletoresEFormulariosDeEquipe();
 });
+
+function fecharModal(idModal) {
+    const modal = document.getElementById(idModal);
+    if(modal) modal.classList.add('escondido');
+}
 
 // FUNÇÃO GLOBAL DE SINCRONIZAÇÃO
 async function sincronizarBancoDeDados() {
@@ -141,14 +146,52 @@ function atualizarSeletoresEFormulariosDeEquipe() {
             const item = document.createElement('div');
             item.className = 'item-backoffice';
             item.innerHTML = `
-                <div>
+                <div style="flex:1;">
                     <strong>${b.nome}</strong><br>
                     <span style="font-size:11px; color:var(--text-muted);">User: ${b.login} | Tel: ${b.celular || 'N/A'} | Split: ${(b.comissao*100)}%</span>
                 </div>
-                ${b.id !== 'gabriel' ? `<button class="btn-small-danger" onclick="removerBarbeiroSistema('${b.id}')">Excluir</button>` : '<span style="font-size:11px; color:var(--accent-color); font-weight:600;">Proprietário Master</span>'}
+                ${b.id !== 'gabriel' ? `
+                    <div style="display: flex; gap: 4px; flex-direction: column;">
+                        <button class="btn-small-edit" onclick="abrirModalEdicaoBarbeiro('${b.id}')">Editar</button>
+                        <button class="btn-small-delete" onclick="removerBarbeiroSistema('${b.id}')">Excluir</button>
+                    </div>
+                ` : '<span style="font-size:11px; color:var(--accent-color); font-weight:600;">Proprietário Master</span>'}
             `;
             containerLista.appendChild(item);
         });
+    }
+}
+
+// --------- FUNÇÕES PARA EDITAR E GERENCIAR BARBEIROS ----------
+function abrirModalEdicaoBarbeiro(id) {
+    const barbeiro = ESTRUTURA_BARBEIROS.find(b => b.id === id);
+    if(!barbeiro) return;
+    document.getElementById('edit-barbeiro-id').value = barbeiro.id;
+    document.getElementById('edit-barbeiro-nome').value = barbeiro.nome;
+    document.getElementById('edit-barbeiro-celular').value = barbeiro.celular || "";
+    document.getElementById('edit-barbeiro-comissao').value = barbeiro.comissao.toFixed(2);
+    document.getElementById('modal-editar-barbeiro').classList.remove('escondido');
+}
+
+function salvarEdicaoBarbeiro() {
+    const id = document.getElementById('edit-barbeiro-id').value;
+    const nome = document.getElementById('edit-barbeiro-nome').value.trim();
+    const celular = document.getElementById('edit-barbeiro-celular').value.trim();
+    const comissao = parseFloat(document.getElementById('edit-barbeiro-comissao').value);
+    
+    if(!nome) return alert("O nome não pode ficar vazio.");
+
+    const index = ESTRUTURA_BARBEIROS.findIndex(b => b.id === id);
+    if(index > -1) {
+        ESTRUTURA_BARBEIROS[index].nome = nome;
+        ESTRUTURA_BARBEIROS[index].celular = celular;
+        ESTRUTURA_BARBEIROS[index].comissao = comissao;
+        localStorage.setItem("PROSPERAR_EQUIPE", JSON.stringify(ESTRUTURA_BARBEIROS));
+        
+        alert("Profissional atualizado com sucesso!");
+        fecharModal('modal-editar-barbeiro');
+        atualizarSeletoresEFormulariosDeEquipe();
+        recarregarAbaAtivaAdm();
     }
 }
 
@@ -445,7 +488,7 @@ function inicializarListenersPosLogin() {
                 });
 
                 if(res.ok) {
-                    document.getElementById('modal-confirmacao')?.classList.add('escondido');
+                    fecharModal('modal-confirmacao');
                     alert("✨ Reserva efetuada com sucesso!");
                     await sincronizarBancoDeDados();
                     renderizarGradeHorariosReais();
@@ -472,7 +515,7 @@ function inicializarListenersPosLogin() {
             const nome = document.getElementById('encaixe-nome')?.value.trim();
             const servico = document.getElementById('encaixe-servico')?.value;
             const barbeiro = document.getElementById('encaixe-barbeiro')?.value;
-            const dataEncaixe = document.getElementById('encaixe-data')?.value; // NOVO
+            const dataEncaixe = document.getElementById('encaixe-data')?.value; 
             const hora = document.getElementById('encaixe-hora')?.value;
             const gorjeta = parseFloat(document.getElementById('encaixe-gorjeta')?.value || 0);
             const pagamento = document.getElementById('encaixe-pagamento')?.value;
@@ -555,6 +598,127 @@ function inicializarListenersPosLogin() {
         });
     }
 }
+
+// --------- EDIÇÃO E EXCLUSÃO DE RESERVAS (CLIENTE) ---------
+async function excluirAgendamento(id) {
+    if(!confirm("Tem certeza que deseja cancelar e excluir esta reserva?")) return;
+    try {
+        const res = await fetch(`${API_URL}/agendamentos/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+            alert("Sua reserva foi excluída do sistema.");
+            await sincronizarBancoDeDados();
+            carregarMeusAgendamentosDoBanco();
+            renderizarGradeHorariosReais();
+        }
+    } catch(e) {
+        alert("Erro ao excluir reserva.");
+    }
+}
+
+function abrirModalEdicaoReserva(id) {
+    const agendamento = DADOS_AGENDAMENTOS.find(a => a.id === id);
+    if(!agendamento) return;
+    
+    document.getElementById('edit-reserva-id').value = id;
+    
+    const selServico = document.getElementById('edit-reserva-servico');
+    selServico.innerHTML = ESTRUTURA_SERVICOS.map(s => `<option value="${s.nome}" ${s.nome === agendamento.servico ? 'selected' : ''}>${s.nome}</option>`).join('');
+    
+    const selBarbeiro = document.getElementById('edit-reserva-barbeiro');
+    selBarbeiro.innerHTML = ESTRUTURA_BARBEIROS.map(b => `<option value="${b.nome}" ${b.nome === agendamento.barbeiro ? 'selected' : ''}>${b.nome}</option>`).join('');
+    
+    document.getElementById('edit-reserva-data').value = agendamento.data;
+    document.getElementById('edit-reserva-hora').value = agendamento.hora;
+    document.getElementById('edit-reserva-pagamento').value = agendamento.pagamento;
+    
+    document.getElementById('modal-editar-reserva').classList.remove('escondido');
+}
+
+async function salvarEdicaoReserva() {
+    const id = document.getElementById('edit-reserva-id').value;
+    const agendamento = DADOS_AGENDAMENTOS.find(a => a.id == id);
+    if(!agendamento) return;
+    
+    const payload = {
+        cliente: agendamento.cliente,
+        servico: document.getElementById('edit-reserva-servico').value,
+        barbeiro: document.getElementById('edit-reserva-barbeiro').value,
+        data: document.getElementById('edit-reserva-data').value,
+        hora: document.getElementById('edit-reserva-hora').value,
+        pagamento: document.getElementById('edit-reserva-pagamento').value,
+        status: agendamento.status,
+        valor_produtos: agendamento.valor_produtos,
+        valor_gorjeta: agendamento.valor_gorjeta
+    };
+    
+    try {
+        const res = await fetch(`${API_URL}/agendamentos/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if(res.ok) {
+            alert("A reserva foi atualizada com sucesso!");
+            fecharModal('modal-editar-reserva');
+            await sincronizarBancoDeDados();
+            carregarMeusAgendamentosDoBanco();
+            renderizarGradeHorariosReais();
+        }
+    } catch(e) {
+        alert("Erro ao tentar atualizar os dados da reserva.");
+    }
+}
+
+// --------- EDIÇÃO E EXCLUSÃO DE DESPESAS (ADMIN) ---------
+async function excluirDespesa(id) {
+    if(!confirm("Tem certeza que deseja apagar permanentemente esta despesa?")) return;
+    try {
+        const res = await fetch(`${API_URL}/despesas/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+            alert("Despesa apagada do banco de dados.");
+            await sincronizarBancoDeDados();
+            renderizarDespesas();
+        }
+    } catch(e) {
+        alert("Erro ao tentar excluir a despesa.");
+    }
+}
+
+function abrirModalEdicaoDespesa(id) {
+    const despesa = DADOS_DESPESAS.find(d => d.id === id);
+    if(!despesa) return;
+    document.getElementById('edit-despesa-id').value = despesa.id;
+    document.getElementById('edit-despesa-descricao').value = despesa.descricao;
+    document.getElementById('edit-despesa-valor').value = parseFloat(despesa.valor).toFixed(2);
+    document.getElementById('edit-despesa-data').value = despesa.data;
+    document.getElementById('modal-editar-despesa').classList.remove('escondido');
+}
+
+async function salvarEdicaoDespesa() {
+    const id = document.getElementById('edit-despesa-id').value;
+    const descricao = document.getElementById('edit-despesa-descricao').value.trim();
+    const valor = parseFloat(document.getElementById('edit-despesa-valor').value);
+    const data = document.getElementById('edit-despesa-data').value;
+    
+    if(!descricao || isNaN(valor) || !data) return alert("Verifique os campos da despesa!");
+    
+    try {
+        const res = await fetch(`${API_URL}/despesas/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ descricao, valor, data })
+        });
+        if(res.ok) {
+            alert("Despesa ajustada e salva!");
+            fecharModal('modal-editar-despesa');
+            await sincronizarBancoDeDados();
+            renderizarDespesas();
+        }
+    } catch(e) {
+        alert("Erro ao editar despesa.");
+    }
+}
+
 
 // Funções de Filtro de Tempo (Agendamentos e Despesas usam as mesmas regras)
 function regraDeFiltroDeTempo(dataOriginal) {
@@ -701,7 +865,6 @@ async function carregarModoRecepcaoKanban() {
     const container = document.getElementById('container-kanban-recepcao'); if(!container) return;
     const dadosFiltrados = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
     
-    // Bônus: Ordena o Kanban pelo horário para ficar certinho do primeiro ao último do dia
     dadosFiltrados.sort((a, b) => new Date(`${a.data}T${a.hora}:00`) - new Date(`${b.data}T${b.hora}:00`));
 
     container.innerHTML = dadosFiltrados.length === 0 ? "<p style='color:var(--text-muted); text-align:center;'>Nenhum registro para o escopo.</p>" : "";
@@ -724,7 +887,6 @@ function renderizarDespesas() {
     const labelTotal = document.getElementById('kpi-despesas-total');
     if(!container || !labelTotal) return;
 
-    // Filtra as despesas seguindo o mesmo filtro de tempo do dashboard (Hoje, Mês Atual, etc)
     const despesasFiltradas = DADOS_DESPESAS.filter(d => regraDeFiltroDeTempo(d.data));
     
     let somaDespesas = 0;
@@ -734,13 +896,18 @@ function renderizarDespesas() {
         const valor = parseFloat(d.valor);
         somaDespesas += valor;
         const dataBr = d.data.split('-').reverse().join('/');
+        
         container.innerHTML += `
             <div class="item-backoffice" style="border-left: 4px solid var(--danger-color); margin-bottom: 8px;">
-                <div>
+                <div style="flex:1;">
                     <strong>${d.descricao}</strong><br>
                     <span style="font-size:11px; color:var(--text-muted);">Data: ${dataBr}</span>
+                    <div style="color: var(--danger-color); font-weight:800; margin-top: 2px;">R$ ${valor.toFixed(2)}</div>
                 </div>
-                <div style="color: var(--danger-color); font-weight:800;">R$ ${valor.toFixed(2)}</div>
+                <div style="display: flex; gap: 4px; flex-direction: column;">
+                    <button class="btn-small-edit" onclick="abrirModalEdicaoDespesa(${d.id})">Editar</button>
+                    <button class="btn-small-delete" onclick="excluirDespesa(${d.id})">Excluir</button>
+                </div>
             </div>
         `;
     });
@@ -889,7 +1056,6 @@ function carregarListaMarketingReal() {
     const container = document.getElementById('lista-marketing-clientes'); if(!container) return;
     container.innerHTML = "";
 
-    // Pega só os usuários que são "cliente" no banco de dados real
     const clientes = DADOS_USUARIOS.filter(u => u.perfil === 'cliente');
 
     if(clientes.length === 0) {
@@ -901,10 +1067,7 @@ function carregarListaMarketingReal() {
     hoje.setHours(0,0,0,0);
 
     clientes.forEach(cliente => {
-        // Pega todos os agendamentos desse cliente no banco
         const agendamentosCliente = DADOS_AGENDAMENTOS.filter(a => a.cliente && a.cliente.toLowerCase() === cliente.nome.toLowerCase());
-        
-        // Ordena para pegar o agendamento mais recente
         agendamentosCliente.sort((a, b) => new Date(`${b.data}T00:00:00`) - new Date(`${a.data}T00:00:00`));
 
         let diasInativo = 999; 
@@ -915,12 +1078,10 @@ function carregarListaMarketingReal() {
             diasInativo = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         }
 
-        // Limpa o número de celular (Remove parênteses, traços, etc) para o link do Wpp
         const celularLimpo = cliente.celular ? cliente.celular.replace(/\D/g, '') : '';
         const msgTexto = encodeURIComponent(`Fala ${cliente.nome.split(' ')[0]}, sumido hein! Aqui é da Prosperar Club, estamos com uma promoção exclusiva pra você dar aquele trato no visual essa semana. Bora agendar?`);
         const linkWpp = `https://wa.me/55${celularLimpo}?text=${msgTexto}`;
 
-        // Se o cliente não vem há mais de 30 dias (ou nunca veio), mostramos o Resgatar
         if (diasInativo > 30) {
             container.innerHTML += `
                 <div class="item-backoffice">
@@ -966,11 +1127,16 @@ function carregarMeusAgendamentosDoBanco() {
         const corTextoStatus = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
         const dataBr = item.data.split('-').reverse().join('/');
 
+        // OS BOTÕES DE EDIÇÃO DO CLIENTE APARECEM AQUI:
         container.innerHTML += `
         <div class="card" style="border-left: 4px solid ${corBorda}; margin-bottom: 12px; padding: 16px;">
             <strong style="color:white; font-size: 16px;">${item.servico}</strong><br>
             <span style="font-size:13px;color:var(--text-muted);">Profissional: ${item.barbeiro} • Dia: ${dataBr} às ${item.hora}</span><br>
             <span style="font-size:11px;color:${corTextoStatus}; font-weight: bold;">Status: ${item.status}</span>
+            <div class="btn-actions-group" style="margin-top: 10px;">
+                <button class="btn-small-edit" onclick="abrirModalEdicaoReserva(${item.id})">Editar Reserva</button>
+                <button class="btn-small-delete" onclick="excluirAgendamento(${item.id})">Cancelar / Excluir</button>
+            </div>
         </div>`; 
     });
 }
