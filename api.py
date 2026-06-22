@@ -22,7 +22,7 @@ def inicializar_banco():
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
         
-        # Tabela de Agendamentos Atualizada
+        # Tabela de Agendamentos 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS agendamentos (
                 id SERIAL PRIMARY KEY,
@@ -66,7 +66,28 @@ def inicializar_banco():
                 data VARCHAR(50) NOT NULL
             );
         """)
+
+        # Tabela de Serviços (NOVA)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS servicos (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(255) NOT NULL,
+                preco NUMERIC NOT NULL,
+                sub VARCHAR(255)
+            );
+        """)
         
+        # Inserir serviços padrões se a tabela estiver vazia
+        cursor.execute("SELECT COUNT(*) FROM servicos;")
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+                INSERT INTO servicos (nome, preco, sub) VALUES 
+                ('Corte Simples', 40.00, 'Duração: 30 min'), 
+                ('Corte + Sobrancelha', 55.00, 'Duração: 45 min'), 
+                ('Barba Completa', 35.00, 'Duração: 30 min'), 
+                ('Combo Premium', 85.00, 'Corte + Barba + Sobrancelha');
+            """)
+
         cursor.execute("SELECT * FROM usuarios WHERE login = 'gabriel';")
         if not cursor.fetchone():
             cursor.execute("""
@@ -108,6 +129,11 @@ class ModeloDespesa(BaseModel):
     descricao: str
     valor: float
     data: str
+
+class ModeloServico(BaseModel):
+    nome: str
+    preco: float
+    sub: str
 
 # --- ROTAS DE AUTENTICAÇÃO E USUÁRIOS ---
 @app.post("/usuarios/cadastro")
@@ -282,6 +308,66 @@ def remover_despesa(id: int):
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
         cursor.execute("DELETE FROM despesas WHERE id = %s;", (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "removido"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- ROTAS DE SERVIÇOS ---
+@app.post("/servicos")
+def salvar_servico(obj: ModeloServico):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO servicos (nome, preco, sub) VALUES (%s, %s, %s) RETURNING id;",
+            (obj.nome, obj.preco, obj.sub)
+        )
+        novo_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "sucesso", "id": novo_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/servicos")
+def listar_servicos():
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("SELECT * FROM servicos ORDER BY preco ASC;")
+        dados = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return dados
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/servicos/{id}")
+def editar_servico(id: int, obj: ModeloServico):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE servicos SET nome = %s, preco = %s, sub = %s WHERE id = %s;",
+            (obj.nome, obj.preco, obj.sub, id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "atualizado"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/servicos/{id}")
+def remover_servico(id: int):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM servicos WHERE id = %s;", (id,))
         conn.commit()
         cursor.close()
         conn.close()
