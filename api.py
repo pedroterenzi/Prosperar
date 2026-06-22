@@ -87,12 +87,27 @@ def inicializar_banco():
                 ('Combo Premium', 85.00, 'Corte + Barba + Sobrancelha');
             """)
 
-        cursor.execute("SELECT * FROM usuarios WHERE login = 'gabriel';")
-        if not cursor.fetchone():
-            cursor.execute("""
-                INSERT INTO usuarios (login, senha, nome, perfil, celular, plano_assinatura) 
-                VALUES ('gabriel', '123456', 'Gabriel Proprietário', 'admin', '11999999999', 'Premium');
-            """)
+        # --- INJETANDO SEUS CLIENTES ANTIGOS DO JSON NO BANCO NOVO ---
+        clientes_antigos = [
+            ('gabriel', '123456', 'Gabriel Proprietário', 'admin', '11999999999', 'Premium'),
+            ('pedroterenzi', 'pedrinho2013', 'pedro henrique', 'cliente', '19971374936', 'Nenhum'),
+            ('denis', 'denis123', 'denis pompollino', 'cliente', '19 99749-4174', 'Nenhum'),
+            ('cccc', '123456789', 'hchch', 'cliente', '191971347859', 'Nenhum'),
+            ('pedrosilva', '123456', 'pedro silva', 'cliente', '19971232678', 'Nenhum'),
+            ('joasilva', '123456', 'joao', 'cliente', '19987234567', 'Nenhum')
+        ]
+        
+        for c in clientes_antigos:
+            try:
+                cursor.execute("SELECT id FROM usuarios WHERE login = %s;", (c[0],))
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        INSERT INTO usuarios (login, senha, nome, perfil, celular, plano_assinatura)
+                        VALUES (%s, %s, %s, %s, %s, %s);
+                    """, c)
+            except Exception:
+                pass
+        
         conn.commit()
         cursor.close()
         conn.close()
@@ -109,6 +124,11 @@ class ModeloCadastro(BaseModel):
     nome: str
     celular: str
     plano_assinatura: Optional[str] = "Nenhum"
+
+# Schema de Autenticação Segura (Evita bloqueios do Chrome)
+class ModeloAuth(BaseModel):
+    login: str
+    senha: str
 
 class ModeloAgendamento(BaseModel):
     cliente: str
@@ -154,23 +174,25 @@ def cadastrar_usuario(obj: ModeloCadastro):
             raise HTTPException(status_code=400, detail="Este login já está cadastrado.")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/usuarios/login")
-def login_usuario(obj: dict):
-    usuario = None
+# ROTA NOVA E SEGURA CONTRA ADBLOCKERS
+@app.post("/usuarios/auth")
+def autenticar_usuario(obj: ModeloAuth):
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor(cursor_factory=RealDictCursor)
-        cursor.execute("SELECT * FROM usuarios WHERE login = %s AND senha = %s;", (obj.get("login").strip().lower(), obj.get("senha")))
+        cursor.execute("SELECT * FROM usuarios WHERE login = %s AND senha = %s;", (obj.login.strip().lower(), obj.senha))
         usuario = cursor.fetchone()
         cursor.close()
         conn.close()
+        
+        if usuario:
+            return usuario
+        
+        raise HTTPException(status_code=404, detail="Usuário ou senha incorretos.")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro interno de conexão: {str(e)}")
-    
-    if usuario:
-        return usuario
-    
-    raise HTTPException(status_code=404, detail="Usuário ou senha incorretos.")
 
 @app.get("/usuarios")
 def listar_usuarios():
