@@ -4,10 +4,6 @@ from pydantic import BaseModel
 from typing import List, Optional
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import mercadopago
-
-# --- INTEGRAÇÃO MERCADO PAGO ---
-mp_sdk = mercadopago.SDK("APP_USR-2761042194245351-062313-dcd3bc1306453c40edc6fad8c24d02c8-399700486")
 
 app = FastAPI()
 
@@ -24,7 +20,6 @@ DATABASE_URL = "postgresql://neondb_owner:npg_FB5WRUfgniD9@ep-calm-grass-ah0b366
 def inicializar_banco():
     try:
         conn = psycopg2.connect(DATABASE_URL)
-        conn.autocommit = True # Proteção anti-travamento do Render
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -125,7 +120,28 @@ def inicializar_banco():
                 INSERT INTO usuarios (login, senha, nome, perfil, celular, plano_assinatura, comissao, pix)
                 VALUES ('admin', 'admin', 'Administrador Global', 'admin', '00000000000', 'Premium', 0.0, '');
             """)
+
+        clientes_antigos = [
+            ('gabriel', '123456', 'Gabriel Proprietário', 'admin', '11999999999', 'Premium', 0.50, ''),
+            ('pedroterenzi', 'pedrinho2013', 'pedro henrique', 'cliente', '19971374936', 'Nenhum', 0.0, ''),
+            ('denis', 'denis123', 'denis pompollino', 'cliente', '19 99749-4174', 'Nenhum', 0.0, ''),
+            ('cccc', '123456789', 'hchch', 'cliente', '191971347859', 'Nenhum', 0.0, ''),
+            ('pedrosilva', '123456', 'pedro silva', 'cliente', '19971232678', 'Nenhum', 0.0, ''),
+            ('joasilva', '123456', 'joao', 'cliente', '19987234567', 'Nenhum', 0.0, '')
+        ]
         
+        for c in clientes_antigos:
+            try:
+                cursor.execute("SELECT id FROM usuarios WHERE login = %s;", (c[0],))
+                if not cursor.fetchone():
+                    cursor.execute("""
+                        INSERT INTO usuarios (login, senha, nome, perfil, celular, plano_assinatura, comissao, pix)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                    """, c)
+            except Exception:
+                pass
+        
+        conn.commit()
         cursor.close()
         conn.close()
         print("⚡ Tabelas estruturadas e sincronizadas no Neon!")
@@ -133,11 +149,6 @@ def inicializar_banco():
         print(f"❌ Erro ao estruturar banco: {str(e)}")
 
 inicializar_banco()
-
-# Schemas Pydantic
-class ModeloPagamento(BaseModel):
-    titulo: str
-    preco: float
 
 class ModeloCadastro(BaseModel):
     login: str
@@ -196,35 +207,6 @@ class ModeloBloqueio(BaseModel):
     data: str
     hora_inicio: str
     hora_fim: str
-
-# --- ROTA DE INTEGRAÇÃO COM MERCADO PAGO ---
-@app.post("/criar-pagamento")
-def criar_link_pagamento(obj: ModeloPagamento):
-    try:
-        preference_data = {
-            "items": [
-                {
-                    "title": obj.titulo,
-                    "quantity": 1,
-                    "currency_id": "BRL",
-                    "unit_price": float(obj.preco)
-                }
-            ],
-            # URLs para onde o cliente volta após pagar
-            "back_urls": {
-                "success": "https://prosperar-eta.vercel.app/",
-                "failure": "https://prosperar-eta.vercel.app/",
-                "pending": "https://prosperar-eta.vercel.app/"
-            },
-            "auto_return": "approved",
-        }
-        
-        preference_response = mp_sdk.preference().create(preference_data)
-        preference = preference_response["response"]
-        
-        return {"checkout_url": preference["init_point"]}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/bloqueios")
 def salvar_bloqueio(obj: ModeloBloqueio):
