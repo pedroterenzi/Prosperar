@@ -42,7 +42,7 @@ def inicializar_banco():
         except Exception:
             pass
             
-        # Tabela de Usuários Atualizada (Adicionada coluna comissao)
+        # Tabela de Usuários 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
                 id SERIAL PRIMARY KEY,
@@ -92,7 +92,23 @@ def inicializar_banco():
                 ('Combo Premium', 85.00, 'Corte + Barba + Sobrancelha');
             """)
 
-        # --- INJETANDO CLIENTES E O PROPRIETÁRIO NO BANCO ---
+        # Tabela de Configurações (NOVA - Para Horários e Feriados)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS configuracoes (
+                id SERIAL PRIMARY KEY,
+                hora_abertura VARCHAR(10) DEFAULT '09:00',
+                hora_fechamento VARCHAR(10) DEFAULT '20:00',
+                intervalo_inicio VARCHAR(10) DEFAULT '12:00',
+                intervalo_fim VARCHAR(10) DEFAULT '13:00',
+                datas_fechadas TEXT DEFAULT ''
+            );
+        """)
+
+        cursor.execute("SELECT COUNT(*) FROM configuracoes;")
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("INSERT INTO configuracoes (hora_abertura, hora_fechamento, intervalo_inicio, intervalo_fim, datas_fechadas) VALUES ('09:00', '20:00', '12:00', '13:00', '');")
+
+        # Injetando Clientes Iniciais
         clientes_antigos = [
             ('gabriel', '123456', 'Gabriel Proprietário', 'admin', '11999999999', 'Premium', 0.50),
             ('pedroterenzi', 'pedrinho2013', 'pedro henrique', 'cliente', '19971374936', 'Nenhum', 0.0),
@@ -165,6 +181,42 @@ class ModeloServico(BaseModel):
     preco: float
     sub: str
 
+class ModeloConfiguracao(BaseModel):
+    hora_abertura: str
+    hora_fechamento: str
+    intervalo_inicio: str
+    intervalo_fim: str
+    datas_fechadas: str
+
+# --- ROTAS DE CONFIGURAÇÕES ---
+@app.get("/configuracoes")
+def obter_configuracoes():
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("SELECT * FROM configuracoes LIMIT 1;")
+        config = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return config
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/configuracoes")
+def atualizar_configuracoes(obj: ModeloConfiguracao):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE configuracoes SET hora_abertura = %s, hora_fechamento = %s, intervalo_inicio = %s, intervalo_fim = %s, datas_fechadas = %s WHERE id = 1;",
+            (obj.hora_abertura, obj.hora_fechamento, obj.intervalo_inicio, obj.intervalo_fim, obj.datas_fechadas)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "atualizado"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # --- ROTAS DE AUTENTICAÇÃO E USUÁRIOS ---
 @app.post("/usuarios/cadastro")
@@ -246,7 +298,6 @@ def remover_usuario(id: int):
         return {"status": "removido"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 # --- ROTAS DE AGENDAMENTOS ---
 @app.post("/agendamentos")
