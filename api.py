@@ -92,7 +92,7 @@ def inicializar_banco():
                 ('Combo Premium', 85.00, 'Corte + Barba + Sobrancelha');
             """)
 
-        # Tabela de Configurações (NOVA - Para Horários e Feriados)
+        # Tabela de Configurações Gerais
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS configuracoes (
                 id SERIAL PRIMARY KEY,
@@ -107,6 +107,17 @@ def inicializar_banco():
         cursor.execute("SELECT COUNT(*) FROM configuracoes;")
         if cursor.fetchone()[0] == 0:
             cursor.execute("INSERT INTO configuracoes (hora_abertura, hora_fechamento, intervalo_inicio, intervalo_fim, datas_fechadas) VALUES ('09:00', '20:00', '12:00', '13:00', '');")
+
+        # Tabela de Bloqueios Individuais (NOVA)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS bloqueios (
+                id SERIAL PRIMARY KEY,
+                barbeiro VARCHAR(255) NOT NULL,
+                data VARCHAR(50) NOT NULL,
+                hora_inicio VARCHAR(10) NOT NULL,
+                hora_fim VARCHAR(10) NOT NULL
+            );
+        """)
 
         # Injetando Clientes Iniciais
         clientes_antigos = [
@@ -187,6 +198,57 @@ class ModeloConfiguracao(BaseModel):
     intervalo_inicio: str
     intervalo_fim: str
     datas_fechadas: str
+
+class ModeloBloqueio(BaseModel):
+    barbeiro: str
+    data: str
+    hora_inicio: str
+    hora_fim: str
+
+# --- ROTAS DE BLOQUEIOS (NOVA) ---
+@app.post("/bloqueios")
+def salvar_bloqueio(obj: ModeloBloqueio):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO bloqueios (barbeiro, data, hora_inicio, hora_fim) VALUES (%s, %s, %s, %s) RETURNING id;",
+            (obj.barbeiro, obj.data, obj.hora_inicio, obj.hora_fim)
+        )
+        novo_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "sucesso", "id": novo_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/bloqueios")
+def listar_bloqueios():
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor.execute("SELECT * FROM bloqueios ORDER BY data DESC, hora_inicio ASC;")
+        dados = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return dados
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/bloqueios/{id}")
+def remover_bloqueio(id: int):
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM bloqueios WHERE id = %s;", (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return {"status": "removido"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # --- ROTAS DE CONFIGURAÇÕES ---
 @app.get("/configuracoes")
