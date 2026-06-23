@@ -108,7 +108,7 @@ def inicializar_banco():
         if cursor.fetchone()[0] == 0:
             cursor.execute("INSERT INTO configuracoes (hora_abertura, hora_fechamento, intervalo_inicio, intervalo_fim, datas_fechadas) VALUES ('09:00', '20:00', '12:00', '13:00', '');")
 
-        # Tabela de Bloqueios Individuais (NOVA)
+        # Tabela de Bloqueios Individuais
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS bloqueios (
                 id SERIAL PRIMARY KEY,
@@ -119,7 +119,15 @@ def inicializar_banco():
             );
         """)
 
-        # Injetando Clientes Iniciais
+        # Conta MASTER UNIVERSAL para comercialização do APP
+        cursor.execute("SELECT id FROM usuarios WHERE login = 'admin';")
+        if not cursor.fetchone():
+            cursor.execute("""
+                INSERT INTO usuarios (login, senha, nome, perfil, celular, plano_assinatura, comissao)
+                VALUES ('admin', 'admin', 'Administrador Global', 'admin', '00000000000', 'Premium', 0.0);
+            """)
+
+        # Injetando Clientes de Teste Antigos
         clientes_antigos = [
             ('gabriel', '123456', 'Gabriel Proprietário', 'admin', '11999999999', 'Premium', 0.50),
             ('pedroterenzi', 'pedrinho2013', 'pedro henrique', 'cliente', '19971374936', 'Nenhum', 0.0),
@@ -163,6 +171,7 @@ class ModeloEdicaoUsuario(BaseModel):
     nome: str
     celular: str
     comissao: float
+    perfil: str # NOVO CAMPO DE DELEGAÇÃO
 
 class ModeloAuth(BaseModel):
     login: str
@@ -205,7 +214,7 @@ class ModeloBloqueio(BaseModel):
     hora_inicio: str
     hora_fim: str
 
-# --- ROTAS DE BLOQUEIOS (NOVA) ---
+# --- ROTAS DE BLOQUEIOS ---
 @app.post("/bloqueios")
 def salvar_bloqueio(obj: ModeloBloqueio):
     try:
@@ -337,9 +346,10 @@ def editar_usuario(id: int, obj: ModeloEdicaoUsuario):
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
+        # AGORA ATUALIZA O PERFIL TAMBÉM
         cursor.execute(
-            "UPDATE usuarios SET nome = %s, celular = %s, comissao = %s WHERE id = %s;",
-            (obj.nome, obj.celular, obj.comissao, id)
+            "UPDATE usuarios SET nome = %s, celular = %s, comissao = %s, perfil = %s WHERE id = %s;",
+            (obj.nome, obj.celular, obj.comissao, obj.perfil, id)
         )
         conn.commit()
         cursor.close()
