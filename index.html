@@ -53,7 +53,6 @@
         }
         .form-group input:focus, .form-group select:focus { border-color: var(--accent-color); outline: none; }
         
-        /* A MÁGICA QUE TRAZ O ÍCONE DO CALENDÁRIO DE VOLTA */
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
             filter: invert(1);
@@ -65,6 +64,9 @@
         input[type="time"]::-webkit-calendar-picker-indicator:hover {
             opacity: 1;
         }
+
+        .checkbox-container { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); margin-bottom: 15px; cursor: pointer;}
+        .checkbox-container input { width: 16px; height: 16px; accent-color: var(--accent-color); cursor: pointer;}
         
         h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
         .gold-text { color: var(--accent-color); }
@@ -300,7 +302,6 @@
                 <div class="lista-backoffice" id="lista-split-comissoes-equipe"></div>
             </div>
 
-            <!-- CADASTRO E GERENCIAMENTO DE EQUIPE -->
             <div class="card restrito-adm" style="border-color: rgba(204,153,51,0.25);">
                 <h3>👥 Gerenciamento de Barbeiros</h3>
                 <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione colaboradores e salve as informações no banco de dados.</p>
@@ -339,10 +340,51 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: CONFIGURAÇÕES DE HORÁRIOS -->
+        <!-- ABA BACKOFFICE: AGENDA E BLOQUEIOS PESSOAIS (NOVA) -->
+        <section id="aba-adm-agenda" class="escondido restrito-barbeiro-adm">
+            <h3>📅 Minha Agenda e Folgas</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Tranque seus horários para compromissos ou folgas pessoais.</p>
+            
+            <div class="card">
+                <h4>➕ Bloquear Horário na Agenda</h4>
+                <div class="form-group">
+                    <label>Profissional:</label>
+                    <select id="bloqueio-barbeiro"></select>
+                </div>
+                <div class="form-group">
+                    <label>Data do Compromisso:</label>
+                    <input type="date" id="bloqueio-data">
+                </div>
+                
+                <label class="checkbox-container">
+                    <input type="checkbox" id="bloqueio-dia-todo" onchange="toggleDiaTodoBloqueio()"> Bloquear o dia inteiro
+                </label>
+
+                <div class="intervalo-custom-grid" id="box-horarios-bloqueio">
+                    <div class="form-group">
+                        <label>Das (Hora Início):</label>
+                        <input type="time" id="bloqueio-inicio" value="14:00">
+                    </div>
+                    <div class="form-group">
+                        <label>Até (Hora Fim):</label>
+                        <input type="time" id="bloqueio-fim" value="16:00">
+                    </div>
+                </div>
+                <button class="btn-gold" id="btn-salvar-bloqueio" style="margin-top: 10px;" onclick="salvarNovoBloqueio()">Trancar Agenda</button>
+            </div>
+
+            <div class="card">
+                <h4>Seus Bloqueios Ativos</h4>
+                <div class="lista-backoffice" id="lista-bloqueios-cadastrados" style="max-height: 400px; overflow-y: auto;">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA BACKOFFICE: CONFIGURAÇÕES GERAIS -->
         <section id="aba-adm-config" class="escondido restrito-adm">
-            <h3>⚙️ Configuração de Agenda</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Defina os horários de funcionamento e feriados:</p>
+            <h3>⚙️ Configuração Geral</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Defina os horários do espaço físico da barbearia:</p>
             
             <div class="card">
                 <h4>Horário de Expediente</h4>
@@ -357,8 +399,8 @@
                     </div>
                 </div>
                 
-                <h4 style="margin-top: 10px;">Horário de Almoço</h4>
-                <p style="color: var(--text-muted); font-size: 11px; margin-top: -10px;">Estes horários ficarão bloqueados para os clientes.</p>
+                <h4 style="margin-top: 10px;">Horário de Almoço Comum</h4>
+                <p style="color: var(--text-muted); font-size: 11px; margin-top: -10px;">Estes horários ficarão bloqueados para todos.</p>
                 <div class="intervalo-custom-grid">
                     <div class="form-group">
                         <label>Início do Almoço:</label>
@@ -369,20 +411,20 @@
                         <input type="time" id="config-almoco-fim">
                     </div>
                 </div>
-                <button class="btn-gold" style="margin-top: 15px;" onclick="salvarConfiguracoesAdmin()">Salvar Horários</button>
+                <button class="btn-gold" style="margin-top: 15px;" onclick="salvarConfiguracoesAdmin()">Salvar Horários Globais</button>
             </div>
 
             <div class="card">
-                <h4>Feriados e Dias Fechados</h4>
-                <p style="color: var(--text-muted); font-size: 11px; margin-top: -5px; margin-bottom: 15px;">A barbearia não receberá agendamentos nas datas abaixo.</p>
+                <h4>Feriados Nacionais (Barbearia Fechada)</h4>
+                <p style="color: var(--text-muted); font-size: 11px; margin-top: -5px; margin-bottom: 15px;">Ninguém receberá agendamentos nas datas abaixo.</p>
                 
                 <div class="form-group">
-                    <label>Adicionar Data de Folga:</label>
+                    <label>Adicionar Feriado:</label>
                     <input type="date" id="config-nova-data-folga">
                 </div>
-                <button class="btn-add-data" onclick="adicionarDataFechada()">+ Bloquear Data</button>
+                <button class="btn-add-data" onclick="adicionarDataFechada()">+ Bloquear Barbearia Toda</button>
 
-                <h4 style="margin-top: 20px; font-size: 13px;">Datas Bloqueadas:</h4>
+                <h4 style="margin-top: 20px; font-size: 13px;">Feriados Bloqueados:</h4>
                 <div class="lista-backoffice" id="lista-datas-fechadas" style="max-height: 200px; overflow-y: auto;">
                     <!-- Preenchido via JS -->
                 </div>
@@ -432,7 +474,7 @@
         </section>
 
         <!-- ABA BACKOFFICE: KANBAN MONITOR -->
-        <section id="aba-adm-recepcao" class="escondido">
+        <section id="aba-adm-recepcao" class="escondido restrito-barbeiro-adm">
             <h3>Monitor de Atendimentos</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia:</p>
             <div id="container-kanban-recepcao" style="display:flex; flex-direction:column; gap:10px;"></div>
@@ -511,14 +553,12 @@
 
             <div class="card">
                 <h4>Histórico de Lançamentos</h4>
-                <div class="lista-backoffice" id="lista-despesas-cadastradas" style="max-height: 300px; overflow-y: auto;">
-                    <!-- Preenchido via JS -->
-                </div>
+                <div class="lista-backoffice" id="lista-despesas-cadastradas" style="max-height: 300px; overflow-y: auto;"></div>
             </div>
         </section>
 
         <!-- ABA BACKOFFICE: BUSINESS INTELLIGENCE -->
-        <section id="aba-adm-analytics" class="escondido">
+        <section id="aba-adm-analytics" class="escondido restrito-barbeiro-adm">
             <h3>Business Intelligence</h3>
             <div id="analytics-retencao" style="display: flex; justify-content: center; width: 100%; gap: 12px; margin-bottom: 20px;"></div>
             <div class="card">
