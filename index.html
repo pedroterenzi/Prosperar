@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
         :root {
             --bg-color: #0d0e11;
@@ -118,9 +119,75 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
         .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto;}
         
-        .nav-inferior { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: calc(100% - 30px); max-width: 450px; background: rgba(22, 23, 26, 0.95); backdrop-filter: blur(12px); border: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 10px 4px; border-radius: 20px; z-index: 999; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow-x: auto;}
-        .nav-item { background: none; border: none; color: var(--text-muted); font-size: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; font-family: 'Inter', sans-serif; padding: 4px; white-space: nowrap;}
-        .nav-item.ativo { color: var(--accent-color); }
+        /* --- NOVO VISUAL DO MENU INFERIOR --- */
+        .nav-inferior {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 30px);
+            max-width: 500px; /* Tamanho para celular */
+            background: rgba(22, 23, 26, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: flex-start; /* Permite deslizar no celular sem espremer */
+            gap: 4px;
+            padding: 10px 12px;
+            border-radius: 24px;
+            z-index: 999;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            overflow-x: auto;
+            /* Esconde a barra de rolagem nativa feia */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .nav-inferior::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Regra de Ouro: Se a tela for de Computador/Tablet, estica o menu! */
+        @media (min-width: 768px) {
+            .nav-inferior {
+                max-width: 800px; /* Espaço suficiente para caber tudo no PC */
+                justify-content: center; /* Centraliza os ícones lindamente */
+            }
+        }
+
+        .nav-item {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            padding: 8px 14px;
+            border-radius: 14px;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+        .nav-item i {
+            font-size: 22px; /* Tamanho dos novos ícones */
+            transition: transform 0.2s ease;
+        }
+        .nav-item:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .nav-item.ativo {
+            color: var(--accent-color);
+            background: rgba(204, 153, 51, 0.1);
+            font-weight: 600;
+        }
+        .nav-item.ativo i {
+            transform: scale(1.15); /* O ícone ativo dá um leve zoom */
+        }
         
         .escondido { display: none !important; }
         .btn-status { padding: 6px 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
@@ -138,7 +205,6 @@
 
 <div class="app-container">
 
-    <!-- TELA DE LOGIN E CADASTRO -->
     <div id="tela-autenticacao" class="card" style="margin-top: 30px;">
         <div class="toggle-auth">
             <button id="tab-login" class="active" onclick="alternarAbasAuth('login')">ENTRAR</button>
@@ -190,10 +256,8 @@
         </div>
     </div>
 
-    <!-- CONTEÚDO OPERACIONAL DO CORE APP -->
     <div id="conteudo-app" class="escondido">
         
-        <!-- SELETOR E FILTRO GLOBAL -->
         <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color);">
             <h4 style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral:</h4>
             
@@ -225,7 +289,6 @@
             </div>
         </div>
 
-        <!-- ABA DO CLIENTE: AGENDAMENTO -->
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 20px;">
                 <h2 id="boas-vistas-cliente" style="font-size: 22px; margin-bottom: 4px;">Olá!</h2>
@@ -252,13 +315,11 @@
             </div>
         </section>
 
-        <!-- ABA DO CLIENTE: MEUS CORTES -->
         <section id="aba-estilo" class="escondido">
             <h3>Meus Agendamentos</h3>
             <div id="container-meus-agendamentos"></div>
         </section>
 
-        <!-- ABA BACKOFFICE: MONITOR FINANCEIRO & EQUIPE -->
         <section id="aba-adm-dash" class="escondido">
             <h2 class="gold-text" style="margin-bottom: 4px;">Métricas de Faturamento</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores baseados no período selecionado:</p>
@@ -355,7 +416,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: AGENDA E BLOQUEIOS PESSOAIS -->
         <section id="aba-adm-agenda" class="escondido restrito-barbeiro-adm">
             <h3>📅 Minha Agenda e Folgas</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Tranque seus horários para compromissos ou folgas pessoais.</p>
@@ -394,7 +454,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: CONFIGURAÇÕES GERAIS -->
         <section id="aba-adm-config" class="escondido restrito-adm">
             <h3>⚙️ Configuração Geral</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Defina os horários do espaço físico da barbearia:</p>
@@ -442,7 +501,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: SERVIÇOS -->
         <section id="aba-adm-servicos" class="escondido restrito-adm">
             <h3>Gestão de Serviços</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Adicione, edite ou exclua os serviços do aplicativo:</p>
@@ -472,7 +530,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: CRM & COMUNICAÇÃO -->
         <section id="aba-adm-mkt" class="escondido restrito-adm">
             <h3>CRM e Comunicação Ativa</h3>
             <div class="card" style="margin-bottom:15px;">
@@ -482,7 +539,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: KANBAN MONITOR -->
         <section id="aba-adm-recepcao" class="escondido restrito-barbeiro-adm">
             <h3>Monitor de Atendimentos</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia:</p>
@@ -529,7 +585,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: DESPESAS -->
         <section id="aba-adm-despesas" class="escondido restrito-adm">
             <h3>Gestão de Despesas</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle os custos da sua barbearia:</p>
@@ -566,7 +621,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: BUSINESS INTELLIGENCE -->
         <section id="aba-adm-analytics" class="escondido restrito-barbeiro-adm">
             <h3>Business Intelligence</h3>
             <div id="analytics-retencao" style="display: flex; justify-content: center; width: 100%; gap: 12px; margin-bottom: 20px;"></div>
@@ -580,20 +634,16 @@
             </div>
         </section>
 
-        <!-- MENU INFERIOR -->
         <nav class="nav-inferior" id="menu-navegacao"></nav>
 
     </div>
 </div>
 
-<!-- POP-UPS -->
-<!-- POP-UP CONFIRMAÇÃO DE NOVA RESERVA (AGORA COM PIX) -->
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Confirmar sua Cadeira?</h3>
         <p id="modal-resumo-detalhes" style="font-size: 14px; line-height: 1.6; color: var(--text-muted);"></p>
         
-        <!-- CAIXA DO PIX -->
         <div id="box-pagamento-pix" class="escondido" style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success-color); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
             <strong style="color: var(--success-color); font-size: 13px;">📲 Pagamento via PIX</strong><br>
             <span style="font-size: 13px; color: white;">Chave do Barbeiro: <strong id="pix-chave-barbeiro"></strong></span><br>
@@ -606,7 +656,6 @@
     </div>
 </div>
 
-<!-- MODAL EDITAR RESERVA DO CLIENTE -->
 <div id="modal-editar-reserva" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Modificar Agendamento</h3>
@@ -643,7 +692,6 @@
     </div>
 </div>
 
-<!-- MODAL EDITAR BARBEIRO -->
 <div id="modal-editar-barbeiro" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Editar Profissional</h3>
@@ -686,7 +734,6 @@
     </div>
 </div>
 
-<!-- MODAL EDITAR DESPESA -->
 <div id="modal-editar-despesa" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Editar Despesa</h3>
@@ -710,7 +757,6 @@
     </div>
 </div>
 
-<!-- MODAL EDITAR SERVIÇO -->
 <div id="modal-editar-servico" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Editar Serviço</h3>
@@ -737,4 +783,3 @@
 <script src="app.js"></script>
 </body>
 </html>
-
