@@ -23,25 +23,23 @@ let DADOS_DESPESAS = [];
 let DADOS_SERVICOS = []; 
 let ESTRUTURA_BARBEIROS = []; 
 
+// NOVA VARIÁVEL: Guarda as configurações gerais da barbearia
+let DADOS_CONFIG = {
+    hora_abertura: "09:00",
+    hora_fechamento: "20:00",
+    intervalo_inicio: "12:00",
+    intervalo_fim: "13:00",
+    datas_fechadas: ""
+};
+
 // Configuração unificada de filtros superiores
 let filtroTempoGlobal = 'mes_atual'; 
 let filtroBarbeiroAlvo = 'todos'; 
 let dataFiltroInicio = new Date().toISOString().split('T')[0];
 let dataFiltroFim = new Date().toISOString().split('T')[0];
 
-const HORARIOS_PADRAO = [
-    { turno: "☀️ Manhã", horas: ["09:00", "09:30", "11:00", "11:30"] },
-    { turno: "🌤️ Tarde", horas: ["12:00", "12:30", "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"] },
-    { turno: "🌙 Noite", horas: ["18:00", "18:30", "19:00", "19:30"] }
-];
-
 document.addEventListener("DOMContentLoaded", () => {
-    // CUTUCÃO INVISÍVEL: Acorda o Render assim que a página abre
-    fetch(`${API_URL}/servicos`).catch(() => console.log("Aquecendo servidor..."));
-
-    if(localStorage.getItem("PROSPERAR_EQUIPE")) {
-        ESTRUTURA_BARBEIROS = JSON.parse(localStorage.getItem("PROSPERAR_EQUIPE"));
-    }
+    fetch(`${API_URL}/configuracoes`).catch(() => console.log("Aquecendo servidor..."));
 
     const inputDataCliente = document.getElementById('data');
     if(inputDataCliente) inputDataCliente.value = new Date().toISOString().split('T')[0];
@@ -73,13 +71,18 @@ function fecharModal(idModal) {
 
 async function sincronizarBancoDeDados() {
     try {
+        const resConfig = await fetch(`${API_URL}/configuracoes`);
+        if (resConfig.ok) {
+            const conf = await resConfig.json();
+            if(conf) DADOS_CONFIG = conf;
+        }
+
         const resAgendamentos = await fetch(`${API_URL}/agendamentos`);
         if (resAgendamentos.ok) DADOS_AGENDAMENTOS = await resAgendamentos.json();
         
         const resUsuarios = await fetch(`${API_URL}/usuarios`);
         if (resUsuarios.ok) {
             DADOS_USUARIOS = await resUsuarios.json();
-            
             ESTRUTURA_BARBEIROS = DADOS_USUARIOS
                 .filter(u => u.perfil === 'admin' || u.perfil === 'barbeiro')
                 .map(u => ({
@@ -101,11 +104,136 @@ async function sincronizarBancoDeDados() {
     }
 }
 
+// --------- MOTOR DE AGENDA DINÂMICA ----------
+// Transforma as horas para minutos para calcular os cortes de 30 em 30 min
+function parseTime(t) { 
+    if(!t) return 0; 
+    let [h,m] = t.split(':'); 
+    return parseInt(h)*60 + parseInt(m); 
+}
+
+function formatTime(m) { 
+    let hh = Math.floor(m/60).toString().padStart(2,'0'); 
+    let mm = (m%60).toString().padStart(2,'0'); 
+    return `${hh}:${mm}`; 
+}
+
+// Constrói os botões da tela respeitando os limites da barbearia
+function gerarHorariosDoDia(dataStr) {
+    if(!DADOS_CONFIG) return [];
+    
+    // Verifica se a data foi declarada como Folga/Feriado
+    const fechadas = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',') : [];
+    if(fechadas.includes(dataStr)) return []; 
+    
+    let horarios = [];
+    let atual = parseTime(DADOS_CONFIG.hora_abertura || '09:00');
+    let fim = parseTime(DADOS_CONFIG.hora_fechamento || '20:00');
+    let intIni = parseTime(DADOS_CONFIG.intervalo_inicio || '12:00');
+    let intFim = parseTime(DADOS_CONFIG.intervalo_fim || '13:00');
+
+    // Se o admin não colocou intervalo, criamos uma brecha impossível para ignorar a trava
+    const temIntervalo = DADOS_CONFIG.intervalo_inicio && DADOS_CONFIG.intervalo_fim;
+
+    while(atual < fim) {
+        if(!temIntervalo || atual < intIni || atual >= intFim) {
+            horarios.push(formatTime(atual));
+        }
+        atual += 30; // Passo de 30 minutos
+    }
+
+    return [
+        { turno: "☀️ Manhã", horas: horarios.filter(h => parseTime(h) < 720) }, // Antes das 12:00
+        { turno: "🌤️ Tarde", horas: horarios.filter(h => parseTime(h) >= 720 && parseTime(h) < 1080) }, // 12:00 as 18:00
+        { turno: "🌙 Noite", horas: horarios.filter(h => parseTime(h) >= 1080) } // Depois das 18:00
+    ];
+}
+
 function isSlotPast(dateStr, timeStr) {
     const agora = new Date();
     const [ano, mes, dia] = dateStr.split('-').map(Number);
     const [hora, minuto] = timeStr.split(':').map(Number);
     return new Date(ano, mes - 1, dia, hora, minuto, 0, 0) < agora;
+}
+
+// --------- FUNÇÕES DE CONFIGURAÇÃO (ABA ADMIN) ----------
+function renderizarConfiguracoesAdmin() {
+    document.getElementById('config-abertura').value = DADOS_CONFIG.hora_abertura || '09:00';
+    document.getElementById('config-fechamento').value = DADOS_CONFIG.hora_fechamento || '20:00';
+    document.getElementById('config-almoco-inicio').value = DADOS_CONFIG.intervalo_inicio || '12:00';
+    document.getElementById('config-almoco-fim').value = DADOS_CONFIG.intervalo_fim || '13:00';
+
+    atualizarListaDatasFechadas();
+}
+
+async function salvarConfiguracoesAdmin() {
+    const hora_abertura = document.getElementById('config-abertura').value;
+    const hora_fechamento = document.getElementById('config-fechamento').value;
+    const intervalo_inicio = document.getElementById('config-almoco-inicio').value;
+    const intervalo_fim = document.getElementById('config-almoco-fim').value;
+    
+    // As datas já estão salvas na variável local pela interface, só precisamos montar o payload
+    const payload = {
+        hora_abertura,
+        hora_fechamento,
+        intervalo_inicio,
+        intervalo_fim,
+        datas_fechadas: DADOS_CONFIG.datas_fechadas
+    };
+
+    try {
+        const res = await fetch(`${API_URL}/configuracoes`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        });
+        if(res.ok) {
+            alert("⚙️ Configurações da barbearia atualizadas com sucesso!");
+            await sincronizarBancoDeDados();
+        }
+    } catch(e) {
+        alert("Erro ao salvar configurações.");
+    }
+}
+
+function atualizarListaDatasFechadas() {
+    const container = document.getElementById('lista-datas-fechadas');
+    const datasArray = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',') : [];
+    
+    container.innerHTML = datasArray.length === 0 ? "<p style='color:var(--text-muted); font-size: 12px;'>Nenhum feriado/folga programado.</p>" : "";
+
+    datasArray.forEach(data => {
+        const dataBr = data.split('-').reverse().join('/');
+        container.innerHTML += `
+            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color); margin-bottom: 6px; padding: 10px;">
+                <div style="font-size: 14px; font-weight: 600;">${dataBr}</div>
+                <button class="btn-small-delete" onclick="removerDataFechada('${data}')" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;">Remover</button>
+            </div>
+        `;
+    });
+}
+
+function adicionarDataFechada() {
+    const novaData = document.getElementById('config-nova-data-folga').value;
+    if(!novaData) return alert("Selecione uma data válida.");
+
+    let datasArray = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',') : [];
+    if(datasArray.includes(novaData)) return alert("Esta data já está bloqueada.");
+
+    datasArray.push(novaData);
+    DADOS_CONFIG.datas_fechadas = datasArray.join(',');
+    document.getElementById('config-nova-data-folga').value = "";
+    atualizarListaDatasFechadas();
+    
+    // Opcional: já salvar direto no banco ao adicionar, ou esperar o Gabriel clicar em "Salvar Horários".
+    // Aqui vou deixar preparado para ele salvar no botão dourado de cima, economiza internet.
+}
+
+function removerDataFechada(dataRemover) {
+    let datasArray = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',') : [];
+    datasArray = datasArray.filter(d => d !== dataRemover);
+    DADOS_CONFIG.datas_fechadas = datasArray.join(',');
+    atualizarListaDatasFechadas();
 }
 
 function alternarAbasAuth(aba) {
@@ -168,6 +296,7 @@ function atualizarSeletoresEFormulariosDeEquipe() {
     }
 }
 
+// --------- FUNÇÕES PARA EDITAR E GERENCIAR BARBEIROS (DIRETO NO BANCO) ----------
 function abrirModalEdicaoBarbeiro(id) {
     const barbeiro = ESTRUTURA_BARBEIROS.find(b => b.id == id);
     if(!barbeiro) return;
@@ -392,11 +521,6 @@ async function executarLogin() {
             btnEntrar.disabled = false;
         }
     }
-}
-
-function forçarLoginContingencia() {
-    usuarioLogado = "admin"; perfilLogado = "admin"; nomeUsuarioLogado = "Gabriel Admin";
-    ativarAcessoAoPainelProfissional();
 }
 
 async function mudarStatusAgendamento(id, novoStatus) {
@@ -780,7 +904,18 @@ function atualizarHorariosEdicaoReserva(idAtual, horaAtualSelecionada) {
 
     selectHora.innerHTML = "";
 
-    HORARIOS_PADRAO.forEach(g => {
+    const HORARIOS_GERADOS = gerarHorariosDoDia(dataSel);
+
+    if(HORARIOS_GERADOS.length === 0) {
+        const opt = document.createElement('option');
+        opt.disabled = true;
+        opt.text = "Barbearia Fechada nesta data";
+        selectHora.appendChild(opt);
+        return;
+    }
+
+    HORARIOS_GERADOS.forEach(g => {
+        if(g.horas.length === 0) return;
         const optgroup = document.createElement('optgroup');
         optgroup.label = g.turno;
 
@@ -914,8 +1049,6 @@ async function salvarEdicaoDespesa() {
     }
 }
 
-
-// LÓGICA BLINDADA DO FILTRO POR BARBEIRO E TEMPO
 function regraDeFiltroDeTempo(dataOriginal) {
     if(!dataOriginal) return false;
     const dataAlvo = new Date(dataOriginal + 'T00:00:00');
@@ -941,14 +1074,10 @@ function regraDeFiltroDeTempo(dataOriginal) {
 
 function filtrarAgendamentoPorRegraGlobal(a) {
     if(!a) return false;
-    
-    // FILTRO BLINDADO: AQUI RESOLVE O ERRO DE NÃO MOSTRAR OS DADOS DO BARBEIRO ESCOLHIDO
     if(filtroBarbeiroAlvo !== 'todos') {
-        // Usa o String() para garantir que IDs numéricos e de texto sejam comparados com precisão
         const profissionalAlvo = ESTRUTURA_BARBEIROS.find(b => String(b.id) === String(filtroBarbeiroAlvo));
         if(!profissionalAlvo) return false;
         
-        // Compara ignorando diferenças de Maiúsculas/Minúsculas
         if((a.barbeiro || '').trim().toLowerCase() !== (profissionalAlvo.nome || '').trim().toLowerCase()) {
             return false;
         }
@@ -980,7 +1109,7 @@ function atualizarFiltroDataRange() {
 
 let abaAtivaAtual = 'adm-dash';
 function recarregarAbaAtivaAdm() {
-    const abas = ['adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-analytics'];
+    const abas = ['adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-config', 'adm-analytics'];
     abas.forEach(id => {
         const el = document.getElementById(`aba-${id}`);
         if (el && !el.classList.contains('escondido')) abaAtivaAtual = id;
@@ -994,10 +1123,10 @@ function recarregarAbaAtivaAdm() {
     if(abaAtivaAtual === 'adm-recepcao') carregarModoRecepcaoKanban();
     if(abaAtivaAtual === 'adm-despesas' && perfilLogado === 'admin') renderizarDespesas();
     if(abaAtivaAtual === 'adm-servicos' && perfilLogado === 'admin') renderizarServicosAdmin();
+    if(abaAtivaAtual === 'adm-config' && perfilLogado === 'admin') renderizarConfiguracoesAdmin();
     if(abaAtivaAtual === 'adm-analytics') carregarPainelAnalytics();
 }
 
-// CÁLCULO BLINDADO DA COMISSÃO DO PROFISSIONAL
 async function carregarDadosEstrategicosDoNeon() {
     try {
         const agendamentos = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
@@ -1006,12 +1135,10 @@ async function carregarDadosEstrategicosDoNeon() {
         let balançoEquipe = {};
         
         ESTRUTURA_BARBEIROS.forEach(b => {
-            // Se o filtro for por um barbeiro específico, ele não vai montar o quadro "Split" dos outros caras
             if (filtroBarbeiroAlvo !== 'todos' && String(b.id) !== String(filtroBarbeiroAlvo)) {
                 return;
             }
 
-            // Normaliza a comissão para ser sempre decimal caso alguém escreva "40" no banco ao invés de "0.40"
             let rateio = parseFloat(b.comissao);
             if (isNaN(rateio)) rateio = 0.40;
             if (rateio > 1) rateio = rateio / 100;
@@ -1049,7 +1176,7 @@ async function carregarDadosEstrategicosDoNeon() {
                 
                 if(balançoEquipe[keyBarbeiro]) {
                     balançoEquipe[keyBarbeiro].servicosLiquidos += (valorServicoLiquido * balançoEquipe[keyBarbeiro].rateio);
-                    balançoEquipe[keyBarbeiro].produtos += (valorProd * 0.10); // Gorjeta da venda de produtos 10%
+                    balançoEquipe[keyBarbeiro].produtos += (valorProd * 0.10); 
                     balançoEquipe[keyBarbeiro].gorjetas += valorGorjeta;
                 }
             } else if (statusAtual === 'falta') { 
@@ -1125,109 +1252,6 @@ async function carregarModoRecepcaoKanban() {
     }
 }
 
-function renderizarDespesas() {
-    const container = document.getElementById('lista-despesas-cadastradas');
-    const labelTotal = document.getElementById('kpi-despesas-total');
-    if(!container || !labelTotal) return;
-
-    try {
-        const despesasFiltradas = DADOS_DESPESAS.filter(d => regraDeFiltroDeTempo(d.data));
-        
-        let somaDespesas = 0;
-        container.innerHTML = despesasFiltradas.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhuma despesa para este período.</p>" : "";
-
-        despesasFiltradas.forEach(d => {
-            const valor = parseFloat(d.valor);
-            somaDespesas += valor;
-            const dataBr = d.data && d.data.includes('-') ? d.data.split('-').reverse().join('/') : (d.data||'');
-            
-            container.innerHTML += `
-                <div class="item-backoffice" style="border-left: 4px solid var(--danger-color); margin-bottom: 8px;">
-                    <div style="flex:1;">
-                        <strong>${d.descricao}</strong><br>
-                        <span style="font-size:11px; color:var(--text-muted);">Data: ${dataBr}</span>
-                        <div style="color: var(--danger-color); font-weight:800; margin-top: 2px;">R$ ${valor.toFixed(2)}</div>
-                    </div>
-                    <div style="display: flex; gap: 4px; flex-direction: column;">
-                        <button class="btn-small-edit" onclick="abrirModalEdicaoDespesa(${d.id})">Editar</button>
-                        <button class="btn-small-delete" onclick="excluirDespesa(${d.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
-                    </div>
-                </div>
-            `;
-        });
-
-        labelTotal.innerText = `R$ ${somaDespesas.toFixed(2)}`;
-    } catch(e) {
-        console.error("Erro nas despesas:", e);
-    }
-}
-
-async function carregarPainelAnalytics() {
-    const containerMapa = document.getElementById('analytics-heatmap'); if(!containerMapa) return;
-    try {
-        const agendamentos = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
-
-        const turnos = { "Manhã": 0, "Tarde": 0, "Noite": 0 };
-        const dias = { "Segunda-feira": 0, "Terça-feira": 0, "Quarta-feira": 0, "Quinta-feira": 0, "Sexta-feira": 0, "Sábado": 0, "Domingo": 0 };
-        const nomesDias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-
-        agendamentos.forEach(a => {
-            if(!a.hora || !a.data) return;
-            const h = parseInt(a.hora.split(':')[0]);
-            if(h >= 9 && h < 12) turnos["Manhã"]++; else if(h >= 12 && h < 18) turnos["Tarde"]++; else turnos["Noite"]++;
-            const dNome = nomesDias[new Date(a.data + 'T00:00:00').getDay()];
-            if(dias[dNome] !== undefined) dias[dNome]++;
-        });
-
-        containerMapa.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 10px; background: #1f2125; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; font-size:14px;">
-                <div style="display:flex; justify-content:space-between;"><span>🌅 Manhã (09h - 12h):</span> <strong>${turnos['Manhã']} atendimentos</strong></div>
-                <div style="display:flex; justify-content:space-between; padding: 4px 0;"><span>🌤️ Tarde (12h - 18h):</span> <strong>${turnos['Tarde']} atendimentos</strong></div>
-                <div style="display:flex; justify-content:space-between;"><span>🌙 Noite (18h - 20h):</span> <strong>${turnos['Noite']} atendimentos</strong></div>
-            </div>`;
-
-        const containerDias = document.getElementById('analytics-dias-semana');
-        if(containerDias) {
-            containerDias.innerHTML = '';
-            const wrapper = document.createElement('div');
-            wrapper.style.cssText = "display: flex; flex-direction: column; gap: 12px; background: #1f2125; border: 1px solid var(--border-color); padding: 18px; border-radius: 12px;";
-            
-            for(let dia in dias) {
-                const pct = agendamentos.length > 0 ? Math.min((dias[dia] / agendamentos.length) * 100, 100) : 0;
-                wrapper.innerHTML += `
-                    <div class="analytics-bar-container">
-                        <div class="analytics-bar-header">
-                            <span>${dia}</span>
-                            <strong style="color: ${dias[dia] > 0 ? 'var(--accent-color)' : 'var(--text-muted)'}">${dias[dia]} clientes</strong>
-                        </div>
-                        <div class="analytics-bar-bg">
-                            <div class="analytics-bar-fill" style="width: ${pct}%"></div>
-                        </div>
-                    </div>`;
-            }
-            containerDias.appendChild(wrapper);
-        }
-
-        const uClientes = [...new Set(agendamentos.map(a => a.cliente))];
-        let rec = 0; uClientes.forEach(c => { if(agendamentos.filter(a => a.cliente === c).length > 1) rec++; });
-        
-        const containerRetencao = document.getElementById('analytics-retencao');
-        if(containerRetencao) {
-            containerRetencao.innerHTML = `
-                <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
-                    <div class="kpi-label">Taxa de Retenção</div>
-                    <div class="kpi-val" style="color: var(--accent-color); font-size: 24px;">${uClientes.length > 0 ? Math.round((rec / uClientes.length) * 100) : 0}%</div>
-                </div>
-                <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
-                    <div class="kpi-label">LTV do Período</div>
-                    <div class="kpi-val" style="color: var(--success-color); font-size: 24px;">R$ ${(uClientes.length > 0 ? 62 * (agendamentos.length / uClientes.length) : 0).toFixed(2)}</div>
-                </div>`;
-        }
-    } catch(e) {
-        console.error("Erro no BI:", e);
-    }
-}
-
 function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios'); 
     if (!container) return;
@@ -1243,11 +1267,20 @@ function renderizarGradeHorariosReais() {
             return;
         }
 
+        const HORARIOS_GERADOS = gerarHorariosDoDia(dataSel);
+
+        if(HORARIOS_GERADOS.length === 0) {
+            container.innerHTML = "<p style='color:var(--danger-color); font-size:14px; margin: 10px 0; font-weight: 600;'>A barbearia não funcionará nesta data (Folga/Feriado).</p>";
+            return;
+        }
+
         let ocupados = DADOS_AGENDAMENTOS
             .filter(a => a && a.data === dataSel && a.barbeiro === bInfo.nome && (a.status ? a.status.toLowerCase() !== 'falta' : true))
             .map(a => a.hora ? a.hora.trim() : '');
             
-        HORARIOS_PADRAO.forEach(g => {
+        HORARIOS_GERADOS.forEach(g => {
+            if(g.horas.length === 0) return; // Pula turno vazio
+
             const tituloTurno = document.createElement('div');
             tituloTurno.className = "turno-title";
             tituloTurno.innerText = g.turno;
@@ -1436,6 +1469,7 @@ function montarMenuNavegacao(role) {
             <button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>
             <button class="nav-item" onclick="alternarTela('adm-despesas')">💸 Despesas</button>
             <button class="nav-item" onclick="alternarTela('adm-servicos')">✂️ Serviços</button>
+            <button class="nav-item" onclick="alternarTela('adm-config')">⚙️ Ajustes</button>
             <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 BI</button>`;
     } else if (role === 'barbeiro') {
         menuNav.innerHTML = `
@@ -1452,7 +1486,7 @@ function montarMenuNavegacao(role) {
 
 async function alternarTela(idAba) {
     try {
-        ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-analytics'].forEach(id => {
+        ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-config', 'adm-analytics'].forEach(id => {
             const el = document.getElementById(`aba-${id}`); if (el) el.classList.add('escondido');
         });
         const abaAlvo = document.getElementById(`aba-${idAba}`); if (abaAlvo) abaAlvo.classList.remove('escondido');
