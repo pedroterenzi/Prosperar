@@ -20,7 +20,6 @@ DATABASE_URL = "postgresql://neondb_owner:npg_FB5WRUfgniD9@ep-calm-grass-ah0b366
 def inicializar_banco():
     try:
         conn = psycopg2.connect(DATABASE_URL)
-        conn.autocommit = True # Garante que o banco não trave caso o Render reinicie bruscamente
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -142,6 +141,7 @@ def inicializar_banco():
             except Exception:
                 pass
         
+        conn.commit()
         cursor.close()
         conn.close()
         print("⚡ Tabelas estruturadas e sincronizadas no Neon!")
@@ -150,7 +150,6 @@ def inicializar_banco():
 
 inicializar_banco()
 
-# Schemas Pydantic
 class ModeloCadastro(BaseModel):
     login: str
     senha: str
@@ -209,7 +208,6 @@ class ModeloBloqueio(BaseModel):
     hora_inicio: str
     hora_fim: str
 
-# --- ROTAS DE BLOQUEIOS ---
 @app.post("/bloqueios")
 def salvar_bloqueio(obj: ModeloBloqueio):
     try:
@@ -253,7 +251,6 @@ def remover_bloqueio(id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- ROTAS DE CONFIGURAÇÕES ---
 @app.get("/configuracoes")
 def obter_configuracoes():
     try:
@@ -283,7 +280,6 @@ def atualizar_configuracoes(obj: ModeloConfiguracao):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- ROTAS DE AUTENTICAÇÃO E USUÁRIOS ---
 @app.post("/usuarios/cadastro")
 def cadastrar_usuario(obj: ModeloCadastro):
     try:
@@ -364,7 +360,6 @@ def remover_usuario(id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- ROTAS DE AGENDAMENTOS ---
 @app.post("/agendamentos")
 def salvar_agendamento(obj: ModeloAgendamento):
     try:
@@ -437,7 +432,6 @@ def remover_agendamento(id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- ROTAS DE DESPESAS ---
 @app.post("/despesas")
 def salvar_despesa(obj: ModeloDespesa):
     try:
@@ -497,7 +491,6 @@ def remover_despesa(id: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- ROTAS DE SERVIÇOS ---
 @app.post("/servicos")
 def salvar_servico(obj: ModeloServico):
     try:
