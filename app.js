@@ -23,7 +23,7 @@ let DADOS_DESPESAS = [];
 let DADOS_SERVICOS = []; 
 let ESTRUTURA_BARBEIROS = []; 
 
-// NOVA VARIÁVEL: Guarda as configurações gerais da barbearia
+// Configurações gerais da barbearia
 let DADOS_CONFIG = {
     hora_abertura: "09:00",
     hora_fechamento: "20:00",
@@ -32,7 +32,6 @@ let DADOS_CONFIG = {
     datas_fechadas: ""
 };
 
-// Configuração unificada de filtros superiores
 let filtroTempoGlobal = 'mes_atual'; 
 let filtroBarbeiroAlvo = 'todos'; 
 let dataFiltroInicio = new Date().toISOString().split('T')[0];
@@ -40,6 +39,10 @@ let dataFiltroFim = new Date().toISOString().split('T')[0];
 
 document.addEventListener("DOMContentLoaded", () => {
     fetch(`${API_URL}/configuracoes`).catch(() => console.log("Aquecendo servidor..."));
+
+    if(localStorage.getItem("PROSPERAR_EQUIPE")) {
+        ESTRUTURA_BARBEIROS = JSON.parse(localStorage.getItem("PROSPERAR_EQUIPE"));
+    }
 
     const inputDataCliente = document.getElementById('data');
     if(inputDataCliente) inputDataCliente.value = new Date().toISOString().split('T')[0];
@@ -105,7 +108,6 @@ async function sincronizarBancoDeDados() {
 }
 
 // --------- MOTOR DE AGENDA DINÂMICA ----------
-// Transforma as horas para minutos para calcular os cortes de 30 em 30 min
 function parseTime(t) { 
     if(!t) return 0; 
     let [h,m] = t.split(':'); 
@@ -118,12 +120,11 @@ function formatTime(m) {
     return `${hh}:${mm}`; 
 }
 
-// Constrói os botões da tela respeitando os limites da barbearia
 function gerarHorariosDoDia(dataStr) {
     if(!DADOS_CONFIG) return [];
     
-    // Verifica se a data foi declarada como Folga/Feriado
-    const fechadas = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',') : [];
+    // Filtro mais seguro usando Trim para não gerar bug por conta de vírgulas
+    const fechadas = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',').map(d => d.trim()).filter(Boolean) : [];
     if(fechadas.includes(dataStr)) return []; 
     
     let horarios = [];
@@ -132,20 +133,19 @@ function gerarHorariosDoDia(dataStr) {
     let intIni = parseTime(DADOS_CONFIG.intervalo_inicio || '12:00');
     let intFim = parseTime(DADOS_CONFIG.intervalo_fim || '13:00');
 
-    // Se o admin não colocou intervalo, criamos uma brecha impossível para ignorar a trava
     const temIntervalo = DADOS_CONFIG.intervalo_inicio && DADOS_CONFIG.intervalo_fim;
 
     while(atual < fim) {
         if(!temIntervalo || atual < intIni || atual >= intFim) {
             horarios.push(formatTime(atual));
         }
-        atual += 30; // Passo de 30 minutos
+        atual += 30; 
     }
 
     return [
-        { turno: "☀️ Manhã", horas: horarios.filter(h => parseTime(h) < 720) }, // Antes das 12:00
-        { turno: "🌤️ Tarde", horas: horarios.filter(h => parseTime(h) >= 720 && parseTime(h) < 1080) }, // 12:00 as 18:00
-        { turno: "🌙 Noite", horas: horarios.filter(h => parseTime(h) >= 1080) } // Depois das 18:00
+        { turno: "☀️ Manhã", horas: horarios.filter(h => parseTime(h) < 720) }, 
+        { turno: "🌤️ Tarde", horas: horarios.filter(h => parseTime(h) >= 720 && parseTime(h) < 1080) },
+        { turno: "🌙 Noite", horas: horarios.filter(h => parseTime(h) >= 1080) } 
     ];
 }
 
@@ -166,19 +166,18 @@ function renderizarConfiguracoesAdmin() {
     atualizarListaDatasFechadas();
 }
 
-async function salvarConfiguracoesAdmin() {
+async function salvarConfiguracoesAdmin(mostrarAlerta = true) {
     const hora_abertura = document.getElementById('config-abertura').value;
     const hora_fechamento = document.getElementById('config-fechamento').value;
     const intervalo_inicio = document.getElementById('config-almoco-inicio').value;
     const intervalo_fim = document.getElementById('config-almoco-fim').value;
     
-    // As datas já estão salvas na variável local pela interface, só precisamos montar o payload
     const payload = {
         hora_abertura,
         hora_fechamento,
         intervalo_inicio,
         intervalo_fim,
-        datas_fechadas: DADOS_CONFIG.datas_fechadas
+        datas_fechadas: DADOS_CONFIG.datas_fechadas || ""
     };
 
     try {
@@ -188,17 +187,17 @@ async function salvarConfiguracoesAdmin() {
             body: JSON.stringify(payload)
         });
         if(res.ok) {
-            alert("⚙️ Configurações da barbearia atualizadas com sucesso!");
+            if(mostrarAlerta) alert("⚙️ Configurações da barbearia atualizadas com sucesso!");
             await sincronizarBancoDeDados();
         }
     } catch(e) {
-        alert("Erro ao salvar configurações.");
+        if(mostrarAlerta) alert("Erro ao salvar configurações.");
     }
 }
 
 function atualizarListaDatasFechadas() {
     const container = document.getElementById('lista-datas-fechadas');
-    const datasArray = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',') : [];
+    const datasArray = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',').filter(Boolean) : [];
     
     container.innerHTML = datasArray.length === 0 ? "<p style='color:var(--text-muted); font-size: 12px;'>Nenhum feriado/folga programado.</p>" : "";
 
@@ -213,27 +212,29 @@ function atualizarListaDatasFechadas() {
     });
 }
 
-function adicionarDataFechada() {
+// CORREÇÃO: Salva no banco instantaneamente sem precisar clicar em "Salvar Horários"
+async function adicionarDataFechada() {
     const novaData = document.getElementById('config-nova-data-folga').value;
     if(!novaData) return alert("Selecione uma data válida.");
 
-    let datasArray = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',') : [];
+    let datasArray = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',').filter(Boolean) : [];
     if(datasArray.includes(novaData)) return alert("Esta data já está bloqueada.");
 
     datasArray.push(novaData);
     DADOS_CONFIG.datas_fechadas = datasArray.join(',');
     document.getElementById('config-nova-data-folga').value = "";
-    atualizarListaDatasFechadas();
     
-    // Opcional: já salvar direto no banco ao adicionar, ou esperar o Gabriel clicar em "Salvar Horários".
-    // Aqui vou deixar preparado para ele salvar no botão dourado de cima, economiza internet.
+    atualizarListaDatasFechadas();
+    await salvarConfiguracoesAdmin(false); // Salva oculto no banco
 }
 
-function removerDataFechada(dataRemover) {
-    let datasArray = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',') : [];
+async function removerDataFechada(dataRemover) {
+    let datasArray = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',').filter(Boolean) : [];
     datasArray = datasArray.filter(d => d !== dataRemover);
     DADOS_CONFIG.datas_fechadas = datasArray.join(',');
+    
     atualizarListaDatasFechadas();
+    await salvarConfiguracoesAdmin(false); // Salva oculto no banco
 }
 
 function alternarAbasAuth(aba) {
@@ -296,7 +297,6 @@ function atualizarSeletoresEFormulariosDeEquipe() {
     }
 }
 
-// --------- FUNÇÕES PARA EDITAR E GERENCIAR BARBEIROS (DIRETO NO BANCO) ----------
 function abrirModalEdicaoBarbeiro(id) {
     const barbeiro = ESTRUTURA_BARBEIROS.find(b => b.id == id);
     if(!barbeiro) return;
@@ -1252,6 +1252,109 @@ async function carregarModoRecepcaoKanban() {
     }
 }
 
+function renderizarDespesas() {
+    const container = document.getElementById('lista-despesas-cadastradas');
+    const labelTotal = document.getElementById('kpi-despesas-total');
+    if(!container || !labelTotal) return;
+
+    try {
+        const despesasFiltradas = DADOS_DESPESAS.filter(d => regraDeFiltroDeTempo(d.data));
+        
+        let somaDespesas = 0;
+        container.innerHTML = despesasFiltradas.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhuma despesa para este período.</p>" : "";
+
+        despesasFiltradas.forEach(d => {
+            const valor = parseFloat(d.valor);
+            somaDespesas += valor;
+            const dataBr = d.data && d.data.includes('-') ? d.data.split('-').reverse().join('/') : (d.data||'');
+            
+            container.innerHTML += `
+                <div class="item-backoffice" style="border-left: 4px solid var(--danger-color); margin-bottom: 8px;">
+                    <div style="flex:1;">
+                        <strong>${d.descricao}</strong><br>
+                        <span style="font-size:11px; color:var(--text-muted);">Data: ${dataBr}</span>
+                        <div style="color: var(--danger-color); font-weight:800; margin-top: 2px;">R$ ${valor.toFixed(2)}</div>
+                    </div>
+                    <div style="display: flex; gap: 4px; flex-direction: column;">
+                        <button class="btn-small-edit" onclick="abrirModalEdicaoDespesa(${d.id})">Editar</button>
+                        <button class="btn-small-delete" onclick="excluirDespesa(${d.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        labelTotal.innerText = `R$ ${somaDespesas.toFixed(2)}`;
+    } catch(e) {
+        console.error("Erro nas despesas:", e);
+    }
+}
+
+async function carregarPainelAnalytics() {
+    const containerMapa = document.getElementById('analytics-heatmap'); if(!containerMapa) return;
+    try {
+        const agendamentos = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
+
+        const turnos = { "Manhã": 0, "Tarde": 0, "Noite": 0 };
+        const dias = { "Segunda-feira": 0, "Terça-feira": 0, "Quarta-feira": 0, "Quinta-feira": 0, "Sexta-feira": 0, "Sábado": 0, "Domingo": 0 };
+        const nomesDias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+        agendamentos.forEach(a => {
+            if(!a.hora || !a.data) return;
+            const h = parseInt(a.hora.split(':')[0]);
+            if(h >= 9 && h < 12) turnos["Manhã"]++; else if(h >= 12 && h < 18) turnos["Tarde"]++; else turnos["Noite"]++;
+            const dNome = nomesDias[new Date(a.data + 'T00:00:00').getDay()];
+            if(dias[dNome] !== undefined) dias[dNome]++;
+        });
+
+        containerMapa.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 10px; background: #1f2125; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; font-size:14px;">
+                <div style="display:flex; justify-content:space-between;"><span>🌅 Manhã (09h - 12h):</span> <strong>${turnos['Manhã']} atendimentos</strong></div>
+                <div style="display:flex; justify-content:space-between; padding: 4px 0;"><span>🌤️ Tarde (12h - 18h):</span> <strong>${turnos['Tarde']} atendimentos</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>🌙 Noite (18h - 20h):</span> <strong>${turnos['Noite']} atendimentos</strong></div>
+            </div>`;
+
+        const containerDias = document.getElementById('analytics-dias-semana');
+        if(containerDias) {
+            containerDias.innerHTML = '';
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = "display: flex; flex-direction: column; gap: 12px; background: #1f2125; border: 1px solid var(--border-color); padding: 18px; border-radius: 12px;";
+            
+            for(let dia in dias) {
+                const pct = agendamentos.length > 0 ? Math.min((dias[dia] / agendamentos.length) * 100, 100) : 0;
+                wrapper.innerHTML += `
+                    <div class="analytics-bar-container">
+                        <div class="analytics-bar-header">
+                            <span>${dia}</span>
+                            <strong style="color: ${dias[dia] > 0 ? 'var(--accent-color)' : 'var(--text-muted)'}">${dias[dia]} clientes</strong>
+                        </div>
+                        <div class="analytics-bar-bg">
+                            <div class="analytics-bar-fill" style="width: ${pct}%"></div>
+                        </div>
+                    </div>`;
+            }
+            containerDias.appendChild(wrapper);
+        }
+
+        const uClientes = [...new Set(agendamentos.map(a => a.cliente))];
+        let rec = 0; uClientes.forEach(c => { if(agendamentos.filter(a => a.cliente === c).length > 1) rec++; });
+        
+        const containerRetencao = document.getElementById('analytics-retencao');
+        if(containerRetencao) {
+            containerRetencao.innerHTML = `
+                <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
+                    <div class="kpi-label">Taxa de Retenção</div>
+                    <div class="kpi-val" style="color: var(--accent-color); font-size: 24px;">${uClientes.length > 0 ? Math.round((rec / uClientes.length) * 100) : 0}%</div>
+                </div>
+                <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
+                    <div class="kpi-label">LTV do Período</div>
+                    <div class="kpi-val" style="color: var(--success-color); font-size: 24px;">R$ ${(uClientes.length > 0 ? 62 * (agendamentos.length / uClientes.length) : 0).toFixed(2)}</div>
+                </div>`;
+        }
+    } catch(e) {
+        console.error("Erro no BI:", e);
+    }
+}
+
 function renderizarGradeHorariosReais() {
     const container = document.getElementById('container-horarios'); 
     if (!container) return;
@@ -1279,7 +1382,7 @@ function renderizarGradeHorariosReais() {
             .map(a => a.hora ? a.hora.trim() : '');
             
         HORARIOS_GERADOS.forEach(g => {
-            if(g.horas.length === 0) return; // Pula turno vazio
+            if(g.horas.length === 0) return; 
 
             const tituloTurno = document.createElement('div');
             tituloTurno.className = "turno-title";
