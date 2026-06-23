@@ -84,8 +84,10 @@ async function sincronizarBancoDeDados() {
         const resUsuarios = await fetch(`${API_URL}/usuarios`);
         if (resUsuarios.ok) {
             DADOS_USUARIOS = await resUsuarios.json();
+            
+            // CORREÇÃO: Oculta a conta master 'admin' de ser listada como barbeiro
             ESTRUTURA_BARBEIROS = DADOS_USUARIOS
-                .filter(u => u.perfil === 'admin' || u.perfil === 'barbeiro')
+                .filter(u => (u.perfil === 'admin' || u.perfil === 'barbeiro') && u.login !== 'admin')
                 .map(u => ({
                     id: u.id, 
                     login: u.login, 
@@ -354,8 +356,6 @@ async function removerDataFechada(dataRemover) {
     await salvarConfiguracoesAdmin(false); 
 }
 
-// ----------------------------------------------------
-
 function alternarAbasAuth(aba) {
     const tabLogin = document.getElementById('tab-login');
     const tabCadastro = document.getElementById('tab-cadastro');
@@ -376,7 +376,6 @@ function alternarAbasAuth(aba) {
     }
 }
 
-// EXIBE BADGE "ADMIN" E PROTEGE CONTRA AUTO-EXCLUSÃO
 function atualizarSeletoresEFormulariosDeEquipe() {
     const seletorFiltro = document.getElementById('filtro-barbeiro-alvo');
     if(seletorFiltro) {
@@ -576,7 +575,6 @@ async function executarCadastro() {
     }
 }
 
-// LOGIN DINÂMICO CEGO PARA NOMES (BASEADO APENAS NO BANCO)
 async function executarLogin() {
     const loginInput = document.getElementById('login-usuario');
     const senhaInput = document.getElementById('login-senha');
@@ -630,7 +628,6 @@ async function executarLogin() {
         }
     } catch(e) {
         console.error("Erro final de rede:", e);
-        // O ÚLTIMO RECURSO OFF-GRID: Só deixa entrar se for a conta de emergência caso o servidor queime
         if(login === "admin" && senha === "admin") {
             usuarioLogado = "admin"; perfilLogado = "admin"; nomeUsuarioLogado = "Admin Local";
             ativarAcessoAoPainelProfissional();
@@ -668,7 +665,6 @@ async function ativarAcessoAoPainelProfissional() {
 
     montarMenuNavegacao(perfilLogado);
     
-    // VISÃO DE PERFIL: Baseado exclusivamente no dado `perfil`
     if(perfilLogado === 'admin') {
         document.querySelectorAll('.restrito-adm').forEach(el => el.classList.remove('escondido'));
         document.querySelectorAll('.restrito-barbeiro-adm').forEach(el => el.classList.remove('escondido'));
@@ -1704,6 +1700,7 @@ function montarMenuNavegacao(role) {
         menuNav.innerHTML = `
             <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
             <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
+            <button class="nav-item" onclick="alternarTela('adm-agenda')">📅 Agenda</button>
             <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 Analytics</button>`;
     } else { 
         menuNav.innerHTML = `
