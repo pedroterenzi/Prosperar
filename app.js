@@ -108,14 +108,11 @@ async function sincronizarBancoDeDados() {
     }
 }
 
-// --------- INTEGRAÇÃO DO WHATSAPP (NOTIFICA O BARBEIRO) ---------
+// --------- INTEGRAÇÃO DO WHATSAPP ---------
 function notificarBarbeiroWhatsApp(tipo, agendamentoInfo) {
     const bInfo = ESTRUTURA_BARBEIROS.find(b => b.nome.trim().toLowerCase() === agendamentoInfo.barbeiro.trim().toLowerCase());
     
-    if(!bInfo || !bInfo.celular) {
-        console.log("Barbeiro sem celular cadastrado. Pulando notificação.");
-        return;
-    }
+    if(!bInfo || !bInfo.celular) return;
     
     const celularLimpo = bInfo.celular.replace(/\D/g, '');
     if(!celularLimpo) return;
@@ -135,7 +132,6 @@ function notificarBarbeiroWhatsApp(tipo, agendamentoInfo) {
     window.open(url, '_blank');
 }
 
-// --------- MOTOR DE AGENDA DINÂMICA (COM BLOQUEIOS INDIVIDUAIS) ----------
 function parseTime(t) { 
     if(!t) return 0; 
     let [h,m] = t.split(':'); 
@@ -204,7 +200,6 @@ function isSlotPast(dateStr, timeStr) {
     return new Date(ano, mes - 1, dia, hora, minuto, 0, 0) < agora;
 }
 
-// --------- GESTÃO DE BLOQUEIOS PESSOAIS DA AGENDA ----------
 function renderizarAgendaBloqueios() {
     const selBarbeiro = document.getElementById('bloqueio-barbeiro');
     if(selBarbeiro) {
@@ -303,7 +298,6 @@ async function excluirBloqueio(id) {
     }
 }
 
-// --------- FUNÇÕES DE CONFIGURAÇÃO GERAL (ABA ADMIN) ----------
 function renderizarConfiguracoesAdmin() {
     document.getElementById('config-abertura').value = DADOS_CONFIG.hora_abertura || '09:00';
     document.getElementById('config-fechamento').value = DADOS_CONFIG.hora_fechamento || '20:00';
@@ -381,8 +375,6 @@ async function removerDataFechada(dataRemover) {
     atualizarListaDatasFechadas();
     await salvarConfiguracoesAdmin(false); 
 }
-
-// ----------------------------------------------------
 
 function alternarAbasAuth(aba) {
     const tabLogin = document.getElementById('tab-login');
@@ -609,6 +601,7 @@ async function executarCadastro() {
     }
 }
 
+// LOGIN SEGURO SEM "PASSE LIVRE" (TODO MUNDO ESPERA O SERVIDOR ACORDAR)
 async function executarLogin() {
     const loginInput = document.getElementById('login-usuario');
     const senhaInput = document.getElementById('login-senha');
@@ -628,7 +621,7 @@ async function executarLogin() {
     try {
         let res;
         let tentativas = 0;
-        let maxTentativas = 6; 
+        let maxTentativas = 15; // AGORA ESPERA ATÉ 75 SEGUNDOS (15 TENTATIVAS)
         
         while(tentativas < maxTentativas) {
             try {
@@ -642,7 +635,7 @@ async function executarLogin() {
                 tentativas++;
                 if(tentativas >= maxTentativas) throw errRede; 
                 
-                if(btnEntrar) btnEntrar.innerText = `Ligando Servidor... ${tentativas}/6`;
+                if(btnEntrar) btnEntrar.innerText = `Ligando Servidor... ${tentativas}/15`;
                 await new Promise(r => setTimeout(r, 5000)); 
             }
         }
@@ -662,9 +655,10 @@ async function executarLogin() {
         }
     } catch(e) {
         console.error("Erro final de rede:", e);
+        // O Passe Livre Master só existe para o "admin" de emergência caso tudo pegue fogo
         if(login === "admin" && senha === "admin") {
             usuarioLogado = "admin"; perfilLogado = "admin"; nomeUsuarioLogado = "Admin Local";
-            ativarAcessoAoPainelProfissional();
+            await ativarAcessoAoPainelProfissional();
         } else {
             alert("O Servidor está passando por uma reinicialização profunda. Volte em 1 minuto e aperte Entrar.");
         }
@@ -762,7 +756,6 @@ function inicializarListenersEstaticos() {
 
             const bInfo = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado);
 
-            // MÁGICA DO PIX AQUI
             const boxPix = document.getElementById('box-pagamento-pix');
             if (pagamentoSelecionado.toLowerCase() === 'pix') {
                 const chavePix = (bInfo && bInfo.pix) ? bInfo.pix : "Chave não cadastrada pelo profissional.";
@@ -1529,5 +1522,31 @@ async function carregarPainelAnalytics() {
         }
     } catch(e) {
         console.error("Erro no BI:", e);
+    }
+}
+
+async function alternarTela(idAba) {
+    try {
+        ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-config', 'adm-agenda', 'adm-analytics'].forEach(id => {
+            const el = document.getElementById(`aba-${id}`); if (el) el.classList.add('escondido');
+        });
+        const abaAlvo = document.getElementById(`aba-${idAba}`); if (abaAlvo) abaAlvo.classList.remove('escondido');
+        document.querySelectorAll('.nav-inferior .nav-item').forEach(btn => btn.classList.remove('ativo'));
+
+        if(idAba === 'estilo') {
+            const container = document.getElementById('container-meus-agendamentos');
+            if(container) container.innerHTML = "<p style='font-size:13px; color:var(--accent-color);'>Sincronizando reservas...</p>";
+            await sincronizarBancoDeDados();
+            carregarMeusAgendamentosDoBanco();
+        }
+        
+        if(idAba === 'home') {
+            await sincronizarBancoDeDados();
+            renderizarFormularioCliente(); 
+        }
+
+        recarregarAbaAtivaAdm();
+    } catch(e) {
+        console.error("Erro ao mudar de tela:", e);
     }
 }
