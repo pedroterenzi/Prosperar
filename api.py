@@ -20,9 +20,9 @@ DATABASE_URL = "postgresql://neondb_owner:npg_FB5WRUfgniD9@ep-calm-grass-ah0b366
 def inicializar_banco():
     try:
         conn = psycopg2.connect(DATABASE_URL)
+        conn.autocommit = True # Garante que o banco não trave caso o Render reinicie bruscamente
         cursor = conn.cursor()
         
-        # Tabela de Agendamentos 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS agendamentos (
                 id SERIAL PRIMARY KEY,
@@ -36,13 +36,12 @@ def inicializar_banco():
             );
         """)
         
-        try:
-            cursor.execute("ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS valor_produtos NUMERIC DEFAULT 0.00;")
-            cursor.execute("ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS valor_gorjeta NUMERIC DEFAULT 0.00;")
-        except Exception:
-            pass
+        try: cursor.execute("ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS valor_produtos NUMERIC DEFAULT 0.00;")
+        except Exception: pass
+        
+        try: cursor.execute("ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS valor_gorjeta NUMERIC DEFAULT 0.00;")
+        except Exception: pass
             
-        # Tabela de Usuários 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS usuarios (
                 id SERIAL PRIMARY KEY,
@@ -57,14 +56,12 @@ def inicializar_banco():
             );
         """)
 
-        # Adicionando colunas de finanças para os profissionais
-        try:
-            cursor.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS comissao NUMERIC DEFAULT 0.00;")
-            cursor.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pix VARCHAR(255) DEFAULT '';")
-        except Exception:
-            pass
+        try: cursor.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS comissao NUMERIC DEFAULT 0.00;")
+        except Exception: pass
+        
+        try: cursor.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pix VARCHAR(255) DEFAULT '';")
+        except Exception: pass
 
-        # Tabela de Despesas
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS despesas (
                 id SERIAL PRIMARY KEY,
@@ -74,7 +71,6 @@ def inicializar_banco():
             );
         """)
 
-        # Tabela de Serviços
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS servicos (
                 id SERIAL PRIMARY KEY,
@@ -94,7 +90,6 @@ def inicializar_banco():
                 ('Combo Premium', 85.00, 'Corte + Barba + Sobrancelha');
             """)
 
-        # Tabela de Configurações Gerais
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS configuracoes (
                 id SERIAL PRIMARY KEY,
@@ -110,7 +105,6 @@ def inicializar_banco():
         if cursor.fetchone()[0] == 0:
             cursor.execute("INSERT INTO configuracoes (hora_abertura, hora_fechamento, intervalo_inicio, intervalo_fim, datas_fechadas) VALUES ('09:00', '20:00', '12:00', '13:00', '');")
 
-        # Tabela de Bloqueios Individuais
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS bloqueios (
                 id SERIAL PRIMARY KEY,
@@ -148,7 +142,6 @@ def inicializar_banco():
             except Exception:
                 pass
         
-        conn.commit()
         cursor.close()
         conn.close()
         print("⚡ Tabelas estruturadas e sincronizadas no Neon!")
