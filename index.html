@@ -148,7 +148,7 @@
         <div id="form-login">
             <div class="form-group">
                 <label>Usuário / Login:</label>
-                <input type="text" id="login-usuario" placeholder="Digite seu usuário">
+                <input type="text" id="login-usuario" placeholder="Digite seu usuário ou admin">
             </div>
             <div class="form-group">
                 <label>Senha:</label>
@@ -201,6 +201,8 @@
                 <label>Visualizar dados de:</label>
                 <select id="filtro-barbeiro-alvo" style="background: #1f2125;" onchange="recarregarAbaAtivaAdm()">
                     <option value="todos">-- Todos os Barbeiros (Geral) --</option>
+                    <option value="gabriel">Gabriel (Proprietário)</option>
+                    <option value="lucas">Lucas Barber</option>
                 </select>
             </div>
 
@@ -302,7 +304,7 @@
 
             <div class="card restrito-adm" style="border-color: rgba(204,153,51,0.25);">
                 <h3>👥 Gerenciamento de Equipe</h3>
-                <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione ou promova colaboradores e controle acessos.</p>
+                <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione colaboradores e adicione a Chave PIX para recebimentos.</p>
                 
                 <div style="background: #1f2125; padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-color);">
                     <h4 style="font-size:13px; margin-bottom:12px; color: var(--accent-color);">+ Incluir Novo Profissional</h4>
@@ -314,9 +316,15 @@
                         <label>Nome de Usuário (Login):</label>
                         <input type="text" id="adm-barbeiro-login" placeholder="Ex: pedrosilva">
                     </div>
-                    <div class="form-group">
-                        <label>WhatsApp / Celular:</label>
-                        <input type="text" id="adm-barbeiro-celular" placeholder="Ex: 11999999999">
+                    <div class="intervalo-custom-grid">
+                        <div class="form-group">
+                            <label>WhatsApp / Celular:</label>
+                            <input type="text" id="adm-barbeiro-celular" placeholder="Ex: 11999999999">
+                        </div>
+                        <div class="form-group">
+                            <label>Chave PIX:</label>
+                            <input type="text" id="adm-barbeiro-pix" placeholder="Ex: Celular ou E-mail">
+                        </div>
                     </div>
                     <div class="intervalo-custom-grid">
                         <div class="form-group">
@@ -579,15 +587,26 @@
 </div>
 
 <!-- POP-UPS -->
+<!-- POP-UP CONFIRMAÇÃO DE NOVA RESERVA (AGORA COM PIX) -->
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Confirmar sua Cadeira?</h3>
         <p id="modal-resumo-detalhes" style="font-size: 14px; line-height: 1.6; color: var(--text-muted);"></p>
+        
+        <!-- CAIXA DO PIX -->
+        <div id="box-pagamento-pix" class="escondido" style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success-color); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+            <strong style="color: var(--success-color); font-size: 13px;">📲 Pagamento via PIX</strong><br>
+            <span style="font-size: 13px; color: white;">Chave do Barbeiro: <strong id="pix-chave-barbeiro"></strong></span><br>
+            <span style="font-size: 13px; color: white;">Valor: <strong id="pix-valor-servico"></strong></span><br>
+            <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Faça a transferência para o profissional antes de confirmar.</span>
+        </div>
+
         <button class="btn-gold" id="btn-confirmar-modal">Confirmar Oficialmente</button>
         <button class="btn-danger" onclick="fecharModal('modal-confirmacao')">Voltar / Cancelar</button>
     </div>
 </div>
 
+<!-- MODAL EDITAR RESERVA DO CLIENTE -->
 <div id="modal-editar-reserva" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Modificar Agendamento</h3>
@@ -624,6 +643,7 @@
     </div>
 </div>
 
+<!-- MODAL EDITAR BARBEIRO -->
 <div id="modal-editar-barbeiro" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Editar Profissional</h3>
@@ -632,9 +652,15 @@
             <label>Nome Completo:</label>
             <input type="text" id="edit-barbeiro-nome">
         </div>
-        <div class="form-group">
-            <label>WhatsApp / Celular:</label>
-            <input type="text" id="edit-barbeiro-celular">
+        <div class="intervalo-custom-grid">
+            <div class="form-group">
+                <label>WhatsApp:</label>
+                <input type="text" id="edit-barbeiro-celular">
+            </div>
+            <div class="form-group">
+                <label>Chave PIX:</label>
+                <input type="text" id="edit-barbeiro-pix">
+            </div>
         </div>
         <div class="intervalo-custom-grid">
             <div class="form-group">
@@ -660,6 +686,7 @@
     </div>
 </div>
 
+<!-- MODAL EDITAR DESPESA -->
 <div id="modal-editar-despesa" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Editar Despesa</h3>
@@ -683,6 +710,7 @@
     </div>
 </div>
 
+<!-- MODAL EDITAR SERVIÇO -->
 <div id="modal-editar-servico" class="modal-overlay escondido">
     <div class="modal-content">
         <h3>Editar Serviço</h3>
