@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prosperar Club - Painel Corporativo</title>
+    <!-- Fonte Premium Startups -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
     <style>
         :root {
             --bg-color: #09090b;
             --card-bg: #131418;
             --card-hover: #1c1d22;
-            --accent-color: #D4AF37; /* Dourado mais premium */
+            --accent-color: #D4AF37; 
             --accent-hover: #f1c40f;
             --text-color: #f4f4f5;
             --text-muted: #a1a1aa;
@@ -29,6 +29,7 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* Bloqueia a rolagem horizontal que estava quebrando o app */
         body { 
             background-color: var(--bg-color); 
             color: var(--text-color); 
@@ -36,18 +37,19 @@
             padding: 0; 
             display: flex; 
             justify-content: center; 
-            padding-bottom: 120px; /* Espaço para o menu inferior */
+            padding-bottom: 120px; 
             letter-spacing: -0.3px;
+            overflow-x: hidden; 
         }
 
         .app-container { 
             width: 100%; 
-            max-width: 500px; /* Um pouco mais largo para desktop, mas adapta ao mobile */
-            padding: 20px; 
+            max-width: 500px; 
+            padding: 16px; 
             margin: 0 auto;
+            overflow-x: hidden;
         }
         
-        /* Modernização dos Cartões */
         .card { 
             background: linear-gradient(145deg, #16171a 0%, #111215 100%);
             border: 1px solid var(--border-color); 
@@ -55,14 +57,17 @@
             border-radius: 20px; 
             margin-bottom: 20px; 
             box-shadow: 0 8px 30px rgba(0,0,0,0.4); 
+            width: 100%;
         }
 
-        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; width: 100%; }
         .form-group label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
         
+        /* Ajuste do min-width e padding para caber nos celulares menores */
         .form-group input, .form-group select { 
             width: 100%; 
-            padding: 15px; 
+            min-width: 0; 
+            padding: 12px 14px; 
             background: #18191c; 
             border: 1px solid #33353b; 
             border-radius: 12px; 
@@ -78,15 +83,10 @@
         
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-            opacity: 0.6;
-            cursor: pointer;
-            transition: 0.2s;
+            filter: invert(1); opacity: 0.6; cursor: pointer; transition: 0.2s;
         }
         input[type="date"]::-webkit-calendar-picker-indicator:hover,
-        input[type="time"]::-webkit-calendar-picker-indicator:hover {
-            opacity: 1;
-        }
+        input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 
         .checkbox-container { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: var(--text-muted); margin-bottom: 15px; cursor: pointer;}
         .checkbox-container input { width: 18px; height: 18px; accent-color: var(--accent-color); cursor: pointer;}
@@ -98,7 +98,6 @@
         
         .step-label { display: block; margin: 24px 0 12px; font-weight: 800; color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; }
 
-        /* Botões mais arredondados e interativos */
         .btn-gold { 
             width: 100%; background: var(--accent-color); color: #000; border: none; 
             padding: 16px; border-radius: 14px; font-size: 15px; font-weight: 800; 
@@ -109,16 +108,7 @@
         
         .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; }
         
-        .btn-small-danger, .btn-small-edit {
-            padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; text-align: center;
-        }
-        .btn-small-danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
-        .btn-small-danger:hover { background: var(--danger-color); color: #fff; }
-        
-        .btn-small-edit { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); }
-        .btn-small-edit:hover { background: #3b82f6; color: white; }
-
-        .cards-container { display: flex; flex-direction: column; gap: 12px; }
+        .cards-container { display: flex; flex-direction: column; gap: 12px; width: 100%; }
         .modern-card { 
             background: #18191c; border: 1px solid #2a2c32; padding: 18px; 
             border-radius: 16px; cursor: pointer; display: flex; justify-content: space-between; 
@@ -145,7 +135,7 @@
         .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
         .kpi-card .kpi-val { font-size: 24px; font-weight: 800; margin-top: 8px; letter-spacing: -0.5px; }
 
-        .filtros-tempo-container { display: flex; gap: 6px; margin-bottom: 16px; background: #131418; padding: 6px; border-radius: 12px; border: 1px solid #2a2c32; overflow-x: auto;}
+        .filtros-tempo-container { display: flex; gap: 6px; margin-bottom: 16px; background: #131418; padding: 6px; border-radius: 12px; border: 1px solid #2a2c32; overflow-x: auto; scrollbar-width: none;}
         .filtros-tempo-container::-webkit-scrollbar { display: none; }
         .btn-filtro-tempo { flex: 1; min-width: max-content; background: none; border: none; color: var(--text-muted); padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
         .btn-filtro-tempo.ativo { background: var(--text-color); color: #000; font-weight: 800; }
@@ -153,35 +143,63 @@
         .intervalo-custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
         .lista-backoffice { display: flex; flex-direction: column; gap: 12px; }
+        
+        /* -------------------------------------------------------------
+           ESTRUTURA INTELIGENTE PARA CARTÕES RESPONSIVOS 
+           Permite que os botões caiam para a linha debaixo se a tela for pequena
+           ------------------------------------------------------------- */
         .item-backoffice { 
-            background: #18191c; border: 1px solid #2a2c32; padding: 18px; 
-            border-radius: 16px; display: flex; justify-content: space-between; align-items: center; gap: 15px;
+            background: #18191c; border: 1px solid #2a2c32; padding: 16px; 
+            border-radius: 16px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;
+        }
+        .text-truncate { flex: 1 1 100%; min-width: 0; }
+        
+        .btn-actions-group { display: flex; flex-direction: row; gap: 8px; width: 100%; }
+        .btn-actions-group button { flex: 1; text-align: center; }
+
+        .btn-small-danger, .btn-small-edit {
+            padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-small-danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .btn-small-danger:hover { background: var(--danger-color); color: #fff; }
+        
+        .btn-small-edit { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .btn-small-edit:hover { background: #3b82f6; color: white; }
+
+        /* Media Query para telas médias/grandes (Coloca os botões lado a lado com o texto) */
+        @media (min-width: 420px) {
+            .item-backoffice { flex-wrap: nowrap; }
+            .text-truncate { flex: 1 1 auto; }
+            .btn-actions-group { width: auto; flex-shrink: 0; }
         }
         
         .toggle-auth { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid #2a2c32; padding-bottom: 12px; }
         .toggle-auth button { flex:1; background:none; border:none; color:var(--text-muted); font-weight:700; padding:10px; cursor:pointer; font-size: 14px; transition: 0.3s;}
         .toggle-auth button.active { color: var(--accent-color); border-bottom: 3px solid var(--accent-color); }
 
-        /* Modal com Animação */
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
         .modal-content { background: var(--card-bg); border: 1px solid #33353b; border-radius: 20px; padding: 28px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; animation: fadeIn 0.3s ease-out; box-shadow: 0 20px 40px rgba(0,0,0,0.6);}
         
-        /* NOVO MENU INFERIOR - Estilo App Nativo (Permite Scroll se houver muitos botões) */
+        /* -------------------------------------------------------------
+           NOVO MENU INFERIOR NATIVO E CENTRALIZADO
+           Se couberem os botões, fica centralizado. Se não, permite arrastar.
+           ------------------------------------------------------------- */
         .nav-inferior { 
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
             width: calc(100% - 40px); max-width: 460px; 
-            background: rgba(18, 19, 23, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            background: rgba(18, 19, 23, 0.90); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255,255,255,0.08); 
-            display: flex; justify-content: flex-start; padding: 12px 16px; 
+            display: flex; justify-content: space-evenly; align-items: center; padding: 12px 10px; 
             border-radius: 24px; z-index: 1000; box-shadow: 0 10px 40px rgba(0,0,0,0.7); 
-            overflow-x: auto; scroll-snap-type: x mandatory; gap: 8px;
+            overflow-x: auto; scroll-snap-type: x mandatory; gap: 4px; scrollbar-width: none;
         }
         .nav-inferior::-webkit-scrollbar { display: none; }
+        
         .nav-item { 
-            flex: 0 0 auto; min-width: 70px; scroll-snap-align: start;
+            flex: 1; min-width: 66px; scroll-snap-align: start;
             background: transparent; border: none; color: #71717a; 
-            display: flex; flex-direction: column; align-items: center; gap: 6px; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; 
             cursor: pointer; transition: all 0.3s ease; padding: 4px;
         }
         .nav-item span { font-size: 10px; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif;}
@@ -199,16 +217,13 @@
 
         .btn-add-data { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; transition: all 0.2s; }
         .btn-add-data:hover { background: #10b981; color: white; }
-
-        /* Utilitário para evitar que textos longos quebrem o flex no mobile */
-        .text-truncate { flex: 1; min-width: 0; }
-        .text-truncate strong, .text-truncate span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
 
+    <!-- TELA DE LOGIN E CADASTRO -->
     <div id="tela-autenticacao" class="card" style="margin-top: 5vh;">
         <h2>Prosperar Club</h2>
         <p style="text-align:center; color:var(--text-muted); font-size: 14px; margin-top:-10px; margin-bottom: 25px;">Agende seu horário</p>
@@ -243,11 +258,8 @@
                 <label>WhatsApp / Celular:</label>
                 <input type="text" id="cad-celular" placeholder="Ex: 11999999999">
             </div>
-            <div class="form-group" style="display: none;">
-                <label>Plano de Assinatura:</label>
-                <select id="cad-plano">
-                    <option value="Nenhum">Sem Assinatura</option>
-                </select>
+            <div class="form-group" style="display:none;">
+                <select id="cad-plano"><option value="Nenhum">Sem Assinatura</option></select>
             </div>
             <div class="form-group">
                 <label>Senha:</label>
@@ -261,8 +273,10 @@
         </div>
     </div>
 
+    <!-- CONTEÚDO OPERACIONAL DO CORE APP -->
     <div id="conteudo-app" class="escondido">
         
+        <!-- SELETOR E FILTRO GLOBAL -->
         <div id="bloco-filtros-global-adm" class="escondido card" style="padding: 18px;">
             <h4 style="font-size: 12px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Painel de Controle:</h4>
             
@@ -282,16 +296,13 @@
             </div>
             <div id="box-escolha-data-custom" class="escondido">
                 <div class="intervalo-custom-grid">
-                    <div class="form-group" style="margin-bottom:0;">
-                        <input type="date" id="filtro-data-inicio" onchange="atualizarFiltroDataRange()">
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <input type="date" id="filtro-data-fim" onchange="atualizarFiltroDataRange()">
-                    </div>
+                    <div class="form-group" style="margin-bottom:0;"><input type="date" id="filtro-data-inicio" onchange="atualizarFiltroDataRange()"></div>
+                    <div class="form-group" style="margin-bottom:0;"><input type="date" id="filtro-data-fim" onchange="atualizarFiltroDataRange()"></div>
                 </div>
             </div>
         </div>
 
+        <!-- ABA DO CLIENTE: AGENDAMENTO -->
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 24px; text-align: center;">
                 <h2 id="boas-vistas-cliente" style="font-size: 26px; margin-bottom: 6px;">Olá!</h2>
@@ -318,11 +329,13 @@
             </div>
         </section>
 
+        <!-- ABA DO CLIENTE: MEUS CORTES -->
         <section id="aba-estilo" class="escondido">
             <h3 style="text-align: center; margin-bottom: 20px;">Meus Agendamentos</h3>
             <div id="container-meus-agendamentos"></div>
         </section>
 
+        <!-- ABA BACKOFFICE: MONITOR FINANCEIRO & EQUIPE -->
         <section id="aba-adm-dash" class="escondido">
             <h2 class="gold-text" style="text-align: left; margin-bottom: 4px;">Métricas de Faturamento</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Visão geral do período selecionado:</p>
@@ -353,6 +366,17 @@
                     <div id="detalhe-produtos">Produtos Brutos: R$ 0,00</div>
                 </div>
                 <div class="lista-backoffice" id="lista-split-comissoes-equipe"></div>
+            </div>
+            
+            <div class="card escondido" id="card-rendimentos-barbeiro">
+                <h3 class="gold-text">Minha Carteira Pro</h3>
+                <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.3);">
+                    <div class="text-truncate">
+                        <strong style="font-size:15px;">Comissão Acumulada</strong><br>
+                        <span style="font-size:11px; color:var(--text-muted);" id="minha-breakdown-comissao">Carregando...</span>
+                    </div>
+                    <div style="color: var(--success-color); font-weight:800; font-size: 20px;" id="minha-comissao-total">R$ 0,00</div>
+                </div>
             </div>
 
             <div class="card restrito-adm" style="border-color: rgba(212,175,55,0.3);">
@@ -409,6 +433,7 @@
             </div>
         </section>
 
+        <!-- ABA BACKOFFICE: AGENDA E BLOQUEIOS PESSOAIS -->
         <section id="aba-adm-agenda" class="escondido restrito-barbeiro-adm">
             <h3>📅 Minha Agenda e Folgas</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Tranque seus horários para compromissos ou folgas pessoais.</p>
@@ -447,6 +472,7 @@
             </div>
         </section>
 
+        <!-- ABA BACKOFFICE: CONFIGURAÇÕES GERAIS -->
         <section id="aba-adm-config" class="escondido restrito-adm">
             <h3>⚙️ Configuração Geral</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Defina os horários de funcionamento do espaço físico:</p>
@@ -494,12 +520,13 @@
             </div>
         </section>
 
+        <!-- ABA BACKOFFICE: SERVIÇOS -->
         <section id="aba-adm-servicos" class="escondido restrito-adm">
             <h3>Gestão de Serviços</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Catálogo de serviços e preços do aplicativo:</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Adicione, edite ou exclua os serviços do aplicativo:</p>
             
             <div class="card">
-                <h4>➕ Novo Serviço</h4>
+                <h4>➕ Registrar Novo Serviço</h4>
                 <div class="form-group">
                     <label>Nome do Serviço:</label>
                     <input type="text" id="servico-nome" placeholder="Ex: Platinado">
@@ -510,8 +537,8 @@
                         <input type="number" id="servico-preco" placeholder="0.00" step="0.01">
                     </div>
                     <div class="form-group">
-                        <label>Tempo/Subtítulo:</label>
-                        <input type="text" id="servico-sub" placeholder="Ex: 40 min">
+                        <label>Descrição/Duração:</label>
+                        <input type="text" id="servico-sub" placeholder="Ex: Duração: 40 min">
                     </div>
                 </div>
                 <button class="btn-gold" id="btn-salvar-servico" style="margin-top: 15px;" onclick="salvarNovoServico()">Adicionar ao Catálogo</button>
@@ -523,6 +550,7 @@
             </div>
         </section>
 
+        <!-- ABA BACKOFFICE: KANBAN MONITOR -->
         <section id="aba-adm-recepcao" class="escondido restrito-barbeiro-adm">
             <h3>Monitor de Atendimentos</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle a esteira de cortes em tempo real:</p>
@@ -571,6 +599,7 @@
             </div>
         </section>
 
+        <!-- ABA BACKOFFICE: DESPESAS -->
         <section id="aba-adm-despesas" class="escondido restrito-adm">
             <h3>Gestão de Despesas</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle a saída de caixa da barbearia:</p>
@@ -607,6 +636,7 @@
             </div>
         </section>
 
+        <!-- ABA BACKOFFICE: BUSINESS INTELLIGENCE -->
         <section id="aba-adm-analytics" class="escondido restrito-barbeiro-adm">
             <h3>Business Intelligence</h3>
             <div id="analytics-retencao" style="display: flex; justify-content: center; width: 100%; gap: 12px; margin-bottom: 20px;"></div>
@@ -620,6 +650,7 @@
             </div>
         </section>
 
+        <!-- ABA BACKOFFICE: CRM & COMUNICAÇÃO -->
         <section id="aba-adm-mkt" class="escondido restrito-adm">
             <h3>CRM de Clientes</h3>
             <div class="card">
@@ -629,11 +660,13 @@
             </div>
         </section>
 
+        <!-- MENU INFERIOR NATIVO E SCROLLÁVEL -->
         <nav class="nav-inferior" id="menu-navegacao"></nav>
 
     </div>
 </div>
 
+<!-- POP-UPS MODERNOS -->
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
         <h3 style="text-align: center; color: var(--accent-color);">Confirmar Agendamento</h3>
