@@ -229,12 +229,14 @@ function renderizarAgendaBloqueios() {
         
         container.innerHTML += `
             <div class="item-backoffice" style="border-left: 4px solid var(--accent-color); margin-bottom: 8px;">
-                <div style="flex:1;">
-                    <strong>${b.barbeiro}</strong><br>
-                    <span style="font-size:11px; color:var(--text-muted);">Data: ${dataBr}</span>
+                <div class="text-truncate">
+                    <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.barbeiro}</strong>
+                    <span style="font-size:11px; color:var(--text-muted); display:block;">Data: ${dataBr}</span>
                     <div style="color: var(--accent-color); font-weight:700; margin-top: 2px; font-size:12px;">⏰ ${textoHora}</div>
                 </div>
-                <button class="btn-small-delete" onclick="excluirBloqueio(${b.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Liberar</button>
+                <div style="flex-shrink:0;">
+                    <button class="btn-small-delete" onclick="excluirBloqueio(${b.id})">Liberar</button>
+                </div>
             </div>
         `;
     });
@@ -299,8 +301,6 @@ async function excluirBloqueio(id) {
     }
 }
 
-
-// --------- FUNÇÕES DE CONFIGURAÇÃO GERAL (ABA ADMIN) ----------
 function renderizarConfiguracoesAdmin() {
     document.getElementById('config-abertura').value = DADOS_CONFIG.hora_abertura || '09:00';
     document.getElementById('config-fechamento').value = DADOS_CONFIG.hora_fechamento || '20:00';
@@ -348,8 +348,10 @@ function atualizarListaDatasFechadas() {
         const dataBr = data.split('-').reverse().join('/');
         container.innerHTML += `
             <div class="item-backoffice" style="border-left: 4px solid var(--accent-color); margin-bottom: 6px; padding: 10px;">
-                <div style="font-size: 14px; font-weight: 600;">${dataBr}</div>
-                <button class="btn-small-delete" onclick="removerDataFechada('${data}')" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;">Remover</button>
+                <div style="font-size: 14px; font-weight: 600;" class="text-truncate">${dataBr}</div>
+                <div style="flex-shrink:0;">
+                    <button class="btn-small-delete" onclick="removerDataFechada('${data}')">Remover</button>
+                </div>
             </div>
         `;
     });
@@ -426,14 +428,14 @@ function atualizarSeletoresEFormulariosDeEquipe() {
             const item = document.createElement('div');
             item.className = 'item-backoffice';
             item.innerHTML = `
-                <div style="flex:1;">
-                    <strong>${b.nome}</strong> ${badgeAdmin}<br>
-                    <span style="font-size:11px; color:var(--text-muted);">User: ${b.login} | Split: ${(b.comissao*100).toFixed(0)}%</span><br>
-                    <span style="font-size:11px; color:var(--text-muted);">Pix: ${b.pix || 'Não cadastrado'}</span>
+                <div class="text-truncate">
+                    <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.nome} ${badgeAdmin}</strong>
+                    <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:2px;">User: ${b.login} | Split: ${(b.comissao*100).toFixed(0)}%</span>
+                    <span style="font-size:11px; color:var(--text-muted); display:block;">Pix: ${b.pix || 'N/A'}</span>
                 </div>
-                <div style="display: flex; gap: 4px; flex-direction: column;">
+                <div class="btn-actions-group" style="flex-direction: column; flex-shrink:0;">
                     <button class="btn-small-edit" onclick="abrirModalEdicaoBarbeiro(${b.id})">Editar</button>
-                    ${!isMe ? `<button class="btn-small-delete" onclick="removerBarbeiroSistema(${b.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>` : ''}
+                    ${!isMe ? `<button class="btn-small-delete" onclick="removerBarbeiroSistema(${b.id})">Excluir</button>` : ''}
                 </div>
             `;
             containerLista.appendChild(item);
@@ -447,7 +449,6 @@ function abrirModalEdicaoBarbeiro(id) {
     document.getElementById('edit-barbeiro-id').value = barbeiro.id;
     document.getElementById('edit-barbeiro-nome').value = barbeiro.nome;
     document.getElementById('edit-barbeiro-celular').value = barbeiro.celular || "";
-    document.getElementById('edit-barbeiro-pix').value = barbeiro.pix || "";
     document.getElementById('edit-barbeiro-comissao').value = barbeiro.comissao.toFixed(2);
     document.getElementById('edit-barbeiro-perfil').value = barbeiro.perfil;
     document.getElementById('modal-editar-barbeiro').classList.remove('escondido');
@@ -457,7 +458,6 @@ async function salvarEdicaoBarbeiro() {
     const id = document.getElementById('edit-barbeiro-id').value;
     const nome = document.getElementById('edit-barbeiro-nome').value.trim();
     const celular = document.getElementById('edit-barbeiro-celular').value.trim();
-    const pix = document.getElementById('edit-barbeiro-pix').value.trim();
     const comissao = parseFloat(document.getElementById('edit-barbeiro-comissao').value);
     const perfil = document.getElementById('edit-barbeiro-perfil').value;
     
@@ -467,7 +467,7 @@ async function salvarEdicaoBarbeiro() {
         const res = await fetch(`${API_URL}/usuarios/${id}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ nome, celular, comissao, perfil, pix })
+            body: JSON.stringify({ nome, celular, comissao, perfil })
         });
 
         if(res.ok) {
@@ -486,12 +486,11 @@ async function incluirBarbeiroSistema() {
     const nome = document.getElementById('adm-barbeiro-nome').value.trim();
     const login = document.getElementById('adm-barbeiro-login').value.trim().toLowerCase();
     const celular = document.getElementById('adm-barbeiro-celular').value.trim();
-    const pix = document.getElementById('adm-barbeiro-pix').value.trim();
     const comissao = parseFloat(document.getElementById('adm-barbeiro-comissao').value);
     const perfil = document.getElementById('adm-barbeiro-perfil').value;
     const senha = document.getElementById('adm-barbeiro-senha').value;
 
-    if(!nome || !login || !senha) return alert("Por favor, preencha nome, login e senha.");
+    if(!nome || !login || !celular || !senha) return alert("Por favor, preencha todos os campos obrigatórios!");
 
     const payload = {
         login: login,
@@ -500,8 +499,7 @@ async function incluirBarbeiroSistema() {
         celular: celular,
         perfil: perfil,
         plano_assinatura: "Nenhum",
-        comissao: comissao,
-        pix: pix
+        comissao: comissao
     };
 
     const btn = document.querySelector('button[onclick="incluirBarbeiroSistema()"]');
@@ -519,7 +517,6 @@ async function incluirBarbeiroSistema() {
             document.getElementById('adm-barbeiro-nome').value = '';
             document.getElementById('adm-barbeiro-login').value = '';
             document.getElementById('adm-barbeiro-celular').value = '';
-            document.getElementById('adm-barbeiro-pix').value = '';
             document.getElementById('adm-barbeiro-senha').value = '';
 
             await sincronizarBancoDeDados();
@@ -604,7 +601,6 @@ async function executarCadastro() {
     }
 }
 
-// O LOGIN VOLTOU A SER EXATAMENTE O MODELO QUE VOCÊ VALIDOU
 async function executarLogin() {
     const loginInput = document.getElementById('login-usuario');
     const senhaInput = document.getElementById('login-senha');
@@ -648,7 +644,7 @@ async function executarLogin() {
             usuarioLogado = user.login;
             perfilLogado = user.perfil || 'cliente';
             nomeUsuarioLogado = user.nome;
-            ativarAcessoAoPainelProfissional(); // Retirado o await que quebrava o script
+            ativarAcessoAoPainelProfissional(); 
         } else {
             if(res.status === 404 || res.status === 401) {
                 alert("Usuário ou senha incorretos! Verifique os dados e tente novamente.");
@@ -756,24 +752,12 @@ function inicializarListenersEstaticos() {
                 return;
             }
 
-            const bInfo = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado);
-
-            const boxPix = document.getElementById('box-pagamento-pix');
-            if (pagamentoSelecionado.toLowerCase() === 'pix') {
-                const chavePix = (bInfo && bInfo.pix) ? bInfo.pix : "Chave não cadastrada pelo profissional.";
-                document.getElementById('pix-chave-barbeiro').innerText = chavePix;
-                document.getElementById('pix-valor-servico').innerText = `R$ ${precoServico.toFixed(2)}`;
-                boxPix.classList.remove('escondido');
-            } else {
-                boxPix.classList.add('escondido');
-            }
-
             const r = document.getElementById('modal-resumo-detalhes');
             if(r) {
                 r.innerHTML = `
                     <strong>Procedimento:</strong> ${servicoSelecionado}<br>
-                    <strong>Profissional:</strong> ${bInfo?.nome || 'Não Selecionado'}<br>
-                    <strong>Data/Hora:</strong> ${dataSelecionada.split('-').reverse().join('/')} às ${horarioSelecionado}<br>
+                    <strong>Profissional:</strong> ${ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome || 'Não Selecionado'}<br>
+                    <strong>Data/Hora:</strong> ${dataSelecionada} às ${horarioSelecionado}<br>
                     <span style="color:var(--success-color); font-weight:bold;">Valor: R$ ${precoServico.toFixed(2)}</span>
                 `;
             }
@@ -813,10 +797,7 @@ function inicializarListenersEstaticos() {
 
                 if(res.ok) {
                     fecharModal('modal-confirmacao');
-                    alert("✨ Reserva efetuada com sucesso!\nVocê será redirecionado para avisar o barbeiro.");
-                    
-                    notificarBarbeiroWhatsApp('novo', payload);
-
+                    alert("✨ Reserva efetuada com sucesso!");
                     await sincronizarBancoDeDados();
                     renderizarGradeHorariosReais();
                     carregarMeusAgendamentosDoBanco();
@@ -976,12 +957,12 @@ function renderizarServicosAdmin() {
     DADOS_SERVICOS.forEach(s => {
         container.innerHTML += `
             <div class="item-backoffice" style="border-left: 4px solid var(--accent-color); margin-bottom: 8px;">
-                <div style="flex:1;">
-                    <strong>${s.nome}</strong><br>
-                    <span style="font-size:11px; color:var(--text-muted);">${s.sub || ''}</span>
+                <div class="text-truncate">
+                    <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.nome}</strong>
+                    <span style="font-size:11px; color:var(--text-muted); display:block;">${s.sub || ''}</span>
                     <div style="color: var(--success-color); font-weight:800; margin-top: 2px;">R$ ${parseFloat(s.preco).toFixed(2)}</div>
                 </div>
-                <div style="display: flex; gap: 4px; flex-direction: column;">
+                <div class="btn-actions-group" style="flex-direction: column; flex-shrink: 0;">
                     <button class="btn-small-edit" onclick="abrirModalEdicaoServico(${s.id})">Editar</button>
                     <button class="btn-small-delete" onclick="excluirServico(${s.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
                 </div>
@@ -1044,14 +1025,10 @@ async function excluirServico(id) {
 
 async function excluirAgendamento(id) {
     if(!confirm("Tem certeza que deseja cancelar e excluir esta reserva?")) return;
-    
-    const agendamento = DADOS_AGENDAMENTOS.find(a => a.id === id);
-
     try {
         const res = await fetch(`${API_URL}/agendamentos/${id}`, { method: 'DELETE' });
         if(res.ok) {
             alert("Sua reserva foi excluída do sistema.");
-            if(agendamento) notificarBarbeiroWhatsApp('cancelado', agendamento);
             await sincronizarBancoDeDados();
             carregarMeusAgendamentosDoBanco();
             renderizarGradeHorariosReais();
@@ -1161,7 +1138,6 @@ async function salvarEdicaoReserva() {
         if(res.ok) {
             alert("A reserva foi atualizada com sucesso!");
             fecharModal('modal-editar-reserva');
-            notificarBarbeiroWhatsApp('editado', payload);
             await sincronizarBancoDeDados();
             carregarMeusAgendamentosDoBanco();
             renderizarGradeHorariosReais();
@@ -1290,11 +1266,11 @@ function recarregarAbaAtivaAdm() {
     if(seletor) filtroBarbeiroAlvo = seletor.value;
 
     if(abaAtivaAtual === 'adm-dash') carregarDadosEstrategicosDoNeon();
-    if(abaAtivaAtual === 'adm-mkt' && perfilLogado === 'admin') carregarListaMarketingReal();
+    if(abaAtivaAtual === 'adm-mkt') carregarListaMarketingReal();
     if(abaAtivaAtual === 'adm-recepcao') carregarModoRecepcaoKanban();
-    if(abaAtivaAtual === 'adm-despesas' && perfilLogado === 'admin') renderizarDespesas();
-    if(abaAtivaAtual === 'adm-servicos' && perfilLogado === 'admin') renderizarServicosAdmin();
-    if(abaAtivaAtual === 'adm-config' && perfilLogado === 'admin') renderizarConfiguracoesAdmin();
+    if(abaAtivaAtual === 'adm-despesas') renderizarDespesas();
+    if(abaAtivaAtual === 'adm-servicos') renderizarServicosAdmin();
+    if(abaAtivaAtual === 'adm-config') renderizarConfiguracoesAdmin();
     if(abaAtivaAtual === 'adm-agenda') renderizarAgendaBloqueios();
     if(abaAtivaAtual === 'adm-analytics') carregarPainelAnalytics();
 }
@@ -1375,8 +1351,11 @@ async function carregarDadosEstrategicosDoNeon() {
                 b.totalPagar = b.servicosLiquidos + b.produtos + b.gorjetas;
                 containerSplit.innerHTML += `
                     <div class="item-backoffice">
-                        <div><strong>${b.nomeOriginal}</strong><br><span style="font-size:11px; color:var(--text-muted);">Serv: R$ ${b.servicosLiquidos.toFixed(2)} | Prod: R$ ${b.produtos.toFixed(2)} | Gorj: R$ ${b.gorjetas.toFixed(2)}</span></div>
-                        <div style="color: var(--success-color); font-weight:800;">R$ ${b.totalPagar.toFixed(2)}</div>
+                        <div class="text-truncate">
+                            <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.nomeOriginal}</strong>
+                            <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:2px;">Serv: R$ ${b.servicosLiquidos.toFixed(2)} | Prod: R$ ${b.produtos.toFixed(2)} | Gorj: R$ ${b.gorjetas.toFixed(2)}</span>
+                        </div>
+                        <div style="color: var(--success-color); font-weight:800; font-size:16px; white-space:nowrap;">R$ ${b.totalPagar.toFixed(2)}</div>
                     </div>`;
             }
         }
@@ -1411,8 +1390,12 @@ async function carregarModoRecepcaoKanban() {
             
             container.innerHTML += `
                 <div class="item-backoffice" style="border-left: 4px solid ${isConcluido ? 'var(--success-color)' : 'var(--accent-color)'}">
-                    <div><strong>👤 ${item.cliente} (${item.status})</strong><br><span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${dataBr} às ${item.hora||''} [Barbeiro: ${item.barbeiro}]</span></div>
-                    <div style="display:flex; gap:6px;">
+                    <div class="text-truncate">
+                        <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">👤 ${item.cliente} (${item.status})</strong>
+                        <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:2px;">${item.servico} - ${dataBr} às ${item.hora||''}</span>
+                        <span style="font-size:11px; color:var(--text-muted); display:block;">[Barbeiro: ${item.barbeiro}]</span>
+                    </div>
+                    <div class="btn-actions-group" style="flex-direction: column;">
                         <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
                         <button class="btn-status" style="background:var(--danger-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Falta')">✖</button>
                     </div>
@@ -1433,7 +1416,7 @@ function renderizarDespesas() {
         const despesasFiltradas = DADOS_DESPESAS.filter(d => regraDeFiltroDeTempo(d.data));
         
         let somaDespesas = 0;
-        container.innerHTML = despesasFiltradas.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhuma despesa para este período.</p>" : "";
+        container.innerHTML = despesasFiltradas.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px; text-align:center;'>Nenhuma despesa para este período.</p>" : "";
 
         despesasFiltradas.forEach(d => {
             const valor = parseFloat(d.valor);
@@ -1441,13 +1424,13 @@ function renderizarDespesas() {
             const dataBr = d.data && d.data.includes('-') ? d.data.split('-').reverse().join('/') : (d.data||'');
             
             container.innerHTML += `
-                <div class="item-backoffice" style="border-left: 4px solid var(--danger-color); margin-bottom: 8px;">
-                    <div style="flex:1;">
-                        <strong>${d.descricao}</strong><br>
-                        <span style="font-size:11px; color:var(--text-muted);">Data: ${dataBr}</span>
-                        <div style="color: var(--danger-color); font-weight:800; margin-top: 2px;">R$ ${valor.toFixed(2)}</div>
+                <div class="item-backoffice" style="border-left: 4px solid var(--danger-color);">
+                    <div class="text-truncate">
+                        <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${d.descricao}</strong>
+                        <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:2px;">Data: ${dataBr}</span>
+                        <div style="color: var(--danger-color); font-weight:800; font-size: 15px; margin-top: 4px;">R$ ${valor.toFixed(2)}</div>
                     </div>
-                    <div style="display: flex; gap: 4px; flex-direction: column;">
+                    <div class="btn-actions-group" style="flex-direction: column;">
                         <button class="btn-small-edit" onclick="abrirModalEdicaoDespesa(${d.id})">Editar</button>
                         <button class="btn-small-delete" onclick="excluirDespesa(${d.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
                     </div>
@@ -1479,32 +1462,35 @@ async function carregarPainelAnalytics() {
         });
 
         containerMapa.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 10px; background: #1f2125; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; font-size:14px;">
-                <div style="display:flex; justify-content:space-between;"><span>🌅 Manhã (09h - 12h):</span> <strong>${turnos['Manhã']} atendimentos</strong></div>
-                <div style="display:flex; justify-content:space-between; padding: 4px 0;"><span>🌤️ Tarde (12h - 18h):</span> <strong>${turnos['Tarde']} atendimentos</strong></div>
-                <div style="display:flex; justify-content:space-between;"><span>🌙 Noite (18h - 20h):</span> <strong>${turnos['Noite']} atendimentos</strong></div>
+            <div style="display: flex; flex-direction: column; gap: 12px; font-size:14px;">
+                <div style="display:flex; justify-content:space-between; background:#18191c; padding:12px; border-radius:10px; border:1px solid #2a2c32;">
+                    <span>🌅 Manhã (09h - 12h)</span> <strong style="color:var(--accent-color);">${turnos['Manhã']} atends.</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; background:#18191c; padding:12px; border-radius:10px; border:1px solid #2a2c32;">
+                    <span>🌤️ Tarde (12h - 18h)</span> <strong style="color:var(--accent-color);">${turnos['Tarde']} atends.</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; background:#18191c; padding:12px; border-radius:10px; border:1px solid #2a2c32;">
+                    <span>🌙 Noite (18h - 20h)</span> <strong style="color:var(--accent-color);">${turnos['Noite']} atends.</strong>
+                </div>
             </div>`;
 
         const containerDias = document.getElementById('analytics-dias-semana');
         if(containerDias) {
             containerDias.innerHTML = '';
-            const wrapper = document.createElement('div');
-            wrapper.style.cssText = "display: flex; flex-direction: column; gap: 12px; background: #1f2125; border: 1px solid var(--border-color); padding: 18px; border-radius: 12px;";
             
             for(let dia in dias) {
                 const pct = agendamentos.length > 0 ? Math.min((dias[dia] / agendamentos.length) * 100, 100) : 0;
-                wrapper.innerHTML += `
+                containerDias.innerHTML += `
                     <div class="analytics-bar-container">
                         <div class="analytics-bar-header">
                             <span>${dia}</span>
-                            <strong style="color: ${dias[dia] > 0 ? 'var(--accent-color)' : 'var(--text-muted)'}">${dias[dia]} clientes</strong>
+                            <strong style="color: ${dias[dia] > 0 ? 'var(--accent-color)' : 'var(--text-muted)'}">${dias[dia]}</strong>
                         </div>
                         <div class="analytics-bar-bg">
                             <div class="analytics-bar-fill" style="width: ${pct}%"></div>
                         </div>
                     </div>`;
             }
-            containerDias.appendChild(wrapper);
         }
 
         const uClientes = [...new Set(agendamentos.map(a => a.cliente))];
@@ -1513,13 +1499,13 @@ async function carregarPainelAnalytics() {
         const containerRetencao = document.getElementById('analytics-retencao');
         if(containerRetencao) {
             containerRetencao.innerHTML = `
-                <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
-                    <div class="kpi-label">Taxa de Retenção</div>
-                    <div class="kpi-val" style="color: var(--accent-color); font-size: 24px;">${uClientes.length > 0 ? Math.round((rec / uClientes.length) * 100) : 0}%</div>
+                <div class="kpi-card" style="flex: 1; text-align: center;">
+                    <div class="kpi-label">Taxa Retenção</div>
+                    <div class="kpi-val" style="color: var(--accent-color);">${uClientes.length > 0 ? Math.round((rec / uClientes.length) * 100) : 0}%</div>
                 </div>
-                <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
-                    <div class="kpi-label">LTV do Período</div>
-                    <div class="kpi-val" style="color: var(--success-color); font-size: 24px;">R$ ${(uClientes.length > 0 ? 62 * (agendamentos.length / uClientes.length) : 0).toFixed(2)}</div>
+                <div class="kpi-card" style="flex: 1; text-align: center;">
+                    <div class="kpi-label">LTV Período</div>
+                    <div class="kpi-val" style="color: var(--success-color);">R$ ${(uClientes.length > 0 ? 62 * (agendamentos.length / uClientes.length) : 0).toFixed(2)}</div>
                 </div>`;
         }
     } catch(e) {
@@ -1527,237 +1513,31 @@ async function carregarPainelAnalytics() {
     }
 }
 
-function renderizarGradeHorariosReais() {
-    const container = document.getElementById('container-horarios'); 
-    if (!container) return;
-    
-    try {
-        const dataSel = document.getElementById('data').value || '';
-        const bInfo = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado);
-        
-        container.innerHTML = ""; 
-
-        if (!bInfo) {
-            container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; margin: 10px 0;'>👆 Selecione o profissional acima para ver os horários.</p>";
-            return;
-        }
-
-        const HORARIOS_GERADOS = gerarHorariosDoDia(dataSel, bInfo.nome);
-
-        if(HORARIOS_GERADOS.length === 0) {
-            container.innerHTML = "<p style='color:var(--danger-color); font-size:14px; margin: 10px 0; font-weight: 600;'>A barbearia não funcionará nesta data (Folga/Feriado).</p>";
-            return;
-        }
-
-        let ocupados = DADOS_AGENDAMENTOS
-            .filter(a => a && a.data === dataSel && a.barbeiro === bInfo.nome && (a.status ? a.status.toLowerCase() !== 'falta' : true))
-            .map(a => a.hora ? a.hora.trim() : '');
-            
-        HORARIOS_GERADOS.forEach(g => {
-            if(g.horas.length === 0) return; 
-
-            const tituloTurno = document.createElement('div');
-            tituloTurno.className = "turno-title";
-            tituloTurno.innerText = g.turno;
-            container.appendChild(tituloTurno);
-            
-            const grid = document.createElement('div'); 
-            grid.className = "grid-horarios";
-            
-            g.horas.forEach(h => {
-                const btn = document.createElement('button'); 
-                btn.className = "btn-horario"; 
-                btn.innerText = h;
-                btn.type = "button";
-                
-                if (isSlotPast(dataSel, h.trim())) { 
-                    btn.disabled = true; 
-                    btn.style.opacity = "0.3"; 
-                    btn.innerText = "Expirado"; 
-                } else if (ocupados.includes(h.trim())) { 
-                    btn.disabled = true; 
-                    btn.innerText = "Ocupado"; 
-                } else { 
-                    if(horarioSelecionado === h.trim()) {
-                        btn.classList.add('selecionado');
-                    }
-                    
-                    btn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
-                        btn.classList.add('selecionado'); 
-                        horarioSelecionado = h.trim(); 
-                    });
-                }
-                grid.appendChild(btn);
-            });
-            container.appendChild(grid);
-        });
-    } catch (e) {
-        console.error("Erro nos horários:", e);
-    }
-}
-
-function renderizarFormularioCliente() {
-    try {
-        const boxS = document.getElementById('container-servicos'); if(boxS) boxS.innerHTML = "";
-        DADOS_SERVICOS.forEach(s => {
-            const div = document.createElement('div'); div.className = "modern-card"; 
-            div.innerHTML = `<div class="title">${s.nome} <span style="font-size:11px;color:gray;font-weight:normal;display:block;">${s.sub||''}</span></div><div class="price">R$ ${parseFloat(s.preco).toFixed(2)}</div>`;
-            div.onclick = () => { document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); servicoSelecionado = s.nome; precoServico = parseFloat(s.preco); };
-            if(boxS) boxS.appendChild(div);
-        });
-
-        const boxB = document.getElementById('container-barbeiros'); if(boxB) boxB.innerHTML = "";
-        ESTRUTURA_BARBEIROS.forEach(b => {
-            const div = document.createElement('div'); div.className = "modern-card"; div.innerHTML = `<div class="title">${b.nome}</div>`;
-            div.onclick = () => { document.querySelectorAll('#container-barbeiros .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); barbeiroSelecionado = b.id; renderizarGradeHorariosReais(); };
-            if(boxB) boxB.appendChild(div);
-        });
-
-        const boxP = document.getElementById('container-pagamentos'); if(boxP) boxP.innerHTML = "";
-        ["Pix", "Cartão de Crédito", "Cartão de Débito", "Dinheiro"].forEach(p => {
-            const div = document.createElement('div'); div.className = "modern-card"; div.innerHTML = `<div class="title">${p}</div>`;
-            div.onclick = () => { document.querySelectorAll('#container-pagamentos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); pagamentoSelecionado = p; };
-            if(boxP) boxP.appendChild(div);
-        });
-
-        renderizarGradeHorariosReais(); 
-    } catch(e) {
-        console.error("Erro no formulário:", e);
-    }
-}
-
-function carregarListaMarketingReal() {
-    const container = document.getElementById('lista-marketing-clientes'); if(!container) return;
-    try {
-        container.innerHTML = "";
-        const clientes = DADOS_USUARIOS.filter(u => u.perfil === 'cliente');
-
-        if(clientes.length === 0) {
-            container.innerHTML = "<p style='color:var(--text-muted); font-size:12px;'>Nenhum cliente cadastrado ainda.</p>";
-            return;
-        }
-
-        const hoje = new Date();
-        hoje.setHours(0,0,0,0);
-
-        clientes.forEach(cliente => {
-            const agendamentosCliente = DADOS_AGENDAMENTOS.filter(a => a && a.cliente && a.cliente.toLowerCase() === cliente.nome.toLowerCase());
-            agendamentosCliente.sort((a, b) => new Date(`${b.data||''}T00:00:00`) - new Date(`${a.data||''}T00:00:00`));
-
-            let diasInativo = 999; 
-            
-            if (agendamentosCliente.length > 0 && agendamentosCliente[0].data) {
-                const ultimaData = new Date(`${agendamentosCliente[0].data}T00:00:00`);
-                const diffTime = Math.abs(hoje - ultimaData);
-                diasInativo = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            }
-
-            const celularLimpo = cliente.celular ? cliente.celular.replace(/\D/g, '') : '';
-            const msgTexto = encodeURIComponent(`Fala ${cliente.nome.split(' ')[0]}, sumido hein! Aqui é da Prosperar Club, estamos com uma promoção exclusiva pra você dar aquele trato no visual essa semana. Bora agendar?`);
-            const linkWpp = `https://wa.me/55${celularLimpo}?text=${msgTexto}`;
-
-            if (diasInativo > 30) {
-                container.innerHTML += `
-                    <div class="item-backoffice">
-                        <div>
-                            <strong>${cliente.nome}</strong><br>
-                            <span style="font-size:11px;color:var(--danger-color);">Inativo há ${diasInativo === 999 ? 'muito tempo' : diasInativo + ' dias'} • ${cliente.celular || 'S/ Tel'}</span>
-                        </div>
-                        ${celularLimpo ? `<a href="${linkWpp}" target="_blank" class="btn-status badge-perigo" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; text-decoration: none; border: 1px solid rgba(239,68,68,0.3); padding: 6px 12px; border-radius: 6px;">Resgatar</a>` : '<span style="font-size:10px;color:gray">Sem Num.</span>'}
-                    </div>`;
-            } else {
-                container.innerHTML += `
-                    <div class="item-backoffice">
-                        <div>
-                            <strong>${cliente.nome}</strong><br>
-                            <span style="font-size:11px;color:var(--text-muted);">Ativo • Último corte há ${diasInativo} dias</span>
-                        </div>
-                        <span class="btn-status badge-sucesso" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); padding: 6px 12px; border-radius: 6px;">Fiel</span>
-                    </div>`;
-            }
-        });
-    } catch(e) { console.error("Erro marketing", e); }
-}
-
-function carregarMeusAgendamentosDoBanco() {
-    const container = document.getElementById('container-meus-agendamentos'); if(!container) return;
-    
-    try {
-        if(!nomeUsuarioLogado) {
-            container.innerHTML = "<p style='font-size:13px; color:var(--text-muted);'>Faça login para ver suas reservas.</p>";
-            return;
-        }
-
-        let meus = (DADOS_AGENDAMENTOS || []).filter(a => 
-            a && a.cliente && typeof a.cliente === 'string' && 
-            nomeUsuarioLogado && typeof nomeUsuarioLogado === 'string' && 
-            a.cliente.trim().toLowerCase() === nomeUsuarioLogado.trim().toLowerCase()
-        );
-
-        meus.sort((a, b) => {
-            const dataA = a.data || ""; const horaA = a.hora || "";
-            const dataB = b.data || ""; const horaB = b.hora || "";
-            return new Date(`${dataB}T${horaB}:00`) - new Date(`${dataA}T${horaA}:00`); 
-        });
-        
-        container.innerHTML = meus.length === 0 ? "<p style='font-size:13px; color:var(--text-muted);'>Nenhum corte agendado no sistema.</p>" : "";
-        
-        meus.forEach(item => { 
-            const status = item.status || 'Agendado';
-            const isConcluido = status.toLowerCase() === 'concluído';
-            const corBorda = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
-            const corTextoStatus = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
-            
-            const dataStr = item.data || '';
-            const dataBr = dataStr.includes('-') ? dataStr.split('-').reverse().join('/') : dataStr;
-            const servicoStr = item.servico || 'Serviço Indefinido';
-            const barbeiroStr = item.barbeiro || 'Não Atribuído';
-            const horaStr = item.hora || '--:--';
-
-            container.innerHTML += `
-            <div class="card" style="border-left: 4px solid ${corBorda}; margin-bottom: 12px; padding: 16px;">
-                <strong style="color:white; font-size: 16px;">${servicoStr}</strong><br>
-                <span style="font-size:13px;color:var(--text-muted);">Profissional: ${barbeiroStr} • Dia: ${dataBr} às ${horaStr}</span><br>
-                <span style="font-size:11px;color:${corTextoStatus}; font-weight: bold;">Status: ${status}</span>
-                <div class="btn-actions-group" style="margin-top: 10px;">
-                    <button class="btn-small-edit" onclick="abrirModalEdicaoReserva(${item.id})">Editar Reserva</button>
-                    <button class="btn-small-delete" onclick="excluirAgendamento(${item.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Cancelar / Excluir</button>
-                </div>
-            </div>`; 
-        });
-    } catch(e) {
-        console.error("Erro nas reservas do cliente:", e);
-        container.innerHTML = "<p style='color:var(--danger-color); font-size:13px;'>Erro ao carregar reservas. Atualize a página.</p>";
-    }
-}
-
 function montarMenuNavegacao(role) {
-    const nav = document.getElementById('menu-navigation'); 
-    const menuNav = document.getElementById('menu-navegacao') || nav; 
+    const menuNav = document.getElementById('menu-navegacao'); 
     if (!menuNav) return;
+
     if (role === 'admin') {
         menuNav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
-            <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
-            <button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>
-            <button class="nav-item" onclick="alternarTela('adm-despesas')">💸 Despesas</button>
-            <button class="nav-item" onclick="alternarTela('adm-servicos')">✂️ Serviços</button>
-            <button class="nav-item" onclick="alternarTela('adm-config')">⚙️ Ajustes</button>
-            <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 BI</button>`;
+            <button class="nav-item ativo" onclick="alternarTela('adm-dash')"><i>💰</i><span>Finanças</span></button>
+            <button class="nav-item" onclick="alternarTela('adm-recepcao')"><i>📺</i><span>Monitor</span></button>
+            <button class="nav-item" onclick="alternarTela('adm-mkt')"><i>📢</i><span>CRM</span></button>
+            <button class="nav-item" onclick="alternarTela('adm-despesas')"><i>💸</i><span>Despesas</span></button>
+            <button class="nav-item" onclick="alternarTela('adm-servicos')"><i>✂️</i><span>Serviços</span></button>
+            <button class="nav-item" onclick="alternarTela('adm-config')"><i>⚙️</i><span>Ajustes</span></button>
+            <button class="nav-item" onclick="alternarTela('adm-analytics')"><i>📊</i><span>BI</span></button>`;
     } else if (role === 'barbeiro') {
         menuNav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
-            <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
-            <button class="nav-item" onclick="alternarTela('adm-agenda')">📅 Agenda</button>
-            <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 Analytics</button>`;
+            <button class="nav-item ativo" onclick="alternarTela('adm-dash')"><i>💰</i><span>Finanças</span></button>
+            <button class="nav-item" onclick="alternarTela('adm-recepcao')"><i>📺</i><span>Monitor</span></button>
+            <button class="nav-item" onclick="alternarTela('adm-agenda')"><i>📅</i><span>Agenda</span></button>
+            <button class="nav-item" onclick="alternarTela('adm-analytics')"><i>📊</i><span>Métricas</span></button>`;
     } else { 
         menuNav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('home')">📅 Agendar</button>
-            <button class="nav-item" onclick="alternarTela('estilo')">🗂️ Reservas</button>`; 
+            <button class="nav-item ativo" onclick="alternarTela('home')"><i>📅</i><span>Agendar</span></button>
+            <button class="nav-item" onclick="alternarTela('estilo')"><i>🗂️</i><span>Reservas</span></button>`; 
     }
-    menuNav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()">🚪 Sair</button>`;
+    menuNav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()"><i>🚪</i><span>Sair</span></button>`;
 }
 
 async function alternarTela(idAba) {
