@@ -1785,4 +1785,3 @@ async function alternarTela(idAba) {
         console.error("Erro ao mudar de tela:", e);
     }
 }
-
