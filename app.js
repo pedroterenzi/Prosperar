@@ -665,7 +665,7 @@ async function executarLogin() {
         }
     } finally {
         if(btnEntrar) {
-            btnEntrar.innerText = "Entrar na Conta";
+            btnEntrar.innerText = "Entrar no System";
             btnEntrar.disabled = false;
         }
     }
@@ -1793,7 +1793,15 @@ async function alternarTela(idAba) {
             const el = document.getElementById(`aba-${id}`); if (el) el.classList.add('escondido');
         });
         const abaAlvo = document.getElementById(`aba-${idAba}`); if (abaAlvo) abaAlvo.classList.remove('escondido');
-        document.querySelectorAll('.nav-inferior .nav-item').forEach(btn => btn.classList.remove('ativo'));
+        
+        // CORREÇÃO: Remove de todos e readiciona no botão que acabou de ser clicado!
+        document.querySelectorAll('.nav-inferior .nav-item').forEach(btn => {
+            btn.classList.remove('ativo');
+            // Se o botão tem a aba atual no seu evento de clique, ele fica dourado/ativo
+            if(btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(idAba)) {
+                btn.classList.add('ativo');
+            }
+        });
 
         if(idAba === 'estilo') {
             const container = document.getElementById('container-meus-agendamentos');
