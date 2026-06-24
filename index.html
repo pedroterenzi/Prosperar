@@ -242,6 +242,37 @@
 
         .btn-add-data { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; transition: all 0.2s; }
         .btn-add-data:hover { background: #10b981; color: white; }
+
+        /* =========================================================
+           AJUSTE DE SCROLL PARA COMPUTADOR (MOUSE)
+           ========================================================= */
+        @media (pointer: fine) {
+            /* Revela a barra de rolagem apenas se o usuário usar mouse */
+            .nav-inferior::-webkit-scrollbar { 
+                display: block !important; 
+                height: 6px; /* Barra fininha e elegante */
+            }
+            
+            /* Fundo da barra */
+            .nav-inferior::-webkit-scrollbar-track { 
+                background: rgba(0, 0, 0, 0.3); 
+                border-radius: 10px;
+                margin: 0 15px; /* Dá um respiro nas bordas */
+            }
+            
+            /* A "pega" da barra na cor dourada do seu tema */
+            .nav-inferior::-webkit-scrollbar-thumb { 
+                background: var(--accent-color); 
+                border-radius: 10px; 
+            }
+            
+            /* Suporte para Firefox */
+            .nav-inferior {
+                scrollbar-width: thin; 
+                scrollbar-color: var(--accent-color) rgba(0, 0, 0, 0.3);
+                padding-bottom: 8px; /* Dá um espacinho extra pros botões não colarem na barra */
+            }
+        }
     </style>
 </head>
 <body>
