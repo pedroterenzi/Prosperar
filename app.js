@@ -221,22 +221,20 @@ function renderizarAgendaBloqueios() {
         bloqueiosFiltrados = DADOS_BLOQUEIOS.filter(b => b.barbeiro.trim().toLowerCase() === nomeUsuarioLogado.trim().toLowerCase());
     }
 
-    container.innerHTML = bloqueiosFiltrados.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px; text-align: center;'>Nenhum bloqueio pessoal registrado.</p>" : "";
+    container.innerHTML = bloqueiosFiltrados.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhum bloqueio pessoal registrado.</p>" : "";
 
     bloqueiosFiltrados.forEach(b => {
         const dataBr = b.data.split('-').reverse().join('/');
         let textoHora = (b.hora_inicio === "00:00" && b.hora_fim === "23:59") ? "O dia todo fechado" : `Das ${b.hora_inicio} às ${b.hora_fim}`;
         
         container.innerHTML += `
-            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color);">
-                <div class="text-truncate">
-                    <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.barbeiro}</strong>
-                    <span style="font-size:12px; color:var(--text-muted); display: block; margin-top:2px;">Data: ${dataBr}</span>
-                    <span style="color: var(--accent-color); font-weight:700; font-size:13px;">⏰ ${textoHora}</span>
+            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color); margin-bottom: 8px;">
+                <div style="flex:1;">
+                    <strong>${b.barbeiro}</strong><br>
+                    <span style="font-size:11px; color:var(--text-muted);">Data: ${dataBr}</span>
+                    <div style="color: var(--accent-color); font-weight:700; margin-top: 2px; font-size:12px;">⏰ ${textoHora}</div>
                 </div>
-                <div class="btn-actions-group">
-                    <button class="btn-small-delete" onclick="excluirBloqueio(${b.id})">Liberar</button>
-                </div>
+                <button class="btn-small-delete" onclick="excluirBloqueio(${b.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Liberar</button>
             </div>
         `;
     });
@@ -301,6 +299,8 @@ async function excluirBloqueio(id) {
     }
 }
 
+
+// --------- FUNÇÕES DE CONFIGURAÇÃO GERAL (ABA ADMIN) ----------
 function renderizarConfiguracoesAdmin() {
     document.getElementById('config-abertura').value = DADOS_CONFIG.hora_abertura || '09:00';
     document.getElementById('config-fechamento').value = DADOS_CONFIG.hora_fechamento || '20:00';
@@ -342,16 +342,14 @@ function atualizarListaDatasFechadas() {
     const container = document.getElementById('lista-datas-fechadas');
     const datasArray = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',').filter(Boolean) : [];
     
-    container.innerHTML = datasArray.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px; text-align:center;'>Nenhum feriado/folga programado.</p>" : "";
+    container.innerHTML = datasArray.length === 0 ? "<p style='color:var(--text-muted); font-size: 12px;'>Nenhum feriado/folga programado.</p>" : "";
 
     datasArray.forEach(data => {
         const dataBr = data.split('-').reverse().join('/');
         container.innerHTML += `
-            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color);">
-                <div style="font-size: 15px; font-weight: 700;" class="text-truncate">${dataBr}</div>
-                <div class="btn-actions-group">
-                    <button class="btn-small-delete" onclick="removerDataFechada('${data}')">Remover</button>
-                </div>
+            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color); margin-bottom: 6px; padding: 10px;">
+                <div style="font-size: 14px; font-weight: 600;">${dataBr}</div>
+                <button class="btn-small-delete" onclick="removerDataFechada('${data}')" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 8px; border-radius: 6px; font-size: 11px; cursor: pointer;">Remover</button>
             </div>
         `;
     });
@@ -404,7 +402,7 @@ function alternarAbasAuth(aba) {
 function atualizarSeletoresEFormulariosDeEquipe() {
     const seletorFiltro = document.getElementById('filtro-barbeiro-alvo');
     if(seletorFiltro) {
-        seletorFiltro.innerHTML = '<option value="todos">-- Todos os Profissionais --</option>';
+        seletorFiltro.innerHTML = '<option value="todos">-- Todos os Barbeiros (Geral) --</option>';
         ESTRUTURA_BARBEIROS.forEach(b => {
             seletorFiltro.innerHTML += `<option value="${b.id}">${b.nome}</option>`;
         });
@@ -423,19 +421,19 @@ function atualizarSeletoresEFormulariosDeEquipe() {
         containerLista.innerHTML = '';
         ESTRUTURA_BARBEIROS.forEach(b => {
             const isMe = b.login === usuarioLogado;
-            const badgeAdmin = b.perfil === 'admin' ? '<span style="font-size:10px; background:var(--accent-color); color:black; padding:3px 8px; border-radius:6px; font-weight:800; margin-left:6px; vertical-align:middle;">ADMIN</span>' : '';
+            const badgeAdmin = b.perfil === 'admin' ? '<span style="font-size:9px; background:var(--accent-color); color:black; padding:2px 6px; border-radius:4px; font-weight:800; margin-left:6px; vertical-align:middle;">ADMIN</span>' : '';
             
             const item = document.createElement('div');
             item.className = 'item-backoffice';
             item.innerHTML = `
-                <div class="text-truncate">
-                    <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.nome} ${badgeAdmin}</strong>
-                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">Login: ${b.login} | Com: ${(b.comissao*100).toFixed(0)}%</span>
-                    <span style="font-size:12px; color:var(--text-muted); display:block;">PIX: ${b.pix || 'N/A'}</span>
+                <div style="flex:1;">
+                    <strong>${b.nome}</strong> ${badgeAdmin}<br>
+                    <span style="font-size:11px; color:var(--text-muted);">User: ${b.login} | Split: ${(b.comissao*100).toFixed(0)}%</span><br>
+                    <span style="font-size:11px; color:var(--text-muted);">Pix: ${b.pix || 'Não cadastrado'}</span>
                 </div>
-                <div class="btn-actions-group">
+                <div style="display: flex; gap: 4px; flex-direction: column;">
                     <button class="btn-small-edit" onclick="abrirModalEdicaoBarbeiro(${b.id})">Editar</button>
-                    ${!isMe ? `<button class="btn-small-delete" onclick="removerBarbeiroSistema(${b.id})">Excluir</button>` : ''}
+                    ${!isMe ? `<button class="btn-small-delete" onclick="removerBarbeiroSistema(${b.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>` : ''}
                 </div>
             `;
             containerLista.appendChild(item);
@@ -606,6 +604,7 @@ async function executarCadastro() {
     }
 }
 
+// O LOGIN VOLTOU A SER EXATAMENTE O MODELO QUE VOCÊ VALIDOU
 async function executarLogin() {
     const loginInput = document.getElementById('login-usuario');
     const senhaInput = document.getElementById('login-senha');
@@ -625,7 +624,7 @@ async function executarLogin() {
     try {
         let res;
         let tentativas = 0;
-        let maxTentativas = 15; 
+        let maxTentativas = 6; 
         
         while(tentativas < maxTentativas) {
             try {
@@ -639,7 +638,7 @@ async function executarLogin() {
                 tentativas++;
                 if(tentativas >= maxTentativas) throw errRede; 
                 
-                if(btnEntrar) btnEntrar.innerText = `Ligando Servidor... ${tentativas}/15`;
+                if(btnEntrar) btnEntrar.innerText = `Ligando Servidor... ${tentativas}/6`;
                 await new Promise(r => setTimeout(r, 5000)); 
             }
         }
@@ -649,7 +648,7 @@ async function executarLogin() {
             usuarioLogado = user.login;
             perfilLogado = user.perfil || 'cliente';
             nomeUsuarioLogado = user.nome;
-            await ativarAcessoAoPainelProfissional(); 
+            ativarAcessoAoPainelProfissional(); // Retirado o await que quebrava o script
         } else {
             if(res.status === 404 || res.status === 401) {
                 alert("Usuário ou senha incorretos! Verifique os dados e tente novamente.");
@@ -661,13 +660,13 @@ async function executarLogin() {
         console.error("Erro final de rede:", e);
         if(login === "admin" && senha === "admin") {
             usuarioLogado = "admin"; perfilLogado = "admin"; nomeUsuarioLogado = "Admin Local";
-            await ativarAcessoAoPainelProfissional();
+            ativarAcessoAoPainelProfissional();
         } else {
             alert("O Servidor está passando por uma reinicialização profunda. Volte em 1 minuto e aperte Entrar.");
         }
     } finally {
         if(btnEntrar) {
-            btnEntrar.innerText = "Entrar na Conta";
+            btnEntrar.innerText = "Entrar no System";
             btnEntrar.disabled = false;
         }
     }
@@ -757,11 +756,23 @@ function inicializarListenersEstaticos() {
                 return;
             }
 
+            const bInfo = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado);
+
+            const boxPix = document.getElementById('box-pagamento-pix');
+            if (pagamentoSelecionado.toLowerCase() === 'pix') {
+                const chavePix = (bInfo && bInfo.pix) ? bInfo.pix : "Chave não cadastrada pelo profissional.";
+                document.getElementById('pix-chave-barbeiro').innerText = chavePix;
+                document.getElementById('pix-valor-servico').innerText = `R$ ${precoServico.toFixed(2)}`;
+                boxPix.classList.remove('escondido');
+            } else {
+                boxPix.classList.add('escondido');
+            }
+
             const r = document.getElementById('modal-resumo-detalhes');
             if(r) {
                 r.innerHTML = `
                     <strong>Procedimento:</strong> ${servicoSelecionado}<br>
-                    <strong>Profissional:</strong> ${ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome || 'Não Selecionado'}<br>
+                    <strong>Profissional:</strong> ${bInfo?.nome || 'Não Selecionado'}<br>
                     <strong>Data/Hora:</strong> ${dataSelecionada.split('-').reverse().join('/')} às ${horarioSelecionado}<br>
                     <span style="color:var(--success-color); font-weight:bold;">Valor: R$ ${precoServico.toFixed(2)}</span>
                 `;
@@ -775,7 +786,7 @@ function inicializarListenersEstaticos() {
         btnConfirmarModal.addEventListener('click', async (e) => {
             e.preventDefault();
             const btn = e.target;
-            btn.innerText = "Processando...";
+            btn.innerText = "Enviando...";
             btn.disabled = true;
 
             const dataSelecionada = document.getElementById('data').value;
@@ -802,7 +813,10 @@ function inicializarListenersEstaticos() {
 
                 if(res.ok) {
                     fecharModal('modal-confirmacao');
-                    alert("✨ Reserva efetuada com sucesso!");
+                    alert("✨ Reserva efetuada com sucesso!\nVocê será redirecionado para avisar o barbeiro.");
+                    
+                    notificarBarbeiroWhatsApp('novo', payload);
+
                     await sincronizarBancoDeDados();
                     renderizarGradeHorariosReais();
                     carregarMeusAgendamentosDoBanco();
@@ -957,19 +971,19 @@ function renderizarServicosAdmin() {
     const container = document.getElementById('lista-servicos-cadastrados');
     if(!container) return;
     
-    container.innerHTML = DADOS_SERVICOS.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px; text-align:center;'>Nenhum serviço cadastrado.</p>" : "";
+    container.innerHTML = DADOS_SERVICOS.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhum serviço cadastrado.</p>" : "";
 
     DADOS_SERVICOS.forEach(s => {
         container.innerHTML += `
-            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color);">
-                <div class="text-truncate">
-                    <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.nome}</strong>
-                    <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:2px;">${s.sub || ''}</span>
-                    <strong style="color: var(--success-color); font-size:15px; display:block; margin-top:4px;">R$ ${parseFloat(s.preco).toFixed(2)}</strong>
+            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color); margin-bottom: 8px;">
+                <div style="flex:1;">
+                    <strong>${s.nome}</strong><br>
+                    <span style="font-size:11px; color:var(--text-muted);">${s.sub || ''}</span>
+                    <div style="color: var(--success-color); font-weight:800; margin-top: 2px;">R$ ${parseFloat(s.preco).toFixed(2)}</div>
                 </div>
-                <div class="btn-actions-group">
+                <div style="display: flex; gap: 4px; flex-direction: column;">
                     <button class="btn-small-edit" onclick="abrirModalEdicaoServico(${s.id})">Editar</button>
-                    <button class="btn-small-delete" onclick="excluirServico(${s.id})">Excluir</button>
+                    <button class="btn-small-delete" onclick="excluirServico(${s.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
                 </div>
             </div>
         `;
@@ -1361,11 +1375,8 @@ async function carregarDadosEstrategicosDoNeon() {
                 b.totalPagar = b.servicosLiquidos + b.produtos + b.gorjetas;
                 containerSplit.innerHTML += `
                     <div class="item-backoffice">
-                        <div class="text-truncate">
-                            <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.nomeOriginal}</strong>
-                            <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:2px;">Serv: R$ ${b.servicosLiquidos.toFixed(2)} | Prod: R$ ${b.produtos.toFixed(2)} | Gorj: R$ ${b.gorjetas.toFixed(2)}</span>
-                        </div>
-                        <div style="color: var(--success-color); font-weight:800; font-size:16px; white-space:nowrap;">R$ ${b.totalPagar.toFixed(2)}</div>
+                        <div><strong>${b.nomeOriginal}</strong><br><span style="font-size:11px; color:var(--text-muted);">Serv: R$ ${b.servicosLiquidos.toFixed(2)} | Prod: R$ ${b.produtos.toFixed(2)} | Gorj: R$ ${b.gorjetas.toFixed(2)}</span></div>
+                        <div style="color: var(--success-color); font-weight:800;">R$ ${b.totalPagar.toFixed(2)}</div>
                     </div>`;
             }
         }
@@ -1400,12 +1411,8 @@ async function carregarModoRecepcaoKanban() {
             
             container.innerHTML += `
                 <div class="item-backoffice" style="border-left: 4px solid ${isConcluido ? 'var(--success-color)' : 'var(--accent-color)'}">
-                    <div class="text-truncate">
-                        <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">👤 ${item.cliente} (${item.status})</strong>
-                        <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:2px;">${item.servico} - ${dataBr} às ${item.hora||''}</span>
-                        <span style="font-size:11px; color:var(--text-muted); display:block;">Barbeiro: ${item.barbeiro}</span>
-                    </div>
-                    <div class="btn-actions-group">
+                    <div><strong>👤 ${item.cliente} (${item.status})</strong><br><span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${dataBr} às ${item.hora||''} [Barbeiro: ${item.barbeiro}]</span></div>
+                    <div style="display:flex; gap:6px;">
                         <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
                         <button class="btn-status" style="background:var(--danger-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Falta')">✖</button>
                     </div>
@@ -1426,7 +1433,7 @@ function renderizarDespesas() {
         const despesasFiltradas = DADOS_DESPESAS.filter(d => regraDeFiltroDeTempo(d.data));
         
         let somaDespesas = 0;
-        container.innerHTML = despesasFiltradas.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px; text-align:center;'>Nenhuma despesa para este período.</p>" : "";
+        container.innerHTML = despesasFiltradas.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhuma despesa para este período.</p>" : "";
 
         despesasFiltradas.forEach(d => {
             const valor = parseFloat(d.valor);
@@ -1434,15 +1441,15 @@ function renderizarDespesas() {
             const dataBr = d.data && d.data.includes('-') ? d.data.split('-').reverse().join('/') : (d.data||'');
             
             container.innerHTML += `
-                <div class="item-backoffice" style="border-left: 4px solid var(--danger-color);">
-                    <div class="text-truncate">
-                        <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${d.descricao}</strong>
-                        <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:2px;">Data: ${dataBr}</span>
-                        <div style="color: var(--danger-color); font-weight:800; font-size: 15px; margin-top: 4px;">R$ ${valor.toFixed(2)}</div>
+                <div class="item-backoffice" style="border-left: 4px solid var(--danger-color); margin-bottom: 8px;">
+                    <div style="flex:1;">
+                        <strong>${d.descricao}</strong><br>
+                        <span style="font-size:11px; color:var(--text-muted);">Data: ${dataBr}</span>
+                        <div style="color: var(--danger-color); font-weight:800; margin-top: 2px;">R$ ${valor.toFixed(2)}</div>
                     </div>
-                    <div class="btn-actions-group">
+                    <div style="display: flex; gap: 4px; flex-direction: column;">
                         <button class="btn-small-edit" onclick="abrirModalEdicaoDespesa(${d.id})">Editar</button>
-                        <button class="btn-small-delete" onclick="excluirDespesa(${d.id})">Excluir</button>
+                        <button class="btn-small-delete" onclick="excluirDespesa(${d.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
                     </div>
                 </div>
             `;
@@ -1472,35 +1479,32 @@ async function carregarPainelAnalytics() {
         });
 
         containerMapa.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 12px; font-size:14px;">
-                <div style="display:flex; justify-content:space-between; background:#18191c; padding:12px; border-radius:10px; border:1px solid #2a2c32;">
-                    <span>🌅 Manhã (09h - 12h)</span> <strong style="color:var(--accent-color);">${turnos['Manhã']} atends.</strong>
-                </div>
-                <div style="display:flex; justify-content:space-between; background:#18191c; padding:12px; border-radius:10px; border:1px solid #2a2c32;">
-                    <span>🌤️ Tarde (12h - 18h)</span> <strong style="color:var(--accent-color);">${turnos['Tarde']} atends.</strong>
-                </div>
-                <div style="display:flex; justify-content:space-between; background:#18191c; padding:12px; border-radius:10px; border:1px solid #2a2c32;">
-                    <span>🌙 Noite (18h - 20h)</span> <strong style="color:var(--accent-color);">${turnos['Noite']} atends.</strong>
-                </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; background: #1f2125; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; font-size:14px;">
+                <div style="display:flex; justify-content:space-between;"><span>🌅 Manhã (09h - 12h):</span> <strong>${turnos['Manhã']} atendimentos</strong></div>
+                <div style="display:flex; justify-content:space-between; padding: 4px 0;"><span>🌤️ Tarde (12h - 18h):</span> <strong>${turnos['Tarde']} atendimentos</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span>🌙 Noite (18h - 20h):</span> <strong>${turnos['Noite']} atendimentos</strong></div>
             </div>`;
 
         const containerDias = document.getElementById('analytics-dias-semana');
         if(containerDias) {
             containerDias.innerHTML = '';
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = "display: flex; flex-direction: column; gap: 12px; background: #1f2125; border: 1px solid var(--border-color); padding: 18px; border-radius: 12px;";
             
             for(let dia in dias) {
                 const pct = agendamentos.length > 0 ? Math.min((dias[dia] / agendamentos.length) * 100, 100) : 0;
-                containerDias.innerHTML += `
+                wrapper.innerHTML += `
                     <div class="analytics-bar-container">
                         <div class="analytics-bar-header">
                             <span>${dia}</span>
-                            <strong style="color: ${dias[dia] > 0 ? 'var(--accent-color)' : 'var(--text-muted)'}">${dias[dia]}</strong>
+                            <strong style="color: ${dias[dia] > 0 ? 'var(--accent-color)' : 'var(--text-muted)'}">${dias[dia]} clientes</strong>
                         </div>
                         <div class="analytics-bar-bg">
                             <div class="analytics-bar-fill" style="width: ${pct}%"></div>
                         </div>
                     </div>`;
             }
+            containerDias.appendChild(wrapper);
         }
 
         const uClientes = [...new Set(agendamentos.map(a => a.cliente))];
@@ -1509,13 +1513,13 @@ async function carregarPainelAnalytics() {
         const containerRetencao = document.getElementById('analytics-retencao');
         if(containerRetencao) {
             containerRetencao.innerHTML = `
-                <div class="kpi-card" style="flex: 1; text-align: center;">
-                    <div class="kpi-label">Taxa Retenção</div>
-                    <div class="kpi-val" style="color: var(--accent-color);">${uClientes.length > 0 ? Math.round((rec / uClientes.length) * 100) : 0}%</div>
+                <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
+                    <div class="kpi-label">Taxa de Retenção</div>
+                    <div class="kpi-val" style="color: var(--accent-color); font-size: 24px;">${uClientes.length > 0 ? Math.round((rec / uClientes.length) * 100) : 0}%</div>
                 </div>
-                <div class="kpi-card" style="flex: 1; text-align: center;">
-                    <div class="kpi-label">LTV Período</div>
-                    <div class="kpi-val" style="color: var(--success-color);">R$ ${(uClientes.length > 0 ? 62 * (agendamentos.length / uClientes.length) : 0).toFixed(2)}</div>
+                <div class="kpi-card" style="flex: 1; text-align: center; background: #16171a; border: 1px solid var(--border-color);">
+                    <div class="kpi-label">LTV do Período</div>
+                    <div class="kpi-val" style="color: var(--success-color); font-size: 24px;">R$ ${(uClientes.length > 0 ? 62 * (agendamentos.length / uClientes.length) : 0).toFixed(2)}</div>
                 </div>`;
         }
     } catch(e) {
@@ -1523,31 +1527,237 @@ async function carregarPainelAnalytics() {
     }
 }
 
-function montarMenuNavegacao(role) {
-    const menuNav = document.getElementById('menu-navegacao'); 
-    if (!menuNav) return;
+function renderizarGradeHorariosReais() {
+    const container = document.getElementById('container-horarios'); 
+    if (!container) return;
+    
+    try {
+        const dataSel = document.getElementById('data').value || '';
+        const bInfo = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado);
+        
+        container.innerHTML = ""; 
 
+        if (!bInfo) {
+            container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; margin: 10px 0;'>👆 Selecione o profissional acima para ver os horários.</p>";
+            return;
+        }
+
+        const HORARIOS_GERADOS = gerarHorariosDoDia(dataSel, bInfo.nome);
+
+        if(HORARIOS_GERADOS.length === 0) {
+            container.innerHTML = "<p style='color:var(--danger-color); font-size:14px; margin: 10px 0; font-weight: 600;'>A barbearia não funcionará nesta data (Folga/Feriado).</p>";
+            return;
+        }
+
+        let ocupados = DADOS_AGENDAMENTOS
+            .filter(a => a && a.data === dataSel && a.barbeiro === bInfo.nome && (a.status ? a.status.toLowerCase() !== 'falta' : true))
+            .map(a => a.hora ? a.hora.trim() : '');
+            
+        HORARIOS_GERADOS.forEach(g => {
+            if(g.horas.length === 0) return; 
+
+            const tituloTurno = document.createElement('div');
+            tituloTurno.className = "turno-title";
+            tituloTurno.innerText = g.turno;
+            container.appendChild(tituloTurno);
+            
+            const grid = document.createElement('div'); 
+            grid.className = "grid-horarios";
+            
+            g.horas.forEach(h => {
+                const btn = document.createElement('button'); 
+                btn.className = "btn-horario"; 
+                btn.innerText = h;
+                btn.type = "button";
+                
+                if (isSlotPast(dataSel, h.trim())) { 
+                    btn.disabled = true; 
+                    btn.style.opacity = "0.3"; 
+                    btn.innerText = "Expirado"; 
+                } else if (ocupados.includes(h.trim())) { 
+                    btn.disabled = true; 
+                    btn.innerText = "Ocupado"; 
+                } else { 
+                    if(horarioSelecionado === h.trim()) {
+                        btn.classList.add('selecionado');
+                    }
+                    
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
+                        btn.classList.add('selecionado'); 
+                        horarioSelecionado = h.trim(); 
+                    });
+                }
+                grid.appendChild(btn);
+            });
+            container.appendChild(grid);
+        });
+    } catch (e) {
+        console.error("Erro nos horários:", e);
+    }
+}
+
+function renderizarFormularioCliente() {
+    try {
+        const boxS = document.getElementById('container-servicos'); if(boxS) boxS.innerHTML = "";
+        DADOS_SERVICOS.forEach(s => {
+            const div = document.createElement('div'); div.className = "modern-card"; 
+            div.innerHTML = `<div class="title">${s.nome} <span style="font-size:11px;color:gray;font-weight:normal;display:block;">${s.sub||''}</span></div><div class="price">R$ ${parseFloat(s.preco).toFixed(2)}</div>`;
+            div.onclick = () => { document.querySelectorAll('#container-servicos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); servicoSelecionado = s.nome; precoServico = parseFloat(s.preco); };
+            if(boxS) boxS.appendChild(div);
+        });
+
+        const boxB = document.getElementById('container-barbeiros'); if(boxB) boxB.innerHTML = "";
+        ESTRUTURA_BARBEIROS.forEach(b => {
+            const div = document.createElement('div'); div.className = "modern-card"; div.innerHTML = `<div class="title">${b.nome}</div>`;
+            div.onclick = () => { document.querySelectorAll('#container-barbeiros .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); barbeiroSelecionado = b.id; renderizarGradeHorariosReais(); };
+            if(boxB) boxB.appendChild(div);
+        });
+
+        const boxP = document.getElementById('container-pagamentos'); if(boxP) boxP.innerHTML = "";
+        ["Pix", "Cartão de Crédito", "Cartão de Débito", "Dinheiro"].forEach(p => {
+            const div = document.createElement('div'); div.className = "modern-card"; div.innerHTML = `<div class="title">${p}</div>`;
+            div.onclick = () => { document.querySelectorAll('#container-pagamentos .modern-card').forEach(c => c.classList.remove('selected')); div.classList.add('selected'); pagamentoSelecionado = p; };
+            if(boxP) boxP.appendChild(div);
+        });
+
+        renderizarGradeHorariosReais(); 
+    } catch(e) {
+        console.error("Erro no formulário:", e);
+    }
+}
+
+function carregarListaMarketingReal() {
+    const container = document.getElementById('lista-marketing-clientes'); if(!container) return;
+    try {
+        container.innerHTML = "";
+        const clientes = DADOS_USUARIOS.filter(u => u.perfil === 'cliente');
+
+        if(clientes.length === 0) {
+            container.innerHTML = "<p style='color:var(--text-muted); font-size:12px;'>Nenhum cliente cadastrado ainda.</p>";
+            return;
+        }
+
+        const hoje = new Date();
+        hoje.setHours(0,0,0,0);
+
+        clientes.forEach(cliente => {
+            const agendamentosCliente = DADOS_AGENDAMENTOS.filter(a => a && a.cliente && a.cliente.toLowerCase() === cliente.nome.toLowerCase());
+            agendamentosCliente.sort((a, b) => new Date(`${b.data||''}T00:00:00`) - new Date(`${a.data||''}T00:00:00`));
+
+            let diasInativo = 999; 
+            
+            if (agendamentosCliente.length > 0 && agendamentosCliente[0].data) {
+                const ultimaData = new Date(`${agendamentosCliente[0].data}T00:00:00`);
+                const diffTime = Math.abs(hoje - ultimaData);
+                diasInativo = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+
+            const celularLimpo = cliente.celular ? cliente.celular.replace(/\D/g, '') : '';
+            const msgTexto = encodeURIComponent(`Fala ${cliente.nome.split(' ')[0]}, sumido hein! Aqui é da Prosperar Club, estamos com uma promoção exclusiva pra você dar aquele trato no visual essa semana. Bora agendar?`);
+            const linkWpp = `https://wa.me/55${celularLimpo}?text=${msgTexto}`;
+
+            if (diasInativo > 30) {
+                container.innerHTML += `
+                    <div class="item-backoffice">
+                        <div>
+                            <strong>${cliente.nome}</strong><br>
+                            <span style="font-size:11px;color:var(--danger-color);">Inativo há ${diasInativo === 999 ? 'muito tempo' : diasInativo + ' dias'} • ${cliente.celular || 'S/ Tel'}</span>
+                        </div>
+                        ${celularLimpo ? `<a href="${linkWpp}" target="_blank" class="btn-status badge-perigo" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; text-decoration: none; border: 1px solid rgba(239,68,68,0.3); padding: 6px 12px; border-radius: 6px;">Resgatar</a>` : '<span style="font-size:10px;color:gray">Sem Num.</span>'}
+                    </div>`;
+            } else {
+                container.innerHTML += `
+                    <div class="item-backoffice">
+                        <div>
+                            <strong>${cliente.nome}</strong><br>
+                            <span style="font-size:11px;color:var(--text-muted);">Ativo • Último corte há ${diasInativo} dias</span>
+                        </div>
+                        <span class="btn-status badge-sucesso" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); padding: 6px 12px; border-radius: 6px;">Fiel</span>
+                    </div>`;
+            }
+        });
+    } catch(e) { console.error("Erro marketing", e); }
+}
+
+function carregarMeusAgendamentosDoBanco() {
+    const container = document.getElementById('container-meus-agendamentos'); if(!container) return;
+    
+    try {
+        if(!nomeUsuarioLogado) {
+            container.innerHTML = "<p style='font-size:13px; color:var(--text-muted);'>Faça login para ver suas reservas.</p>";
+            return;
+        }
+
+        let meus = (DADOS_AGENDAMENTOS || []).filter(a => 
+            a && a.cliente && typeof a.cliente === 'string' && 
+            nomeUsuarioLogado && typeof nomeUsuarioLogado === 'string' && 
+            a.cliente.trim().toLowerCase() === nomeUsuarioLogado.trim().toLowerCase()
+        );
+
+        meus.sort((a, b) => {
+            const dataA = a.data || ""; const horaA = a.hora || "";
+            const dataB = b.data || ""; const horaB = b.hora || "";
+            return new Date(`${dataB}T${horaB}:00`) - new Date(`${dataA}T${horaA}:00`); 
+        });
+        
+        container.innerHTML = meus.length === 0 ? "<p style='font-size:13px; color:var(--text-muted);'>Nenhum corte agendado no sistema.</p>" : "";
+        
+        meus.forEach(item => { 
+            const status = item.status || 'Agendado';
+            const isConcluido = status.toLowerCase() === 'concluído';
+            const corBorda = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
+            const corTextoStatus = isConcluido ? 'var(--success-color)' : 'var(--accent-color)';
+            
+            const dataStr = item.data || '';
+            const dataBr = dataStr.includes('-') ? dataStr.split('-').reverse().join('/') : dataStr;
+            const servicoStr = item.servico || 'Serviço Indefinido';
+            const barbeiroStr = item.barbeiro || 'Não Atribuído';
+            const horaStr = item.hora || '--:--';
+
+            container.innerHTML += `
+            <div class="card" style="border-left: 4px solid ${corBorda}; margin-bottom: 12px; padding: 16px;">
+                <strong style="color:white; font-size: 16px;">${servicoStr}</strong><br>
+                <span style="font-size:13px;color:var(--text-muted);">Profissional: ${barbeiroStr} • Dia: ${dataBr} às ${horaStr}</span><br>
+                <span style="font-size:11px;color:${corTextoStatus}; font-weight: bold;">Status: ${status}</span>
+                <div class="btn-actions-group" style="margin-top: 10px;">
+                    <button class="btn-small-edit" onclick="abrirModalEdicaoReserva(${item.id})">Editar Reserva</button>
+                    <button class="btn-small-delete" onclick="excluirAgendamento(${item.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Cancelar / Excluir</button>
+                </div>
+            </div>`; 
+        });
+    } catch(e) {
+        console.error("Erro nas reservas do cliente:", e);
+        container.innerHTML = "<p style='color:var(--danger-color); font-size:13px;'>Erro ao carregar reservas. Atualize a página.</p>";
+    }
+}
+
+function montarMenuNavegacao(role) {
+    const nav = document.getElementById('menu-navigation'); 
+    const menuNav = document.getElementById('menu-navegacao') || nav; 
+    if (!menuNav) return;
     if (role === 'admin') {
         menuNav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('adm-dash')"><i>💰</i><span>Finanças</span></button>
-            <button class="nav-item" onclick="alternarTela('adm-recepcao')"><i>📺</i><span>Monitor</span></button>
-            <button class="nav-item" onclick="alternarTela('adm-mkt')"><i>📢</i><span>CRM</span></button>
-            <button class="nav-item" onclick="alternarTela('adm-despesas')"><i>💸</i><span>Despesas</span></button>
-            <button class="nav-item" onclick="alternarTela('adm-servicos')"><i>✂️</i><span>Serviços</span></button>
-            <button class="nav-item" onclick="alternarTela('adm-config')"><i>⚙️</i><span>Ajustes</span></button>
-            <button class="nav-item" onclick="alternarTela('adm-analytics')"><i>📊</i><span>BI</span></button>`;
+            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
+            <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
+            <button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>
+            <button class="nav-item" onclick="alternarTela('adm-despesas')">💸 Despesas</button>
+            <button class="nav-item" onclick="alternarTela('adm-servicos')">✂️ Serviços</button>
+            <button class="nav-item" onclick="alternarTela('adm-config')">⚙️ Ajustes</button>
+            <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 BI</button>`;
     } else if (role === 'barbeiro') {
         menuNav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('adm-dash')"><i>💰</i><span>Finanças</span></button>
-            <button class="nav-item" onclick="alternarTela('adm-recepcao')"><i>📺</i><span>Monitor</span></button>
-            <button class="nav-item" onclick="alternarTela('adm-agenda')"><i>📅</i><span>Agenda</span></button>
-            <button class="nav-item" onclick="alternarTela('adm-analytics')"><i>📊</i><span>Métricas</span></button>`;
+            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
+            <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
+            <button class="nav-item" onclick="alternarTela('adm-agenda')">📅 Agenda</button>
+            <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 Analytics</button>`;
     } else { 
         menuNav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('home')"><i>📅</i><span>Agendar</span></button>
-            <button class="nav-item" onclick="alternarTela('estilo')"><i>🗂️</i><span>Reservas</span></button>`; 
+            <button class="nav-item ativo" onclick="alternarTela('home')">📅 Agendar</button>
+            <button class="nav-item" onclick="alternarTela('estilo')">🗂️ Reservas</button>`; 
     }
-    menuNav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()"><i>🚪</i><span>Sair</span></button>`;
+    menuNav.innerHTML += `<button class="nav-item" style="color:var(--danger-color)" onclick="window.location.reload()">🚪 Sair</button>`;
 }
 
 async function alternarTela(idAba) {
@@ -1575,3 +1785,4 @@ async function alternarTela(idAba) {
         console.error("Erro ao mudar de tela:", e);
     }
 }
+
