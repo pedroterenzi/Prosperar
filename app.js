@@ -665,7 +665,7 @@ async function executarLogin() {
         }
     } finally {
         if(btnEntrar) {
-            btnEntrar.innerText = "Entrar no System";
+            btnEntrar.innerText = "Entrar na Conta";
             btnEntrar.disabled = false;
         }
     }
