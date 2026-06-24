@@ -171,7 +171,6 @@
         
         /* -------------------------------------------------------------
            ESTRUTURA INTELIGENTE PARA CARTÕES RESPONSIVOS 
-           Permite que os botões caiam para a linha debaixo se a tela for pequena
            ------------------------------------------------------------- */
         .item-backoffice { 
             background: #18191c; border: 1px solid #2a2c32; padding: 16px; 
@@ -191,7 +190,6 @@
         .btn-small-edit { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); }
         .btn-small-edit:hover { background: #3b82f6; color: white; }
 
-        /* Media Query para telas médias/grandes (Coloca os botões lado a lado com o texto) */
         @media (min-width: 420px) {
             .item-backoffice { flex-wrap: nowrap; }
             .text-truncate { flex: 1 1 auto; }
@@ -208,7 +206,6 @@
         
         /* -------------------------------------------------------------
            NOVO MENU INFERIOR NATIVO E CENTRALIZADO
-           Se couberem os botões, fica centralizado. Se não, permite arrastar.
            ------------------------------------------------------------- */
         .nav-inferior { 
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
@@ -225,11 +222,18 @@
             flex: 1; min-width: 66px; scroll-snap-align: start;
             background: transparent; border: none; color: #71717a; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; 
-            cursor: pointer; transition: all 0.3s ease; padding: 4px;
+            cursor: pointer; transition: all 0.3s ease; 
+            padding: 8px 4px; /* Mais preenchimento para acomodar o fundo */
+            border-radius: 14px; /* Bordas suaves para o botão */
         }
         .nav-item span { font-size: 10px; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif;}
         .nav-item i { font-size: 20px; font-style: normal; transition: transform 0.2s;}
-        .nav-item.ativo { color: var(--accent-color); }
+        
+        /* AQUI FOI ADICIONADO O FUNDO E O DESTAQUE DO ITEM ATIVO */
+        .nav-item.ativo { 
+            color: var(--accent-color); 
+            background: rgba(212, 175, 55, 0.15); 
+        }
         .nav-item.ativo i { transform: translateY(-3px); }
         
         .escondido { display: none !important; }
@@ -247,30 +251,23 @@
            AJUSTE DE SCROLL PARA COMPUTADOR (MOUSE)
            ========================================================= */
         @media (pointer: fine) {
-            /* Revela a barra de rolagem apenas se o usuário usar mouse */
             .nav-inferior::-webkit-scrollbar { 
                 display: block !important; 
-                height: 6px; /* Barra fininha e elegante */
+                height: 6px; 
             }
-            
-            /* Fundo da barra */
             .nav-inferior::-webkit-scrollbar-track { 
                 background: rgba(0, 0, 0, 0.3); 
                 border-radius: 10px;
-                margin: 0 15px; /* Dá um respiro nas bordas */
+                margin: 0 15px;
             }
-            
-            /* A "pega" da barra na cor dourada do seu tema */
             .nav-inferior::-webkit-scrollbar-thumb { 
                 background: var(--accent-color); 
                 border-radius: 10px; 
             }
-            
-            /* Suporte para Firefox */
             .nav-inferior {
                 scrollbar-width: thin; 
                 scrollbar-color: var(--accent-color) rgba(0, 0, 0, 0.3);
-                padding-bottom: 8px; /* Dá um espacinho extra pros botões não colarem na barra */
+                padding-bottom: 8px; 
             }
         }
     </style>
@@ -713,6 +710,14 @@
         <h3 style="text-align: center; color: var(--accent-color);">Confirmar Agendamento</h3>
         <p id="modal-resumo-detalhes" style="font-size: 15px; line-height: 1.6; color: #fff; margin-bottom: 20px;"></p>
         
+        <div id="box-pagamento-pix" class="escondido" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 16px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
+            <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 700; color: var(--success-color); text-transform: uppercase;">Pagamento via PIX</p>
+            <p style="margin: 0 0 4px 0; font-size: 13px; color: var(--text-muted);">Chave do Profissional:</p>
+            <strong id="pix-chave-barbeiro" style="font-size: 15px; color: #fff; display: block; margin-bottom: 10px; word-break: break-all;"></strong>
+            <p style="margin: 0 0 4px 0; font-size: 13px; color: var(--text-muted);">Valor a transferir:</p>
+            <strong id="pix-valor-servico" style="font-size: 18px; color: var(--success-color);"></strong>
+        </div>
+
         <button class="btn-gold" id="btn-confirmar-modal" style="font-size: 16px;">Confirmar Oficialmente</button>
         <button class="btn-danger" style="background: transparent; color: var(--text-muted); margin-top: 4px;" onclick="fecharModal('modal-confirmacao')">Cancelar</button>
     </div>
