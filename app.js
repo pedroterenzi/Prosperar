@@ -221,20 +221,20 @@ function renderizarAgendaBloqueios() {
         bloqueiosFiltrados = DADOS_BLOQUEIOS.filter(b => b.barbeiro.trim().toLowerCase() === nomeUsuarioLogado.trim().toLowerCase());
     }
 
-    container.innerHTML = bloqueiosFiltrados.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhum bloqueio pessoal registrado.</p>" : "";
+    container.innerHTML = bloqueiosFiltrados.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px; text-align: center;'>Nenhum bloqueio pessoal registrado.</p>" : "";
 
     bloqueiosFiltrados.forEach(b => {
         const dataBr = b.data.split('-').reverse().join('/');
         let textoHora = (b.hora_inicio === "00:00" && b.hora_fim === "23:59") ? "O dia todo fechado" : `Das ${b.hora_inicio} às ${b.hora_fim}`;
         
         container.innerHTML += `
-            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color); margin-bottom: 8px;">
+            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color);">
                 <div class="text-truncate">
                     <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.barbeiro}</strong>
-                    <span style="font-size:11px; color:var(--text-muted); display:block;">Data: ${dataBr}</span>
-                    <div style="color: var(--accent-color); font-weight:700; margin-top: 2px; font-size:12px;">⏰ ${textoHora}</div>
+                    <span style="font-size:12px; color:var(--text-muted); display: block; margin-top:2px;">Data: ${dataBr}</span>
+                    <span style="color: var(--accent-color); font-weight:700; font-size:13px;">⏰ ${textoHora}</span>
                 </div>
-                <div style="flex-shrink:0;">
+                <div class="btn-actions-group">
                     <button class="btn-small-delete" onclick="excluirBloqueio(${b.id})">Liberar</button>
                 </div>
             </div>
@@ -342,14 +342,14 @@ function atualizarListaDatasFechadas() {
     const container = document.getElementById('lista-datas-fechadas');
     const datasArray = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',').filter(Boolean) : [];
     
-    container.innerHTML = datasArray.length === 0 ? "<p style='color:var(--text-muted); font-size: 12px;'>Nenhum feriado/folga programado.</p>" : "";
+    container.innerHTML = datasArray.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px; text-align:center;'>Nenhum feriado/folga programado.</p>" : "";
 
     datasArray.forEach(data => {
         const dataBr = data.split('-').reverse().join('/');
         container.innerHTML += `
-            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color); margin-bottom: 6px; padding: 10px;">
-                <div style="font-size: 14px; font-weight: 600;" class="text-truncate">${dataBr}</div>
-                <div style="flex-shrink:0;">
+            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color);">
+                <div style="font-size: 15px; font-weight: 700;" class="text-truncate">${dataBr}</div>
+                <div class="btn-actions-group">
                     <button class="btn-small-delete" onclick="removerDataFechada('${data}')">Remover</button>
                 </div>
             </div>
@@ -404,7 +404,7 @@ function alternarAbasAuth(aba) {
 function atualizarSeletoresEFormulariosDeEquipe() {
     const seletorFiltro = document.getElementById('filtro-barbeiro-alvo');
     if(seletorFiltro) {
-        seletorFiltro.innerHTML = '<option value="todos">-- Todos os Barbeiros (Geral) --</option>';
+        seletorFiltro.innerHTML = '<option value="todos">-- Todos os Profissionais --</option>';
         ESTRUTURA_BARBEIROS.forEach(b => {
             seletorFiltro.innerHTML += `<option value="${b.id}">${b.nome}</option>`;
         });
@@ -423,17 +423,17 @@ function atualizarSeletoresEFormulariosDeEquipe() {
         containerLista.innerHTML = '';
         ESTRUTURA_BARBEIROS.forEach(b => {
             const isMe = b.login === usuarioLogado;
-            const badgeAdmin = b.perfil === 'admin' ? '<span style="font-size:9px; background:var(--accent-color); color:black; padding:2px 6px; border-radius:4px; font-weight:800; margin-left:6px; vertical-align:middle;">ADMIN</span>' : '';
+            const badgeAdmin = b.perfil === 'admin' ? '<span style="font-size:10px; background:var(--accent-color); color:black; padding:3px 8px; border-radius:6px; font-weight:800; margin-left:6px; vertical-align:middle;">ADMIN</span>' : '';
             
             const item = document.createElement('div');
             item.className = 'item-backoffice';
             item.innerHTML = `
                 <div class="text-truncate">
                     <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${b.nome} ${badgeAdmin}</strong>
-                    <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:2px;">User: ${b.login} | Split: ${(b.comissao*100).toFixed(0)}%</span>
-                    <span style="font-size:11px; color:var(--text-muted); display:block;">Pix: ${b.pix || 'N/A'}</span>
+                    <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:4px;">Login: ${b.login} | Com: ${(b.comissao*100).toFixed(0)}%</span>
+                    <span style="font-size:12px; color:var(--text-muted); display:block;">PIX: ${b.pix || 'N/A'}</span>
                 </div>
-                <div class="btn-actions-group" style="flex-direction: column; flex-shrink:0;">
+                <div class="btn-actions-group">
                     <button class="btn-small-edit" onclick="abrirModalEdicaoBarbeiro(${b.id})">Editar</button>
                     ${!isMe ? `<button class="btn-small-delete" onclick="removerBarbeiroSistema(${b.id})">Excluir</button>` : ''}
                 </div>
@@ -449,6 +449,7 @@ function abrirModalEdicaoBarbeiro(id) {
     document.getElementById('edit-barbeiro-id').value = barbeiro.id;
     document.getElementById('edit-barbeiro-nome').value = barbeiro.nome;
     document.getElementById('edit-barbeiro-celular').value = barbeiro.celular || "";
+    document.getElementById('edit-barbeiro-pix').value = barbeiro.pix || "";
     document.getElementById('edit-barbeiro-comissao').value = barbeiro.comissao.toFixed(2);
     document.getElementById('edit-barbeiro-perfil').value = barbeiro.perfil;
     document.getElementById('modal-editar-barbeiro').classList.remove('escondido');
@@ -458,6 +459,7 @@ async function salvarEdicaoBarbeiro() {
     const id = document.getElementById('edit-barbeiro-id').value;
     const nome = document.getElementById('edit-barbeiro-nome').value.trim();
     const celular = document.getElementById('edit-barbeiro-celular').value.trim();
+    const pix = document.getElementById('edit-barbeiro-pix').value.trim();
     const comissao = parseFloat(document.getElementById('edit-barbeiro-comissao').value);
     const perfil = document.getElementById('edit-barbeiro-perfil').value;
     
@@ -467,7 +469,7 @@ async function salvarEdicaoBarbeiro() {
         const res = await fetch(`${API_URL}/usuarios/${id}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ nome, celular, comissao, perfil })
+            body: JSON.stringify({ nome, celular, comissao, perfil, pix })
         });
 
         if(res.ok) {
@@ -486,11 +488,12 @@ async function incluirBarbeiroSistema() {
     const nome = document.getElementById('adm-barbeiro-nome').value.trim();
     const login = document.getElementById('adm-barbeiro-login').value.trim().toLowerCase();
     const celular = document.getElementById('adm-barbeiro-celular').value.trim();
+    const pix = document.getElementById('adm-barbeiro-pix').value.trim();
     const comissao = parseFloat(document.getElementById('adm-barbeiro-comissao').value);
     const perfil = document.getElementById('adm-barbeiro-perfil').value;
     const senha = document.getElementById('adm-barbeiro-senha').value;
 
-    if(!nome || !login || !celular || !senha) return alert("Por favor, preencha todos os campos obrigatórios!");
+    if(!nome || !login || !senha) return alert("Por favor, preencha nome, login e senha.");
 
     const payload = {
         login: login,
@@ -499,7 +502,8 @@ async function incluirBarbeiroSistema() {
         celular: celular,
         perfil: perfil,
         plano_assinatura: "Nenhum",
-        comissao: comissao
+        comissao: comissao,
+        pix: pix
     };
 
     const btn = document.querySelector('button[onclick="incluirBarbeiroSistema()"]');
@@ -517,6 +521,7 @@ async function incluirBarbeiroSistema() {
             document.getElementById('adm-barbeiro-nome').value = '';
             document.getElementById('adm-barbeiro-login').value = '';
             document.getElementById('adm-barbeiro-celular').value = '';
+            document.getElementById('adm-barbeiro-pix').value = '';
             document.getElementById('adm-barbeiro-senha').value = '';
 
             await sincronizarBancoDeDados();
@@ -620,7 +625,7 @@ async function executarLogin() {
     try {
         let res;
         let tentativas = 0;
-        let maxTentativas = 6; 
+        let maxTentativas = 15; 
         
         while(tentativas < maxTentativas) {
             try {
@@ -634,7 +639,7 @@ async function executarLogin() {
                 tentativas++;
                 if(tentativas >= maxTentativas) throw errRede; 
                 
-                if(btnEntrar) btnEntrar.innerText = `Ligando Servidor... ${tentativas}/6`;
+                if(btnEntrar) btnEntrar.innerText = `Ligando Servidor... ${tentativas}/15`;
                 await new Promise(r => setTimeout(r, 5000)); 
             }
         }
@@ -644,7 +649,7 @@ async function executarLogin() {
             usuarioLogado = user.login;
             perfilLogado = user.perfil || 'cliente';
             nomeUsuarioLogado = user.nome;
-            ativarAcessoAoPainelProfissional(); 
+            await ativarAcessoAoPainelProfissional(); 
         } else {
             if(res.status === 404 || res.status === 401) {
                 alert("Usuário ou senha incorretos! Verifique os dados e tente novamente.");
@@ -656,13 +661,13 @@ async function executarLogin() {
         console.error("Erro final de rede:", e);
         if(login === "admin" && senha === "admin") {
             usuarioLogado = "admin"; perfilLogado = "admin"; nomeUsuarioLogado = "Admin Local";
-            ativarAcessoAoPainelProfissional();
+            await ativarAcessoAoPainelProfissional();
         } else {
             alert("O Servidor está passando por uma reinicialização profunda. Volte em 1 minuto e aperte Entrar.");
         }
     } finally {
         if(btnEntrar) {
-            btnEntrar.innerText = "Entrar no System";
+            btnEntrar.innerText = "Entrar na Conta";
             btnEntrar.disabled = false;
         }
     }
@@ -757,7 +762,7 @@ function inicializarListenersEstaticos() {
                 r.innerHTML = `
                     <strong>Procedimento:</strong> ${servicoSelecionado}<br>
                     <strong>Profissional:</strong> ${ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome || 'Não Selecionado'}<br>
-                    <strong>Data/Hora:</strong> ${dataSelecionada} às ${horarioSelecionado}<br>
+                    <strong>Data/Hora:</strong> ${dataSelecionada.split('-').reverse().join('/')} às ${horarioSelecionado}<br>
                     <span style="color:var(--success-color); font-weight:bold;">Valor: R$ ${precoServico.toFixed(2)}</span>
                 `;
             }
@@ -770,7 +775,7 @@ function inicializarListenersEstaticos() {
         btnConfirmarModal.addEventListener('click', async (e) => {
             e.preventDefault();
             const btn = e.target;
-            btn.innerText = "Enviando...";
+            btn.innerText = "Processando...";
             btn.disabled = true;
 
             const dataSelecionada = document.getElementById('data').value;
@@ -952,19 +957,19 @@ function renderizarServicosAdmin() {
     const container = document.getElementById('lista-servicos-cadastrados');
     if(!container) return;
     
-    container.innerHTML = DADOS_SERVICOS.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhum serviço cadastrado.</p>" : "";
+    container.innerHTML = DADOS_SERVICOS.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px; text-align:center;'>Nenhum serviço cadastrado.</p>" : "";
 
     DADOS_SERVICOS.forEach(s => {
         container.innerHTML += `
-            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color); margin-bottom: 8px;">
+            <div class="item-backoffice" style="border-left: 4px solid var(--accent-color);">
                 <div class="text-truncate">
                     <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.nome}</strong>
-                    <span style="font-size:11px; color:var(--text-muted); display:block;">${s.sub || ''}</span>
-                    <div style="color: var(--success-color); font-weight:800; margin-top: 2px;">R$ ${parseFloat(s.preco).toFixed(2)}</div>
+                    <span style="font-size:11px; color:var(--text-muted); display:block; margin-top:2px;">${s.sub || ''}</span>
+                    <strong style="color: var(--success-color); font-size:15px; display:block; margin-top:4px;">R$ ${parseFloat(s.preco).toFixed(2)}</strong>
                 </div>
-                <div class="btn-actions-group" style="flex-direction: column; flex-shrink: 0;">
+                <div class="btn-actions-group">
                     <button class="btn-small-edit" onclick="abrirModalEdicaoServico(${s.id})">Editar</button>
-                    <button class="btn-small-delete" onclick="excluirServico(${s.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
+                    <button class="btn-small-delete" onclick="excluirServico(${s.id})">Excluir</button>
                 </div>
             </div>
         `;
@@ -1025,10 +1030,14 @@ async function excluirServico(id) {
 
 async function excluirAgendamento(id) {
     if(!confirm("Tem certeza que deseja cancelar e excluir esta reserva?")) return;
+    
+    const agendamento = DADOS_AGENDAMENTOS.find(a => a.id === id);
+
     try {
         const res = await fetch(`${API_URL}/agendamentos/${id}`, { method: 'DELETE' });
         if(res.ok) {
             alert("Sua reserva foi excluída do sistema.");
+            if(agendamento) notificarBarbeiroWhatsApp('cancelado', agendamento);
             await sincronizarBancoDeDados();
             carregarMeusAgendamentosDoBanco();
             renderizarGradeHorariosReais();
@@ -1138,6 +1147,7 @@ async function salvarEdicaoReserva() {
         if(res.ok) {
             alert("A reserva foi atualizada com sucesso!");
             fecharModal('modal-editar-reserva');
+            notificarBarbeiroWhatsApp('editado', payload);
             await sincronizarBancoDeDados();
             carregarMeusAgendamentosDoBanco();
             renderizarGradeHorariosReais();
@@ -1266,11 +1276,11 @@ function recarregarAbaAtivaAdm() {
     if(seletor) filtroBarbeiroAlvo = seletor.value;
 
     if(abaAtivaAtual === 'adm-dash') carregarDadosEstrategicosDoNeon();
-    if(abaAtivaAtual === 'adm-mkt') carregarListaMarketingReal();
+    if(abaAtivaAtual === 'adm-mkt' && perfilLogado === 'admin') carregarListaMarketingReal();
     if(abaAtivaAtual === 'adm-recepcao') carregarModoRecepcaoKanban();
-    if(abaAtivaAtual === 'adm-despesas') renderizarDespesas();
-    if(abaAtivaAtual === 'adm-servicos') renderizarServicosAdmin();
-    if(abaAtivaAtual === 'adm-config') renderizarConfiguracoesAdmin();
+    if(abaAtivaAtual === 'adm-despesas' && perfilLogado === 'admin') renderizarDespesas();
+    if(abaAtivaAtual === 'adm-servicos' && perfilLogado === 'admin') renderizarServicosAdmin();
+    if(abaAtivaAtual === 'adm-config' && perfilLogado === 'admin') renderizarConfiguracoesAdmin();
     if(abaAtivaAtual === 'adm-agenda') renderizarAgendaBloqueios();
     if(abaAtivaAtual === 'adm-analytics') carregarPainelAnalytics();
 }
@@ -1393,9 +1403,9 @@ async function carregarModoRecepcaoKanban() {
                     <div class="text-truncate">
                         <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">👤 ${item.cliente} (${item.status})</strong>
                         <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:2px;">${item.servico} - ${dataBr} às ${item.hora||''}</span>
-                        <span style="font-size:11px; color:var(--text-muted); display:block;">[Barbeiro: ${item.barbeiro}]</span>
+                        <span style="font-size:11px; color:var(--text-muted); display:block;">Barbeiro: ${item.barbeiro}</span>
                     </div>
-                    <div class="btn-actions-group" style="flex-direction: column;">
+                    <div class="btn-actions-group">
                         <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
                         <button class="btn-status" style="background:var(--danger-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Falta')">✖</button>
                     </div>
@@ -1430,9 +1440,9 @@ function renderizarDespesas() {
                         <span style="font-size:12px; color:var(--text-muted); display:block; margin-top:2px;">Data: ${dataBr}</span>
                         <div style="color: var(--danger-color); font-weight:800; font-size: 15px; margin-top: 4px;">R$ ${valor.toFixed(2)}</div>
                     </div>
-                    <div class="btn-actions-group" style="flex-direction: column;">
+                    <div class="btn-actions-group">
                         <button class="btn-small-edit" onclick="abrirModalEdicaoDespesa(${d.id})">Editar</button>
-                        <button class="btn-small-delete" onclick="excluirDespesa(${d.id})" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;">Excluir</button>
+                        <button class="btn-small-delete" onclick="excluirDespesa(${d.id})">Excluir</button>
                     </div>
                 </div>
             `;
