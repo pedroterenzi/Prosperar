@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prosperar Club - Painel Corporativo</title>
-    <!-- Fonte Premium Startups -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -67,12 +66,12 @@
         .form-group input, .form-group select { 
             width: 100%; 
             min-width: 0; 
-            padding: 12px 14px; 
+            padding: 12px 10px; /* Padding ajustado para melhor respiração no mobile */
             background: #18191c; 
             border: 1px solid #33353b; 
             border-radius: 12px; 
             color: white; 
-            font-size: 15px; 
+            font-size: 14px; /* Ajuste suave para não encavalar dados */
             transition: all 0.3s ease;
         }
         .form-group input:focus, .form-group select:focus { 
@@ -140,14 +139,22 @@
         .btn-filtro-tempo { flex: 1; min-width: max-content; background: none; border: none; color: var(--text-muted); padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
         .btn-filtro-tempo.ativo { background: var(--text-color); color: #000; font-weight: 800; }
 
-        .intervalo-custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        /* A SOLUÇÃO BLINDADA: Flexbox com quebra automática de linha */
+        .intervalo-custom-grid { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 12px; 
+            width: 100%;
+        }
+        .intervalo-custom-grid .form-group { 
+            flex: 1; 
+            min-width: 130px; /* Obriga a quebrar de linha se o celular for muito estreito */
+            margin-bottom: 0; 
+        }
 
         .lista-backoffice { display: flex; flex-direction: column; gap: 12px; }
         
-        /* -------------------------------------------------------------
-           ESTRUTURA INTELIGENTE PARA CARTÕES RESPONSIVOS 
-           Permite que os botões caiam para a linha debaixo se a tela for pequena
-           ------------------------------------------------------------- */
+        /* Cartões Responsivos de Listas */
         .item-backoffice { 
             background: #18191c; border: 1px solid #2a2c32; padding: 16px; 
             border-radius: 16px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;
@@ -166,7 +173,6 @@
         .btn-small-edit { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); }
         .btn-small-edit:hover { background: #3b82f6; color: white; }
 
-        /* Media Query para telas médias/grandes (Coloca os botões lado a lado com o texto) */
         @media (min-width: 420px) {
             .item-backoffice { flex-wrap: nowrap; }
             .text-truncate { flex: 1 1 auto; }
@@ -182,17 +188,16 @@
         .modal-content { background: var(--card-bg); border: 1px solid #33353b; border-radius: 20px; padding: 28px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; animation: fadeIn 0.3s ease-out; box-shadow: 0 20px 40px rgba(0,0,0,0.6);}
         
         /* -------------------------------------------------------------
-           NOVO MENU INFERIOR NATIVO E CENTRALIZADO
-           Se couberem os botões, fica centralizado. Se não, permite arrastar.
+           MENU INFERIOR CENTRALIZADO PARA FICAR ALINHADO NO MOBILE
            ------------------------------------------------------------- */
         .nav-inferior { 
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
             width: calc(100% - 40px); max-width: 460px; 
             background: rgba(18, 19, 23, 0.90); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255,255,255,0.08); 
-            display: flex; justify-content: space-evenly; align-items: center; padding: 12px 10px; 
+            display: flex; justify-content: center; align-items: center; padding: 12px 10px; 
             border-radius: 24px; z-index: 1000; box-shadow: 0 10px 40px rgba(0,0,0,0.7); 
-            overflow-x: auto; scroll-snap-type: x mandatory; gap: 4px; scrollbar-width: none;
+            overflow-x: auto; scroll-snap-type: x mandatory; gap: 8px; scrollbar-width: none;
         }
         .nav-inferior::-webkit-scrollbar { display: none; }
         
@@ -200,7 +205,7 @@
             flex: 1; min-width: 66px; scroll-snap-align: start;
             background: transparent; border: none; color: #71717a; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; 
-            cursor: pointer; transition: all 0.3s ease; padding: 4px;
+            cursor: pointer; transition: all 0.3s ease; padding: 4px; text-align: center;
         }
         .nav-item span { font-size: 10px; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif;}
         .nav-item i { font-size: 20px; font-style: normal; transition: transform 0.2s;}
@@ -223,7 +228,6 @@
 
 <div class="app-container">
 
-    <!-- TELA DE LOGIN E CADASTRO -->
     <div id="tela-autenticacao" class="card" style="margin-top: 5vh;">
         <h2>Prosperar Club</h2>
         <p style="text-align:center; color:var(--text-muted); font-size: 14px; margin-top:-10px; margin-bottom: 25px;">Agende seu horário</p>
@@ -273,20 +277,16 @@
         </div>
     </div>
 
-    <!-- CONTEÚDO OPERACIONAL DO CORE APP -->
     <div id="conteudo-app" class="escondido">
         
-        <!-- SELETOR E FILTRO GLOBAL -->
         <div id="bloco-filtros-global-adm" class="escondido card" style="padding: 18px;">
             <h4 style="font-size: 12px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Painel de Controle:</h4>
-            
             <div class="form-group" style="margin-bottom: 16px;">
                 <label>Visualizar dados de:</label>
                 <select id="filtro-barbeiro-alvo" onchange="recarregarAbaAtivaAdm()">
                     <option value="todos">-- Todos os Profissionais --</option>
                 </select>
             </div>
-
             <div class="filtros-tempo-container">
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('hoje', this)">Hoje</button>
                 <button class="btn-filtro-tempo" onclick="mudarFiltroGlobalAdm('ontem', this)">Ontem</button>
@@ -296,13 +296,12 @@
             </div>
             <div id="box-escolha-data-custom" class="escondido">
                 <div class="intervalo-custom-grid">
-                    <div class="form-group" style="margin-bottom:0;"><input type="date" id="filtro-data-inicio" onchange="atualizarFiltroDataRange()"></div>
-                    <div class="form-group" style="margin-bottom:0;"><input type="date" id="filtro-data-fim" onchange="atualizarFiltroDataRange()"></div>
+                    <div class="form-group"><input type="date" id="filtro-data-inicio" onchange="atualizarFiltroDataRange()"></div>
+                    <div class="form-group"><input type="date" id="filtro-data-fim" onchange="atualizarFiltroDataRange()"></div>
                 </div>
             </div>
         </div>
 
-        <!-- ABA DO CLIENTE: AGENDAMENTO -->
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 24px; text-align: center;">
                 <h2 id="boas-vistas-cliente" style="font-size: 26px; margin-bottom: 6px;">Olá!</h2>
@@ -317,7 +316,9 @@
                 <div id="container-barbeiros" class="cards-container"></div>
                 
                 <span class="step-label">3. Selecione o Dia:</span>
-                <input type="date" id="data">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <input type="date" id="data">
+                </div>
                 
                 <span class="step-label">4. Horários Disponíveis:</span>
                 <div id="container-horarios"></div>
@@ -329,13 +330,11 @@
             </div>
         </section>
 
-        <!-- ABA DO CLIENTE: MEUS CORTES -->
         <section id="aba-estilo" class="escondido">
             <h3 style="text-align: center; margin-bottom: 20px;">Meus Agendamentos</h3>
             <div id="container-meus-agendamentos"></div>
         </section>
 
-        <!-- ABA BACKOFFICE: MONITOR FINANCEIRO & EQUIPE -->
         <section id="aba-adm-dash" class="escondido">
             <h2 class="gold-text" style="text-align: left; margin-bottom: 4px;">Métricas de Faturamento</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Visão geral do período selecionado:</p>
@@ -360,7 +359,7 @@
             </div>
 
             <div class="card restrito-adm">
-                <h3>Divisão de Comissão (Split Real)</h3>
+                <h3>Divisão Automática de Comissão</h3>
                 <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; font-size: 13px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
                     <div id="detalhe-servicos">Serviços Brutos: R$ 0,00</div>
                     <div id="detalhe-produtos">Produtos Brutos: R$ 0,00</div>
@@ -371,307 +370,141 @@
             <div class="card escondido" id="card-rendimentos-barbeiro">
                 <h3 class="gold-text">Minha Carteira Pro</h3>
                 <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.3);">
-                    <div class="text-truncate">
+                    <div style="flex:1;">
                         <strong style="font-size:15px;">Comissão Acumulada</strong><br>
                         <span style="font-size:11px; color:var(--text-muted);" id="minha-breakdown-comissao">Carregando...</span>
                     </div>
                     <div style="color: var(--success-color); font-weight:800; font-size: 20px;" id="minha-comissao-total">R$ 0,00</div>
                 </div>
             </div>
-
-            <div class="card restrito-adm" style="border-color: rgba(212,175,55,0.3);">
-                <h3>👥 Gerenciamento de Equipe</h3>
-                <p style="color:var(--text-muted); font-size:13px; margin-top:-8px; margin-bottom: 20px;">Controle acessos e taxas de comissão.</p>
-                
-                <div style="background: #18191c; padding: 20px; border-radius: 16px; margin-bottom: 20px; border: 1px solid #33353b;">
-                    <h4 style="font-size:14px; margin-bottom:16px; color: var(--accent-color);">+ Incluir Novo Profissional</h4>
-                    <div class="form-group">
-                        <label>Nome Completo:</label>
-                        <input type="text" id="adm-barbeiro-nome" placeholder="Ex: Pedro Silva">
-                    </div>
-                    <div class="form-group">
-                        <label>Nome de Usuário (Login):</label>
-                        <input type="text" id="adm-barbeiro-login" placeholder="Ex: pedrosilva">
-                    </div>
-                    <div class="intervalo-custom-grid">
-                        <div class="form-group">
-                            <label>WhatsApp:</label>
-                            <input type="text" id="adm-barbeiro-celular" placeholder="Ex: 11999999999">
-                        </div>
-                        <div class="form-group">
-                            <label>Chave PIX:</label>
-                            <input type="text" id="adm-barbeiro-pix" placeholder="Opcional">
-                        </div>
-                    </div>
-                    <div class="intervalo-custom-grid">
-                        <div class="form-group">
-                            <label>Comissão (%):</label>
-                            <select id="adm-barbeiro-comissao">
-                                <option value="0.30">30%</option>
-                                <option value="0.40" selected>40%</option>
-                                <option value="0.50">50%</option>
-                                <option value="0.60">60%</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Perfil do Sistema:</label>
-                            <select id="adm-barbeiro-perfil">
-                                <option value="barbeiro">Restrito (Barbeiro)</option>
-                                <option value="admin">Total (Administrador)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group" style="margin-top: 8px;">
-                        <label>Senha Operacional:</label>
-                        <input type="password" id="adm-barbeiro-senha" placeholder="Crie uma senha de acesso">
-                    </div>
-                    <button class="btn-gold" style="margin-top: 10px;" onclick="incluirBarbeiroSistema()">Salvar Novo Membro</button>
-                </div>
-
-                <h4>Corpo Técnico Ativo</h4>
-                <div class="lista-backoffice" id="lista-equipe-cadastrada" style="margin-top:10px;"></div>
-            </div>
         </section>
 
-        <!-- ABA BACKOFFICE: AGENDA E BLOQUEIOS PESSOAIS -->
-        <section id="aba-adm-agenda" class="escondido restrito-barbeiro-adm">
-            <h3>📅 Minha Agenda e Folgas</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Tranque seus horários para compromissos ou folgas pessoais.</p>
-            
-            <div class="card">
-                <h4>➕ Bloquear Horário na Agenda</h4>
-                <div class="form-group restrito-adm">
-                    <label>Profissional:</label>
-                    <select id="bloqueio-barbeiro"></select>
-                </div>
-                <div class="form-group">
-                    <label>Data do Compromisso:</label>
-                    <input type="date" id="bloqueio-data">
-                </div>
-                
-                <label class="checkbox-container">
-                    <input type="checkbox" id="bloqueio-dia-todo" onchange="toggleDiaTodoBloqueio()"> Bloquear o dia inteiro
-                </label>
-
-                <div class="intervalo-custom-grid" id="box-horarios-bloqueio">
-                    <div class="form-group">
-                        <label>Das (Hora Início):</label>
-                        <input type="time" id="bloqueio-inicio" value="14:00">
-                    </div>
-                    <div class="form-group">
-                        <label>Até (Hora Fim):</label>
-                        <input type="time" id="bloqueio-fim" value="16:00">
-                    </div>
-                </div>
-                <button class="btn-gold" id="btn-salvar-bloqueio" style="margin-top: 15px;" onclick="salvarNovoBloqueio()">Trancar Agenda</button>
-            </div>
-
-            <div class="card">
-                <h4>Seus Bloqueios Ativos</h4>
-                <div class="lista-backoffice" id="lista-bloqueios-cadastrados" style="max-height: 400px; overflow-y: auto;"></div>
-            </div>
-        </section>
-
-        <!-- ABA BACKOFFICE: CONFIGURAÇÕES GERAIS -->
-        <section id="aba-adm-config" class="escondido restrito-adm">
-            <h3>⚙️ Configuração Geral</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Defina os horários de funcionamento do espaço físico:</p>
-            
-            <div class="card">
-                <h4>Horário de Expediente</h4>
-                <div class="intervalo-custom-grid">
-                    <div class="form-group">
-                        <label>Abertura:</label>
-                        <input type="time" id="config-abertura">
-                    </div>
-                    <div class="form-group">
-                        <label>Fechamento:</label>
-                        <input type="time" id="config-fechamento">
-                    </div>
-                </div>
-                
-                <h4 style="margin-top: 15px;">Horário de Almoço Comum</h4>
-                <p style="color: var(--text-muted); font-size: 12px; margin-top: -10px;">Estes horários ficarão bloqueados para todos os profissionais.</p>
-                <div class="intervalo-custom-grid">
-                    <div class="form-group">
-                        <label>Início do Almoço:</label>
-                        <input type="time" id="config-almoco-inicio">
-                    </div>
-                    <div class="form-group">
-                        <label>Fim do Almoço:</label>
-                        <input type="time" id="config-almoco-fim">
-                    </div>
-                </div>
-                <button class="btn-gold" style="margin-top: 20px;" onclick="salvarConfiguracoesAdmin()">Salvar Horários Globais</button>
-            </div>
-
-            <div class="card">
-                <h4>Feriados Nacionais (Fechado)</h4>
-                <p style="color: var(--text-muted); font-size: 12px; margin-top: -5px; margin-bottom: 15px;">A barbearia inteira ficará bloqueada nas datas abaixo.</p>
-                
-                <div class="form-group">
-                    <label>Adicionar Feriado:</label>
-                    <input type="date" id="config-nova-data-folga">
-                </div>
-                <button class="btn-add-data" onclick="adicionarDataFechada()">+ Bloquear Barbearia Toda</button>
-
-                <h4 style="margin-top: 25px; font-size: 14px;">Feriados Bloqueados:</h4>
-                <div class="lista-backoffice" id="lista-datas-fechadas" style="max-height: 200px; overflow-y: auto;"></div>
-            </div>
-        </section>
-
-        <!-- ABA BACKOFFICE: SERVIÇOS -->
-        <section id="aba-adm-servicos" class="escondido restrito-adm">
-            <h3>Gestão de Serviços</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Adicione, edite ou exclua os serviços do aplicativo:</p>
-            
-            <div class="card">
-                <h4>➕ Registrar Novo Serviço</h4>
-                <div class="form-group">
-                    <label>Nome do Serviço:</label>
-                    <input type="text" id="servico-nome" placeholder="Ex: Platinado">
-                </div>
-                <div class="intervalo-custom-grid">
-                    <div class="form-group">
-                        <label>Preço (R$):</label>
-                        <input type="number" id="servico-preco" placeholder="0.00" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label>Descrição/Duração:</label>
-                        <input type="text" id="servico-sub" placeholder="Ex: Duração: 40 min">
-                    </div>
-                </div>
-                <button class="btn-gold" id="btn-salvar-servico" style="margin-top: 15px;" onclick="salvarNovoServico()">Adicionar ao Catálogo</button>
-            </div>
-
-            <div class="card">
-                <h4>Serviços Ativos</h4>
-                <div class="lista-backoffice" id="lista-servicos-cadastrados" style="max-height: 400px; overflow-y: auto;"></div>
-            </div>
-        </section>
-
-        <!-- ABA BACKOFFICE: KANBAN MONITOR -->
         <section id="aba-adm-recepcao" class="escondido restrito-barbeiro-adm">
             <h3>Monitor de Atendimentos</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle a esteira de cortes em tempo real:</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia:</p>
             <div id="container-kanban-recepcao" style="display:flex; flex-direction:column; gap:12px;"></div>
 
             <div class="card" style="margin-top:25px;">
-                <h4>⚡ Registrar Cliente Sem Hora (Walk-in)</h4>
-                <div class="form-group">
-                    <label>Nome do Cliente:</label>
-                    <input type="text" id="encaixe-nome" placeholder="Ex: Cliente de Balcão">
-                </div>
-                <div class="form-group">
-                    <label>Serviço Desejado:</label>
-                    <select id="encaixe-servico"></select>
-                </div>
-                <div class="form-group">
-                    <label>Profissional Designado:</label>
-                    <select id="encaixe-barbeiro"></select>
-                </div>
+                <h4>⚡ Registrar Encaixe Manual</h4>
+                <div class="form-group"><label>Nome do Cliente da Rua:</label><input type="text" id="encaixe-nome"></div>
+                <div class="form-group"><label>Serviço:</label><select id="encaixe-servico"></select></div>
+                <div class="form-group"><label>Profissional:</label><select id="encaixe-barbeiro"></select></div>
                 <div class="intervalo-custom-grid">
-                    <div class="form-group">
-                        <label>Data:</label>
-                        <input type="date" id="encaixe-data">
-                    </div>
-                    <div class="form-group">
-                        <label>Horário Concluído:</label>
-                        <input type="time" id="encaixe-hora" value="14:00">
-                    </div>
-                </div>
-                <div class="intervalo-custom-grid" style="margin-top: 10px;">
-                    <div class="form-group">
-                        <label>Gorjeta Adicional:</label>
-                        <input type="number" id="encaixe-gorjeta" value="0" min="0" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label>Pagamento:</label>
-                        <select id="encaixe-pagamento">
-                            <option value="PIX">PIX</option>
-                            <option value="DINHEIRO">Dinheiro</option>
-                            <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
-                            <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
-                        </select>
-                    </div>
+                    <div class="form-group"><label>Data:</label><input type="date" id="encaixe-data"></div>
+                    <div class="form-group"><label>Hora:</label><input type="time" id="encaixe-hora" value="14:00"></div>
                 </div>
                 <button class="btn-gold" id="btn-executar-encaixe" style="margin-top:10px;">Lançar como Concluído</button>
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: DESPESAS -->
-        <section id="aba-adm-despesas" class="escondido restrito-adm">
-            <h3>Gestão de Despesas</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle a saída de caixa da barbearia:</p>
-            
-            <div class="grid-indicadores" style="grid-template-columns: 1fr;">
-                <div class="kpi-card" style="border-color: rgba(239, 68, 68, 0.4);">
-                    <div class="kpi-label">Saída Total (Período)</div>
-                    <div class="kpi-val" id="kpi-despesas-total" style="color: var(--danger-color);">R$ 0,00</div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h4>➕ Registrar Nova Despesa</h4>
-                <div class="form-group">
-                    <label>Descrição do Gasto:</label>
-                    <input type="text" id="despesa-descricao" placeholder="Ex: Conta de Luz, Compra de Pomadas...">
-                </div>
-                <div class="intervalo-custom-grid">
-                    <div class="form-group">
-                        <label>Valor (R$):</label>
-                        <input type="number" id="despesa-valor" placeholder="0.00" step="0.01">
-                    </div>
-                    <div class="form-group">
-                        <label>Data de Pagamento:</label>
-                        <input type="date" id="despesa-data">
-                    </div>
-                </div>
-                <button class="btn-gold" id="btn-salvar-despesa" style="margin-top: 15px;">Lançar Despesa</button>
-            </div>
-
-            <div class="card">
-                <h4>Histórico de Lançamentos</h4>
-                <div class="lista-backoffice" id="lista-despesas-cadastradas" style="max-height: 350px; overflow-y: auto;"></div>
-            </div>
-        </section>
-
-        <!-- ABA BACKOFFICE: BUSINESS INTELLIGENCE -->
-        <section id="aba-adm-analytics" class="escondido restrito-barbeiro-adm">
-            <h3>Business Intelligence</h3>
-            <div id="analytics-retencao" style="display: flex; justify-content: center; width: 100%; gap: 12px; margin-bottom: 20px;"></div>
-            <div class="card">
-                <h4>Volumetria por Turnos</h4>
-                <div id="analytics-heatmap"></div>
-            </div>
-            <div class="card">
-                <h4>Movimentação na Semana</h4>
-                <div id="analytics-dias-semana"></div>
-            </div>
-        </section>
-
-        <!-- ABA BACKOFFICE: CRM & COMUNICAÇÃO -->
         <section id="aba-adm-mkt" class="escondido restrito-adm">
             <h3>CRM de Clientes</h3>
             <div class="card">
                 <h4>Sua Base de Contatos</h4>
-                <p style="color:var(--text-muted); font-size: 12px;">Clientes sem agendamentos nos últimos 30 dias podem ser resgatados via WhatsApp.</p>
                 <div class="lista-backoffice" id="lista-marketing-clientes" style="margin-top: 15px; max-height:500px; overflow-y:auto;"></div>
             </div>
         </section>
 
-        <!-- MENU INFERIOR NATIVO E SCROLLÁVEL -->
-        <nav class="nav-inferior" id="menu-navegacao"></nav>
+        <section id="aba-adm-despesas" class="escondido restrito-adm">
+            <h3>Gestão de Despesas</h3>
+            <div class="grid-indicadores" style="grid-template-columns: 1fr;">
+                <div class="kpi-card" style="border-color: rgba(239, 68, 68, 0.4);">
+                    <div class="kpi-label">Saída Total</div>
+                    <div class="kpi-val" id="kpi-despesas-total" style="color: var(--danger-color);">R$ 0,00</div>
+                </div>
+            </div>
+            <div class="card">
+                <h4>➕ Registrar Nova Despesa</h4>
+                <div class="form-group"><input type="text" id="despesa-descricao" placeholder="Descrição"></div>
+                <div class="intervalo-custom-grid">
+                    <div class="form-group"><input type="number" id="despesa-valor" placeholder="Valor" step="0.01"></div>
+                    <div class="form-group"><input type="date" id="despesa-data"></div>
+                </div>
+                <button class="btn-gold" id="btn-salvar-despesa">Lançar Despesa</button>
+            </div>
+            <div class="card"><h4>Histórico</h4><div class="lista-backoffice" id="lista-despesas-cadastradas"></div></div>
+        </section>
 
+        <section id="aba-adm-servicos" class="escondido restrito-adm">
+            <h3>Gestão de Serviços</h3>
+            <div class="card">
+                <div class="form-group"><label>Nome do Serviço:</label><input type="text" id="servico-nome"></div>
+                <div class="intervalo-custom-grid">
+                    <div class="form-group"><label>Preço:</label><input type="number" id="servico-preco"></div>
+                    <div class="form-group"><label>Duração:</label><input type="text" id="servico-sub"></div>
+                </div>
+                <button class="btn-gold" id="btn-salvar-servico" onclick="salvarNovoServico()">Adicionar</button>
+            </div>
+            <div class="card"><h4>Catálogo</h4><div class="lista-backoffice" id="lista-servicos-cadastrados"></div></div>
+        </section>
+        
+        <section id="aba-adm-config" class="escondido restrito-adm">
+            <h3>⚙️ Configuração da Barbearia</h3>
+            <div class="card">
+                <h4>Horário de Expediente</h4>
+                <div class="intervalo-custom-grid">
+                    <div class="form-group"><label>Abertura:</label><input type="time" id="config-abertura"></div>
+                    <div class="form-group"><label>Fechamento:</label><input type="time" id="config-fechamento"></div>
+                </div>
+                <div class="intervalo-custom-grid">
+                    <div class="form-group"><label>Almoço Ini:</label><input type="time" id="config-almoco-inicio"></div>
+                    <div class="form-group"><label>Almoço Fim:</label><input type="time" id="config-almoco-fim"></div>
+                </div>
+                <button class="btn-gold" onclick="salvarConfiguracoesAdmin()">Salvar Horários</button>
+            </div>
+            
+            <div class="card">
+                <h4>Dias Fechados (Feriados)</h4>
+                <div class="form-group"><input type="date" id="config-nova-data-folga"></div>
+                <button class="btn-add-data" onclick="adicionarDataFechada()">+ Bloquear Data Geral</button>
+                <div class="lista-backoffice" id="lista-datas-fechadas" style="margin-top:15px;"></div>
+            </div>
+            
+            <div class="card" style="border-color: rgba(204,153,51,0.25);">
+                <h4 style="color:var(--accent-color)">Adicionar Membro / Barbeiro</h4>
+                <div class="form-group"><input type="text" id="adm-barbeiro-nome" placeholder="Nome"></div>
+                <div class="form-group"><input type="text" id="adm-barbeiro-login" placeholder="Login"></div>
+                <div class="form-group"><input type="password" id="adm-barbeiro-senha" placeholder="Senha"></div>
+                <div class="intervalo-custom-grid">
+                    <div class="form-group"><label>Comissão:</label><select id="adm-barbeiro-comissao"><option value="0.40">40%</option><option value="0.50">50%</option></select></div>
+                    <div class="form-group"><label>Acesso:</label><select id="adm-barbeiro-perfil"><option value="barbeiro">Barbeiro</option><option value="admin">Admin</option></select></div>
+                </div>
+                <button class="btn-gold" onclick="incluirBarbeiroSistema()">Salvar Membro</button>
+            </div>
+            <div class="card"><h4>Equipe</h4><div class="lista-backoffice" id="lista-equipe-cadastrada"></div></div>
+        </section>
+
+        <section id="aba-adm-agenda" class="escondido restrito-barbeiro-adm">
+            <h3>📅 Minha Agenda/Folga</h3>
+            <div class="card">
+                <h4>Bloquear Horário Pessoal</h4>
+                <div class="form-group"><label>Profissional:</label><select id="bloqueio-barbeiro"></select></div>
+                <div class="form-group"><label>Data:</label><input type="date" id="bloqueio-data"></div>
+                <label class="checkbox-container"><input type="checkbox" id="bloqueio-dia-todo" onchange="toggleDiaTodoBloqueio()"> Dia inteiro</label>
+                <div class="intervalo-custom-grid" id="box-horarios-bloqueio">
+                    <div class="form-group"><label>Das:</label><input type="time" id="bloqueio-inicio" value="14:00"></div>
+                    <div class="form-group"><label>Até:</label><input type="time" id="bloqueio-fim" value="16:00"></div>
+                </div>
+                <button class="btn-gold" onclick="salvarNovoBloqueio()">Trancar Agenda</button>
+            </div>
+            <div class="card"><h4>Meus Bloqueios Ativos</h4><div class="lista-backoffice" id="lista-bloqueios-cadastrados"></div></div>
+        </section>
+
+        <section id="aba-adm-analytics" class="escondido restrito-barbeiro-adm">
+            <h3>Business Intelligence</h3>
+            <div id="analytics-retencao" style="display: flex; justify-content: center; width: 100%; gap: 12px; margin-bottom: 20px;"></div>
+            <div class="card"><h4>Volumetria por Turnos</h4><div id="analytics-heatmap"></div></div>
+            <div class="card"><h4>Movimentação Semanal</h4><div id="analytics-dias-semana"></div></div>
+        </section>
+
+        <nav class="nav-inferior" id="menu-navegacao"></nav>
     </div>
 </div>
 
-<!-- POP-UPS MODERNOS -->
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
         <h3 style="text-align: center; color: var(--accent-color);">Confirmar Agendamento</h3>
         <p id="modal-resumo-detalhes" style="font-size: 15px; line-height: 1.6; color: #fff; margin-bottom: 20px;"></p>
-        
         <button class="btn-gold" id="btn-confirmar-modal" style="font-size: 16px;">Confirmar Oficialmente</button>
         <button class="btn-danger" style="background: transparent; color: var(--text-muted); margin-top: 4px;" onclick="fecharModal('modal-confirmacao')">Cancelar</button>
     </div>
@@ -681,35 +514,17 @@
     <div class="modal-content">
         <h3>Modificar Agendamento</h3>
         <input type="hidden" id="edit-reserva-id">
-        <div class="form-group">
-            <label>Serviço:</label>
-            <select id="edit-reserva-servico"></select>
-        </div>
-        <div class="form-group">
-            <label>Barbeiro:</label>
-            <select id="edit-reserva-barbeiro"></select>
-        </div>
+        <div class="form-group"><select id="edit-reserva-servico"></select></div>
+        <div class="form-group"><select id="edit-reserva-barbeiro"></select></div>
         <div class="intervalo-custom-grid">
-            <div class="form-group">
-                <label>Data:</label>
-                <input type="date" id="edit-reserva-data">
-            </div>
-            <div class="form-group">
-                <label>Horário:</label>
-                <select id="edit-reserva-hora"></select>
-            </div>
+            <div class="form-group"><input type="date" id="edit-reserva-data"></div>
+            <div class="form-group"><select id="edit-reserva-hora"></select></div>
         </div>
         <div class="form-group">
-            <label>Forma de Pagamento:</label>
-            <select id="edit-reserva-pagamento">
-                <option value="Pix">Pix</option>
-                <option value="Cartão de Crédito">Cartão de Crédito</option>
-                <option value="Cartão de Débito">Cartão de Débito</option>
-                <option value="Dinheiro">Dinheiro</option>
-            </select>
+            <select id="edit-reserva-pagamento"><option value="Pix">Pix</option><option value="Dinheiro">Dinheiro</option></select>
         </div>
-        <button class="btn-gold" style="margin-top: 15px;" onclick="salvarEdicaoReserva()">Salvar Alterações</button>
-        <button class="btn-danger" style="background: transparent; color: var(--text-muted); margin-top: 4px;" onclick="fecharModal('modal-editar-reserva')">Cancelar</button>
+        <button class="btn-gold" onclick="salvarEdicaoReserva()">Salvar Alterações</button>
+        <button class="btn-danger" style="background:transparent;color:gray;" onclick="fecharModal('modal-editar-reserva')">Cancelar</button>
     </div>
 </div>
 
@@ -717,41 +532,18 @@
     <div class="modal-content">
         <h3>Editar Profissional</h3>
         <input type="hidden" id="edit-barbeiro-id">
-        <div class="form-group">
-            <label>Nome Completo:</label>
-            <input type="text" id="edit-barbeiro-nome">
-        </div>
+        <div class="form-group"><input type="text" id="edit-barbeiro-nome"></div>
+        <div class="form-group"><input type="text" id="edit-barbeiro-celular"></div>
         <div class="intervalo-custom-grid">
             <div class="form-group">
-                <label>WhatsApp:</label>
-                <input type="text" id="edit-barbeiro-celular">
+                <select id="edit-barbeiro-comissao"><option value="0.40">40%</option><option value="0.50">50%</option></select>
             </div>
             <div class="form-group">
-                <label>Chave PIX:</label>
-                <input type="text" id="edit-barbeiro-pix">
+                <select id="edit-barbeiro-perfil"><option value="barbeiro">Barbeiro</option><option value="admin">Admin</option></select>
             </div>
         </div>
-        <div class="intervalo-custom-grid">
-            <div class="form-group">
-                <label>Comissão (%):</label>
-                <select id="edit-barbeiro-comissao">
-                    <option value="0.30">30%</option>
-                    <option value="0.40">40%</option>
-                    <option value="0.50">50%</option>
-                    <option value="0.60">60%</option>
-                    <option value="0.70">70%</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Acesso:</label>
-                <select id="edit-barbeiro-perfil">
-                    <option value="barbeiro">Restrito</option>
-                    <option value="admin">Admin Total</option>
-                </select>
-            </div>
-        </div>
-        <button class="btn-gold" style="margin-top: 15px;" onclick="salvarEdicaoBarbeiro()">Atualizar Acessos</button>
-        <button class="btn-danger" style="background: transparent; color: var(--text-muted); margin-top: 4px;" onclick="fecharModal('modal-editar-barbeiro')">Cancelar</button>
+        <button class="btn-gold" onclick="salvarEdicaoBarbeiro()">Salvar Profissional</button>
+        <button class="btn-danger" style="background:transparent;color:gray;" onclick="fecharModal('modal-editar-barbeiro')">Cancelar</button>
     </div>
 </div>
 
@@ -759,22 +551,13 @@
     <div class="modal-content">
         <h3>Editar Despesa</h3>
         <input type="hidden" id="edit-despesa-id">
-        <div class="form-group">
-            <label>Descrição:</label>
-            <input type="text" id="edit-despesa-descricao">
-        </div>
+        <div class="form-group"><input type="text" id="edit-despesa-descricao"></div>
         <div class="intervalo-custom-grid">
-            <div class="form-group">
-                <label>Valor (R$):</label>
-                <input type="number" id="edit-despesa-valor" step="0.01">
-            </div>
-            <div class="form-group">
-                <label>Data:</label>
-                <input type="date" id="edit-despesa-data">
-            </div>
+            <div class="form-group"><input type="number" id="edit-despesa-valor" step="0.01"></div>
+            <div class="form-group"><input type="date" id="edit-despesa-data"></div>
         </div>
-        <button class="btn-gold" style="margin-top: 15px;" onclick="salvarEdicaoDespesa()">Salvar Edição</button>
-        <button class="btn-danger" style="background: transparent; color: var(--text-muted); margin-top: 4px;" onclick="fecharModal('modal-editar-despesa')">Cancelar</button>
+        <button class="btn-gold" onclick="salvarEdicaoDespesa()">Salvar Edição</button>
+        <button class="btn-danger" style="background:transparent;color:gray;" onclick="fecharModal('modal-editar-despesa')">Cancelar</button>
     </div>
 </div>
 
@@ -782,22 +565,13 @@
     <div class="modal-content">
         <h3>Editar Serviço</h3>
         <input type="hidden" id="edit-servico-id">
-        <div class="form-group">
-            <label>Nome do Serviço:</label>
-            <input type="text" id="edit-servico-nome">
-        </div>
+        <div class="form-group"><input type="text" id="edit-servico-nome"></div>
         <div class="intervalo-custom-grid">
-            <div class="form-group">
-                <label>Preço (R$):</label>
-                <input type="number" id="edit-servico-preco" step="0.01">
-            </div>
-            <div class="form-group">
-                <label>Duração/Aviso:</label>
-                <input type="text" id="edit-servico-sub">
-            </div>
+            <div class="form-group"><input type="number" id="edit-servico-preco" step="0.01"></div>
+            <div class="form-group"><input type="text" id="edit-servico-sub"></div>
         </div>
-        <button class="btn-gold" style="margin-top: 15px;" onclick="salvarEdicaoServico()">Salvar Catálogo</button>
-        <button class="btn-danger" style="background: transparent; color: var(--text-muted); margin-top: 4px;" onclick="fecharModal('modal-editar-servico')">Cancelar</button>
+        <button class="btn-gold" onclick="salvarEdicaoServico()">Salvar Alterações</button>
+        <button class="btn-danger" style="background:transparent;color:gray;" onclick="fecharModal('modal-editar-servico')">Cancelar</button>
     </div>
 </div>
 
