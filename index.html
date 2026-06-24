@@ -6,58 +6,80 @@
     <title>Prosperar Club - Painel Corporativo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --bg-color: #0d0e11;
-            --card-bg: #16171a;
-            --card-hover: #1f2126;
-            --accent-color: #cc9933; 
-            --accent-hover: #e6b85c;
-            --text-color: #f3f4f6;
-            --text-muted: #9ca3af;
-            --border-color: #24262b;
+            --bg-color: #09090b;
+            --card-bg: #131418;
+            --card-hover: #1c1d22;
+            --accent-color: #D4AF37; /* Dourado mais premium */
+            --accent-hover: #f1c40f;
+            --text-color: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --border-color: #27272a;
             --success-color: #10b981;
             --danger-color: #ef4444;
             --blue-color: #3b82f6;
         }
 
+        * {
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body { 
             background-color: var(--bg-color); 
             color: var(--text-color); 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
             margin: 0; 
             padding: 0; 
             display: flex; 
             justify-content: center; 
-            padding-bottom: 120px; 
-            letter-spacing: -0.2px;
+            padding-bottom: 120px; /* Espaço para o menu inferior */
+            letter-spacing: -0.3px;
         }
-        .app-container { width: 100%; max-width: 480px; padding: 20px; box-sizing: border-box; }
+
+        .app-container { 
+            width: 100%; 
+            max-width: 500px; /* Um pouco mais largo para desktop, mas adapta ao mobile */
+            padding: 20px; 
+            margin: 0 auto;
+        }
         
-        .card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 24px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 10px 35px rgba(0,0,0,0.5); }
-        .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; box-sizing: border-box; }
-        .form-group label { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+        /* Modernização dos Cartões */
+        .card { 
+            background: linear-gradient(145deg, #16171a 0%, #111215 100%);
+            border: 1px solid var(--border-color); 
+            padding: 24px; 
+            border-radius: 20px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4); 
+        }
+
+        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+        .form-group label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
         
         .form-group input, .form-group select { 
             width: 100%; 
-            padding: 14px; 
-            background: #1f2125; 
-            border: 1px solid var(--border-color); 
-            border-radius: 10px; 
+            padding: 15px; 
+            background: #18191c; 
+            border: 1px solid #33353b; 
+            border-radius: 12px; 
             color: white; 
             font-size: 15px; 
-            font-family: 'Inter', sans-serif;
-            box-sizing: border-box; 
-            transition: all 0.2s;
+            transition: all 0.3s ease;
         }
-        .form-group input:focus, .form-group select:focus { border-color: var(--accent-color); outline: none; }
+        .form-group input:focus, .form-group select:focus { 
+            border-color: var(--accent-color); 
+            outline: none; 
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
         
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
             filter: invert(1);
-            opacity: 0.7;
+            opacity: 0.6;
             cursor: pointer;
             transition: 0.2s;
         }
@@ -66,146 +88,131 @@
             opacity: 1;
         }
 
-        .checkbox-container { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); margin-bottom: 15px; cursor: pointer;}
-        .checkbox-container input { width: 16px; height: 16px; accent-color: var(--accent-color); cursor: pointer;}
+        .checkbox-container { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: var(--text-muted); margin-bottom: 15px; cursor: pointer;}
+        .checkbox-container input { width: 18px; height: 18px; accent-color: var(--accent-color); cursor: pointer;}
         
         h2, h3, h4 { color: #ffffff; margin-top: 0; font-weight: 700; letter-spacing: -0.5px; }
+        h2 { font-size: 24px; text-align: center; }
+        h3 { font-size: 18px; margin-bottom: 16px;}
         .gold-text { color: var(--accent-color); }
         
-        .step-label { display: block; margin: 24px 0 12px; font-weight: 700; color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .step-label { display: block; margin: 24px 0 12px; font-weight: 800; color: #ffffff; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; }
 
-        .btn-gold { width: 100%; background: var(--accent-color); color: #000; border: none; padding: 16px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-family: 'Inter', sans-serif; }
-        .btn-gold:hover { background: var(--accent-hover); transform: translateY(-1px); }
-        .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
-        .btn-small-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        /* Botões mais arredondados e interativos */
+        .btn-gold { 
+            width: 100%; background: var(--accent-color); color: #000; border: none; 
+            padding: 16px; border-radius: 14px; font-size: 15px; font-weight: 800; 
+            cursor: pointer; transition: all 0.2s ease; 
+        }
+        .btn-gold:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3); }
+        .btn-gold:active { transform: translateY(0); }
+        
+        .btn-danger { width: 100%; background: var(--danger-color); color: #fff; border: none; padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        
+        .btn-small-danger, .btn-small-edit {
+            padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; text-align: center;
+        }
+        .btn-small-danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
         .btn-small-danger:hover { background: var(--danger-color); color: #fff; }
-
-        .btn-actions-group { display: flex; gap: 6px; margin-top: 6px; }
-        .btn-small-edit { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        
+        .btn-small-edit { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.2); }
         .btn-small-edit:hover { background: #3b82f6; color: white; }
 
-        .cards-container { display: flex; flex-direction: column; gap: 10px; }
-        .modern-card { background: #1f2125; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
-        .modern-card:hover { border-color: #383a40; }
-        .modern-card.selected { border-color: var(--accent-color); background-color: rgba(204, 153, 51, 0.06); }
+        .cards-container { display: flex; flex-direction: column; gap: 12px; }
+        .modern-card { 
+            background: #18191c; border: 1px solid #2a2c32; padding: 18px; 
+            border-radius: 16px; cursor: pointer; display: flex; justify-content: space-between; 
+            align-items: center; transition: all 0.2s; 
+        }
+        .modern-card:hover { border-color: #4a4d57; transform: translateY(-1px); }
+        .modern-card.selected { border-color: var(--accent-color); background-color: rgba(212, 175, 55, 0.08); }
         .modern-card .title { font-weight: 600; font-size: 15px; color: #fff; }
-        .modern-card .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-        .modern-card .price { font-weight: 700; font-size: 15px; color: var(--success-color); }
+        .modern-card .price { font-weight: 800; font-size: 16px; color: var(--success-color); }
 
-        .turno-title { font-size: 12px; font-weight: 700; color: var(--accent-color); margin: 18px 0 8px; text-transform: uppercase; }
-        .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-        .btn-horario { background: #1f2125; color: white; border: 1px solid var(--border-color); padding: 12px 2px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; }
-        .btn-horario.selecionado { background: var(--accent-color); color: black; font-weight: 700; }
-        .btn-horario:disabled { opacity: 0.15; color: var(--text-muted); background: #111214; cursor: not-allowed; text-decoration: line-through; }
+        .turno-title { font-size: 13px; font-weight: 800; color: var(--accent-color); margin: 24px 0 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .grid-horarios { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .btn-horario { 
+            background: #18191c; color: white; border: 1px solid #2a2c32; 
+            padding: 14px 2px; border-radius: 10px; font-weight: 600; font-size: 14px; 
+            cursor: pointer; transition: all 0.2s; 
+        }
+        .btn-horario.selecionado { background: var(--accent-color); color: black; font-weight: 800; border-color: var(--accent-color); transform: scale(1.05); }
+        .btn-horario:disabled { opacity: 0.2; background: #000; cursor: not-allowed; text-decoration: line-through; border-color: transparent;}
 
         .grid-indicadores { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
-        .kpi-card { background: #16171a; border: 1px solid var(--border-color); padding: 18px; border-radius: 12px; }
-        .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
-        .kpi-card .kpi-val { font-size: 22px; font-weight: 700; margin-top: 4px; letter-spacing: -0.5px; }
+        .kpi-card { background: #18191c; border: 1px solid #2a2c32; padding: 20px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; text-align: center;}
+        .kpi-card .kpi-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;}
+        .kpi-card .kpi-val { font-size: 24px; font-weight: 800; margin-top: 8px; letter-spacing: -0.5px; }
 
-        .filtros-tempo-container { display: flex; gap: 4px; margin-bottom: 12px; background: #1f2125; padding: 4px; border-radius: 8px; border: 1px solid var(--border-color); }
-        .btn-filtro-tempo { flex: 1; background: none; border: none; color: var(--text-muted); padding: 10px 2px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
-        .btn-filtro-tempo.ativo { background: var(--accent-color); color: #000; font-weight: 700; }
+        .filtros-tempo-container { display: flex; gap: 6px; margin-bottom: 16px; background: #131418; padding: 6px; border-radius: 12px; border: 1px solid #2a2c32; overflow-x: auto;}
+        .filtros-tempo-container::-webkit-scrollbar { display: none; }
+        .btn-filtro-tempo { flex: 1; min-width: max-content; background: none; border: none; color: var(--text-muted); padding: 10px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
+        .btn-filtro-tempo.ativo { background: var(--text-color); color: #000; font-weight: 800; }
 
-        .intervalo-custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .intervalo-custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-        .lista-backoffice { display: flex; flex-direction: column; gap: 10px; }
-        .item-backoffice { background: #1f2125; border: 1px solid var(--border-color); padding: 14px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .lista-backoffice { display: flex; flex-direction: column; gap: 12px; }
+        .item-backoffice { 
+            background: #18191c; border: 1px solid #2a2c32; padding: 18px; 
+            border-radius: 16px; display: flex; justify-content: space-between; align-items: center; gap: 15px;
+        }
         
-        .toggle-auth { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-        .toggle-auth button { flex:1; background:none; border:none; color:var(--text-muted); font-weight:700; padding:8px; cursor:pointer; font-family: 'Inter', sans-serif; font-size: 13px; }
-        .toggle-auth button.active { color: var(--accent-color); border-bottom: 2px solid var(--accent-color); }
+        .toggle-auth { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 1px solid #2a2c32; padding-bottom: 12px; }
+        .toggle-auth button { flex:1; background:none; border:none; color:var(--text-muted); font-weight:700; padding:10px; cursor:pointer; font-size: 14px; transition: 0.3s;}
+        .toggle-auth button.active { color: var(--accent-color); border-bottom: 3px solid var(--accent-color); }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 20px; box-sizing: border-box; }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto;}
+        /* Modal com Animação */
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
+        .modal-content { background: var(--card-bg); border: 1px solid #33353b; border-radius: 20px; padding: 28px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; animation: fadeIn 0.3s ease-out; box-shadow: 0 20px 40px rgba(0,0,0,0.6);}
         
-        /* --- NOVO VISUAL DO MENU INFERIOR --- */
-        .nav-inferior {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: calc(100% - 30px);
-            max-width: 500px; /* Tamanho para celular */
-            background: rgba(22, 23, 26, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            display: flex;
-            justify-content: flex-start; /* Permite deslizar no celular sem espremer */
-            gap: 4px;
-            padding: 10px 12px;
-            border-radius: 24px;
-            z-index: 999;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-            overflow-x: auto;
-            /* Esconde a barra de rolagem nativa feia */
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+        /* NOVO MENU INFERIOR - Estilo App Nativo (Permite Scroll se houver muitos botões) */
+        .nav-inferior { 
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+            width: calc(100% - 40px); max-width: 460px; 
+            background: rgba(18, 19, 23, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,255,255,0.08); 
+            display: flex; justify-content: flex-start; padding: 12px 16px; 
+            border-radius: 24px; z-index: 1000; box-shadow: 0 10px 40px rgba(0,0,0,0.7); 
+            overflow-x: auto; scroll-snap-type: x mandatory; gap: 8px;
         }
-        .nav-inferior::-webkit-scrollbar {
-            display: none;
+        .nav-inferior::-webkit-scrollbar { display: none; }
+        .nav-item { 
+            flex: 0 0 auto; min-width: 70px; scroll-snap-align: start;
+            background: transparent; border: none; color: #71717a; 
+            display: flex; flex-direction: column; align-items: center; gap: 6px; 
+            cursor: pointer; transition: all 0.3s ease; padding: 4px;
         }
-
-        /* Regra de Ouro: Se a tela for de Computador/Tablet, estica o menu! */
-        @media (min-width: 768px) {
-            .nav-inferior {
-                max-width: 800px; /* Espaço suficiente para caber tudo no PC */
-                justify-content: center; /* Centraliza os ícones lindamente */
-            }
-        }
-
-        .nav-item {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 11px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            font-family: 'Inter', sans-serif;
-            padding: 8px 14px;
-            border-radius: 14px;
-            white-space: nowrap;
-            transition: all 0.3s ease;
-        }
-        .nav-item i {
-            font-size: 22px; /* Tamanho dos novos ícones */
-            transition: transform 0.2s ease;
-        }
-        .nav-item:hover {
-            color: #fff;
-            background: rgba(255, 255, 255, 0.05);
-        }
-        .nav-item.ativo {
-            color: var(--accent-color);
-            background: rgba(204, 153, 51, 0.1);
-            font-weight: 600;
-        }
-        .nav-item.ativo i {
-            transform: scale(1.15); /* O ícone ativo dá um leve zoom */
-        }
+        .nav-item span { font-size: 10px; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif;}
+        .nav-item i { font-size: 20px; font-style: normal; transition: transform 0.2s;}
+        .nav-item.ativo { color: var(--accent-color); }
+        .nav-item.ativo i { transform: translateY(-3px); }
         
         .escondido { display: none !important; }
-        .btn-status { padding: 6px 12px; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; }
+        .btn-status { padding: 6px 12px; border: none; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer; text-transform: uppercase;}
         
-        .analytics-bar-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
-        .analytics-bar-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 500; }
-        .analytics-bar-bg { width: 100%; background: #2b2d35; height: 8px; border-radius: 99px; overflow: hidden; margin-top: 4px; }
-        .analytics-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-color), #f5cb5c); border-radius: 99px; transition: width 0.4s ease-out; }
+        .analytics-bar-container { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+        .analytics-bar-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
+        .analytics-bar-bg { width: 100%; background: #27272a; height: 10px; border-radius: 99px; overflow: hidden; }
+        .analytics-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-color), #f1c40f); border-radius: 99px; transition: width 0.5s ease-out; }
 
-        .btn-add-data { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.2s; }
+        .btn-add-data { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; transition: all 0.2s; }
         .btn-add-data:hover { background: #10b981; color: white; }
+
+        /* Utilitário para evitar que textos longos quebrem o flex no mobile */
+        .text-truncate { flex: 1; min-width: 0; }
+        .text-truncate strong, .text-truncate span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
 
-    <div id="tela-autenticacao" class="card" style="margin-top: 30px;">
+    <div id="tela-autenticacao" class="card" style="margin-top: 5vh;">
+        <h2>Prosperar Club</h2>
+        <p style="text-align:center; color:var(--text-muted); font-size: 14px; margin-top:-10px; margin-bottom: 25px;">Agende seu horário</p>
+
         <div class="toggle-auth">
             <button id="tab-login" class="active" onclick="alternarAbasAuth('login')">ENTRAR</button>
             <button id="tab-cadastro" onclick="alternarAbasAuth('cadastro')">CRIAR CONTA</button>
@@ -214,13 +221,13 @@
         <div id="form-login">
             <div class="form-group">
                 <label>Usuário / Login:</label>
-                <input type="text" id="login-usuario" placeholder="Digite seu usuário ou admin">
+                <input type="text" id="login-usuario" placeholder="Digite seu usuário">
             </div>
             <div class="form-group">
                 <label>Senha:</label>
                 <input type="password" id="login-senha" placeholder="•••••">
             </div>
-            <button class="btn-gold" id="btn-entrar" style="margin-top: 10px;">Entrar no System</button>
+            <button class="btn-gold" id="btn-entrar" style="margin-top: 10px;">Entrar na Conta</button>
         </div>
 
         <div id="form-cadastro" class="escondido">
@@ -236,37 +243,33 @@
                 <label>WhatsApp / Celular:</label>
                 <input type="text" id="cad-celular" placeholder="Ex: 11999999999">
             </div>
-            <div class="form-group">
+            <div class="form-group" style="display: none;">
                 <label>Plano de Assinatura:</label>
                 <select id="cad-plano">
-                    <option value="Nenhum">Sem Assinatura (Avulso)</option>
-                    <option value="Plano Bronze">Plano Bronze (R$ 80/mês)</option>
-                    <option value="Plano Gold">Plano Gold VIP (R$ 150/mês)</option>
+                    <option value="Nenhum">Sem Assinatura</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Senha:</label>
-                <input type="password" id="cad-senha" placeholder="Crie uma senha">
+                <input type="password" id="cad-senha" placeholder="Crie uma senha forte">
             </div>
             <div class="form-group">
                 <label>Confirme a Senha:</label>
                 <input type="password" id="cad-confirmar-senha" placeholder="Repita a senha">
             </div>
-            <button class="btn-gold" id="btn-cadastrar" style="margin-top: 10px;">Salvar Cadastro Oficial</button>
+            <button class="btn-gold" id="btn-cadastrar" style="margin-top: 10px;">Criar Minha Conta</button>
         </div>
     </div>
 
     <div id="conteudo-app" class="escondido">
         
-        <div id="bloco-filtros-global-adm" class="escondido" style="margin-bottom: 25px; background: var(--card-bg); padding: 16px; border-radius: 16px; border: 1px solid var(--border-color);">
-            <h4 style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Filtro de Análise Geral:</h4>
+        <div id="bloco-filtros-global-adm" class="escondido card" style="padding: 18px;">
+            <h4 style="font-size: 12px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Painel de Controle:</h4>
             
-            <div class="form-group" style="margin-bottom: 14px;">
+            <div class="form-group" style="margin-bottom: 16px;">
                 <label>Visualizar dados de:</label>
-                <select id="filtro-barbeiro-alvo" style="background: #1f2125;" onchange="recarregarAbaAtivaAdm()">
-                    <option value="todos">-- Todos os Barbeiros (Geral) --</option>
-                    <option value="gabriel">Gabriel (Proprietário)</option>
-                    <option value="lucas">Lucas Barber</option>
+                <select id="filtro-barbeiro-alvo" onchange="recarregarAbaAtivaAdm()">
+                    <option value="todos">-- Todos os Profissionais --</option>
                 </select>
             </div>
 
@@ -290,9 +293,9 @@
         </div>
 
         <section id="aba-home" class="escondido">
-            <div style="margin-bottom: 20px;">
-                <h2 id="boas-vistas-cliente" style="font-size: 22px; margin-bottom: 4px;">Olá!</h2>
-                <p style="margin:0; color: var(--text-muted); font-size: 13px;">Bora atualizar seu estilo hoje?</p>
+            <div style="margin-bottom: 24px; text-align: center;">
+                <h2 id="boas-vistas-cliente" style="font-size: 26px; margin-bottom: 6px;">Olá!</h2>
+                <p style="margin:0; color: var(--text-muted); font-size: 14px;">Bora atualizar seu estilo hoje?</p>
             </div>
             <div class="card">
                 <h3>Agendar Nova Cadeira</h3>
@@ -311,26 +314,26 @@
                 <span class="step-label">5. Forma de Pagamento:</span>
                 <div id="container-pagamentos" class="cards-container"></div>
                 
-                <button class="btn-gold" id="btnPreAgendar" style="margin-top: 25px;">Confirmar Agendamento</button>
+                <button class="btn-gold" id="btnPreAgendar" style="margin-top: 30px;">Revisar e Confirmar</button>
             </div>
         </section>
 
         <section id="aba-estilo" class="escondido">
-            <h3>Meus Agendamentos</h3>
+            <h3 style="text-align: center; margin-bottom: 20px;">Meus Agendamentos</h3>
             <div id="container-meus-agendamentos"></div>
         </section>
 
         <section id="aba-adm-dash" class="escondido">
-            <h2 class="gold-text" style="margin-bottom: 4px;">Métricas de Faturamento</h2>
-            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 15px;">Indicadores baseados no período selecionado:</p>
+            <h2 class="gold-text" style="text-align: left; margin-bottom: 4px;">Métricas de Faturamento</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Visão geral do período selecionado:</p>
             
             <div class="grid-indicadores">
                 <div class="kpi-card restrito-adm">
-                    <div class="kpi-label">Faturamento Total</div>
+                    <div class="kpi-label">Faturamento</div>
                     <div class="kpi-val" id="kpi-faturamento" style="color: var(--success-color);">R$ 0,00</div>
                 </div>
                 <div class="kpi-card restrito-adm">
-                    <div class="kpi-label">Ticket Médio Real</div>
+                    <div class="kpi-label">Ticket Médio</div>
                     <div class="kpi-val" id="kpi-ticket">R$ 0,00</div>
                 </div>
                 <div class="kpi-card">
@@ -338,37 +341,26 @@
                     <div class="kpi-val" id="kpi-ocupacao">0</div>
                 </div>
                 <div class="kpi-card restrito-adm">
-                    <div class="kpi-label">Taxa de No-Show</div>
+                    <div class="kpi-label">Taxa No-Show</div>
                     <div class="kpi-val" id="kpi-noshow" style="color: var(--danger-color);">0%</div>
                 </div>
             </div>
 
-            <div class="card escondido" id="card-rendimentos-barbeiro">
-                <h3 class="gold-text">Minha Carteira Pro</h3>
-                <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.3);">
-                    <div>
-                        <strong style="font-size:15px;">Sua Comissão Acumulada</strong><br>
-                        <span style="font-size:11px; color:var(--text-muted);" id="minha-breakdown-comissao">Carregando dados...</span>
-                    </div>
-                    <div style="color: var(--success-color); font-weight:800; font-size: 20px;" id="minha-comissao-total">R$ 0,00</div>
-                </div>
-            </div>
-
             <div class="card restrito-adm">
-                <h3>Divisão Automática de Comissão (Split Real)</h3>
-                <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; font-size: 12px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                <h3>Divisão de Comissão (Split Real)</h3>
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; font-size: 13px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
                     <div id="detalhe-servicos">Serviços Brutos: R$ 0,00</div>
                     <div id="detalhe-produtos">Produtos Brutos: R$ 0,00</div>
                 </div>
                 <div class="lista-backoffice" id="lista-split-comissoes-equipe"></div>
             </div>
 
-            <div class="card restrito-adm" style="border-color: rgba(204,153,51,0.25);">
+            <div class="card restrito-adm" style="border-color: rgba(212,175,55,0.3);">
                 <h3>👥 Gerenciamento de Equipe</h3>
-                <p style="color:var(--text-muted); font-size:12px; margin-top:-8px;">Adicione colaboradores e adicione a Chave PIX para recebimentos.</p>
+                <p style="color:var(--text-muted); font-size:13px; margin-top:-8px; margin-bottom: 20px;">Controle acessos e taxas de comissão.</p>
                 
-                <div style="background: #1f2125; padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border-color);">
-                    <h4 style="font-size:13px; margin-bottom:12px; color: var(--accent-color);">+ Incluir Novo Profissional</h4>
+                <div style="background: #18191c; padding: 20px; border-radius: 16px; margin-bottom: 20px; border: 1px solid #33353b;">
+                    <h4 style="font-size:14px; margin-bottom:16px; color: var(--accent-color);">+ Incluir Novo Profissional</h4>
                     <div class="form-group">
                         <label>Nome Completo:</label>
                         <input type="text" id="adm-barbeiro-nome" placeholder="Ex: Pedro Silva">
@@ -379,12 +371,12 @@
                     </div>
                     <div class="intervalo-custom-grid">
                         <div class="form-group">
-                            <label>WhatsApp / Celular:</label>
+                            <label>WhatsApp:</label>
                             <input type="text" id="adm-barbeiro-celular" placeholder="Ex: 11999999999">
                         </div>
                         <div class="form-group">
                             <label>Chave PIX:</label>
-                            <input type="text" id="adm-barbeiro-pix" placeholder="Ex: Celular ou E-mail">
+                            <input type="text" id="adm-barbeiro-pix" placeholder="Opcional">
                         </div>
                     </div>
                     <div class="intervalo-custom-grid">
@@ -394,21 +386,22 @@
                                 <option value="0.30">30%</option>
                                 <option value="0.40" selected>40%</option>
                                 <option value="0.50">50%</option>
+                                <option value="0.60">60%</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Nível de Acesso:</label>
+                            <label>Perfil do Sistema:</label>
                             <select id="adm-barbeiro-perfil">
-                                <option value="barbeiro">Barbeiro Padrão</option>
-                                <option value="admin">Administrador Geral</option>
+                                <option value="barbeiro">Restrito (Barbeiro)</option>
+                                <option value="admin">Total (Administrador)</option>
                             </select>
                         </div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="margin-top: 8px;">
                         <label>Senha Operacional:</label>
                         <input type="password" id="adm-barbeiro-senha" placeholder="Crie uma senha de acesso">
                     </div>
-                    <button class="btn-gold" onclick="incluirBarbeiroSistema()">Salvar Novo Membro</button>
+                    <button class="btn-gold" style="margin-top: 10px;" onclick="incluirBarbeiroSistema()">Salvar Novo Membro</button>
                 </div>
 
                 <h4>Corpo Técnico Ativo</h4>
@@ -422,7 +415,7 @@
             
             <div class="card">
                 <h4>➕ Bloquear Horário na Agenda</h4>
-                <div class="form-group">
+                <div class="form-group restrito-adm">
                     <label>Profissional:</label>
                     <select id="bloqueio-barbeiro"></select>
                 </div>
@@ -445,7 +438,7 @@
                         <input type="time" id="bloqueio-fim" value="16:00">
                     </div>
                 </div>
-                <button class="btn-gold" id="btn-salvar-bloqueio" style="margin-top: 10px;" onclick="salvarNovoBloqueio()">Trancar Agenda</button>
+                <button class="btn-gold" id="btn-salvar-bloqueio" style="margin-top: 15px;" onclick="salvarNovoBloqueio()">Trancar Agenda</button>
             </div>
 
             <div class="card">
@@ -456,7 +449,7 @@
 
         <section id="aba-adm-config" class="escondido restrito-adm">
             <h3>⚙️ Configuração Geral</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Defina os horários do espaço físico da barbearia:</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Defina os horários de funcionamento do espaço físico:</p>
             
             <div class="card">
                 <h4>Horário de Expediente</h4>
@@ -471,8 +464,8 @@
                     </div>
                 </div>
                 
-                <h4 style="margin-top: 10px;">Horário de Almoço Comum</h4>
-                <p style="color: var(--text-muted); font-size: 11px; margin-top: -10px;">Estes horários ficarão bloqueados para todos.</p>
+                <h4 style="margin-top: 15px;">Horário de Almoço Comum</h4>
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: -10px;">Estes horários ficarão bloqueados para todos os profissionais.</p>
                 <div class="intervalo-custom-grid">
                     <div class="form-group">
                         <label>Início do Almoço:</label>
@@ -483,12 +476,12 @@
                         <input type="time" id="config-almoco-fim">
                     </div>
                 </div>
-                <button class="btn-gold" style="margin-top: 15px;" onclick="salvarConfiguracoesAdmin()">Salvar Horários Globais</button>
+                <button class="btn-gold" style="margin-top: 20px;" onclick="salvarConfiguracoesAdmin()">Salvar Horários Globais</button>
             </div>
 
             <div class="card">
-                <h4>Feriados Nacionais (Barbearia Fechada)</h4>
-                <p style="color: var(--text-muted); font-size: 11px; margin-top: -5px; margin-bottom: 15px;">Ninguém receberá agendamentos nas datas abaixo.</p>
+                <h4>Feriados Nacionais (Fechado)</h4>
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: -5px; margin-bottom: 15px;">A barbearia inteira ficará bloqueada nas datas abaixo.</p>
                 
                 <div class="form-group">
                     <label>Adicionar Feriado:</label>
@@ -496,17 +489,17 @@
                 </div>
                 <button class="btn-add-data" onclick="adicionarDataFechada()">+ Bloquear Barbearia Toda</button>
 
-                <h4 style="margin-top: 20px; font-size: 13px;">Feriados Bloqueados:</h4>
+                <h4 style="margin-top: 25px; font-size: 14px;">Feriados Bloqueados:</h4>
                 <div class="lista-backoffice" id="lista-datas-fechadas" style="max-height: 200px; overflow-y: auto;"></div>
             </div>
         </section>
 
         <section id="aba-adm-servicos" class="escondido restrito-adm">
             <h3>Gestão de Serviços</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Adicione, edite ou exclua os serviços do aplicativo:</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Catálogo de serviços e preços do aplicativo:</p>
             
             <div class="card">
-                <h4>➕ Registrar Novo Serviço</h4>
+                <h4>➕ Novo Serviço</h4>
                 <div class="form-group">
                     <label>Nome do Serviço:</label>
                     <input type="text" id="servico-nome" placeholder="Ex: Platinado">
@@ -517,11 +510,11 @@
                         <input type="number" id="servico-preco" placeholder="0.00" step="0.01">
                     </div>
                     <div class="form-group">
-                        <label>Descrição/Duração:</label>
-                        <input type="text" id="servico-sub" placeholder="Ex: Duração: 40 min">
+                        <label>Tempo/Subtítulo:</label>
+                        <input type="text" id="servico-sub" placeholder="Ex: 40 min">
                     </div>
                 </div>
-                <button class="btn-gold" id="btn-salvar-servico" style="margin-top: 10px;" onclick="salvarNovoServico()">Adicionar Serviço</button>
+                <button class="btn-gold" id="btn-salvar-servico" style="margin-top: 15px;" onclick="salvarNovoServico()">Adicionar ao Catálogo</button>
             </div>
 
             <div class="card">
@@ -530,24 +523,15 @@
             </div>
         </section>
 
-        <section id="aba-adm-mkt" class="escondido restrito-adm">
-            <h3>CRM e Comunicação Ativa</h3>
-            <div class="card" style="margin-bottom:15px;">
-                <h4>Carteira de Clientes Cadastrados</h4>
-                <p style="color:var(--text-muted); font-size: 12px;">Clientes sem agendamentos nos últimos 30 dias podem ser resgatados.</p>
-                <div class="lista-backoffice" id="lista-marketing-clientes" style="margin-bottom:15px; max-height:400px; overflow-y:auto;"></div>
-            </div>
-        </section>
-
         <section id="aba-adm-recepcao" class="escondido restrito-barbeiro-adm">
             <h3>Monitor de Atendimentos</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Fluxo operacional da barbearia:</p>
-            <div id="container-kanban-recepcao" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle a esteira de cortes em tempo real:</p>
+            <div id="container-kanban-recepcao" style="display:flex; flex-direction:column; gap:12px;"></div>
 
-            <div class="card" style="margin-top:20px;">
-                <h4>⚡ Registrar Encaixe Manual (Walk-in)</h4>
+            <div class="card" style="margin-top:25px;">
+                <h4>⚡ Registrar Cliente Sem Hora (Walk-in)</h4>
                 <div class="form-group">
-                    <label>Nome do Cliente da Rua:</label>
+                    <label>Nome do Cliente:</label>
                     <input type="text" id="encaixe-nome" placeholder="Ex: Cliente de Balcão">
                 </div>
                 <div class="form-group">
@@ -564,34 +548,36 @@
                         <input type="date" id="encaixe-data">
                     </div>
                     <div class="form-group">
-                        <label>Horário:</label>
+                        <label>Horário Concluído:</label>
                         <input type="time" id="encaixe-hora" value="14:00">
                     </div>
                 </div>
-                <div class="form-group" style="margin-top:10px;">
-                    <label>Gorjeta Opcional (R$):</label>
-                    <input type="number" id="encaixe-gorjeta" value="0" min="0" step="0.01">
+                <div class="intervalo-custom-grid" style="margin-top: 10px;">
+                    <div class="form-group">
+                        <label>Gorjeta Adicional:</label>
+                        <input type="number" id="encaixe-gorjeta" value="0" min="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Pagamento:</label>
+                        <select id="encaixe-pagamento">
+                            <option value="PIX">PIX</option>
+                            <option value="DINHEIRO">Dinheiro</option>
+                            <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
+                            <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Forma de Pagamento:</label>
-                    <select id="encaixe-pagamento">
-                        <option value="PIX">PIX</option>
-                        <option value="DINHEIRO">Dinheiro</option>
-                        <option value="CARTÃO DE CRÉDITO">Cartão de Crédito</option>
-                        <option value="CARTÃO DE DÉBITO">Cartão de Débito</option>
-                    </select>
-                </div>
-                <button class="btn-gold" id="btn-executar-encaixe">Lançar Encaixe Concluído</button>
+                <button class="btn-gold" id="btn-executar-encaixe" style="margin-top:10px;">Lançar como Concluído</button>
             </div>
         </section>
 
         <section id="aba-adm-despesas" class="escondido restrito-adm">
             <h3>Gestão de Despesas</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle os custos da sua barbearia:</p>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle a saída de caixa da barbearia:</p>
             
             <div class="grid-indicadores" style="grid-template-columns: 1fr;">
                 <div class="kpi-card" style="border-color: rgba(239, 68, 68, 0.4);">
-                    <div class="kpi-label">Total de Despesas (Período Filtrado)</div>
+                    <div class="kpi-label">Saída Total (Período)</div>
                     <div class="kpi-val" id="kpi-despesas-total" style="color: var(--danger-color);">R$ 0,00</div>
                 </div>
             </div>
@@ -608,16 +594,16 @@
                         <input type="number" id="despesa-valor" placeholder="0.00" step="0.01">
                     </div>
                     <div class="form-group">
-                        <label>Data:</label>
+                        <label>Data de Pagamento:</label>
                         <input type="date" id="despesa-data">
                     </div>
                 </div>
-                <button class="btn-gold" id="btn-salvar-despesa" style="margin-top: 10px;">Lançar Despesa no Banco</button>
+                <button class="btn-gold" id="btn-salvar-despesa" style="margin-top: 15px;">Lançar Despesa</button>
             </div>
 
             <div class="card">
                 <h4>Histórico de Lançamentos</h4>
-                <div class="lista-backoffice" id="lista-despesas-cadastradas" style="max-height: 300px; overflow-y: auto;"></div>
+                <div class="lista-backoffice" id="lista-despesas-cadastradas" style="max-height: 350px; overflow-y: auto;"></div>
             </div>
         </section>
 
@@ -629,8 +615,17 @@
                 <div id="analytics-heatmap"></div>
             </div>
             <div class="card">
-                <h4>Movimentação por Dias da Semana</h4>
+                <h4>Movimentação na Semana</h4>
                 <div id="analytics-dias-semana"></div>
+            </div>
+        </section>
+
+        <section id="aba-adm-mkt" class="escondido restrito-adm">
+            <h3>CRM de Clientes</h3>
+            <div class="card">
+                <h4>Sua Base de Contatos</h4>
+                <p style="color:var(--text-muted); font-size: 12px;">Clientes sem agendamentos nos últimos 30 dias podem ser resgatados via WhatsApp.</p>
+                <div class="lista-backoffice" id="lista-marketing-clientes" style="margin-top: 15px; max-height:500px; overflow-y:auto;"></div>
             </div>
         </section>
 
@@ -641,18 +636,11 @@
 
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
-        <h3>Confirmar sua Cadeira?</h3>
-        <p id="modal-resumo-detalhes" style="font-size: 14px; line-height: 1.6; color: var(--text-muted);"></p>
+        <h3 style="text-align: center; color: var(--accent-color);">Confirmar Agendamento</h3>
+        <p id="modal-resumo-detalhes" style="font-size: 15px; line-height: 1.6; color: #fff; margin-bottom: 20px;"></p>
         
-        <div id="box-pagamento-pix" class="escondido" style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success-color); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-            <strong style="color: var(--success-color); font-size: 13px;">📲 Pagamento via PIX</strong><br>
-            <span style="font-size: 13px; color: white;">Chave do Barbeiro: <strong id="pix-chave-barbeiro"></strong></span><br>
-            <span style="font-size: 13px; color: white;">Valor: <strong id="pix-valor-servico"></strong></span><br>
-            <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">Faça a transferência para o profissional antes de confirmar.</span>
-        </div>
-
-        <button class="btn-gold" id="btn-confirmar-modal">Confirmar Oficialmente</button>
-        <button class="btn-danger" onclick="fecharModal('modal-confirmacao')">Voltar / Cancelar</button>
+        <button class="btn-gold" id="btn-confirmar-modal" style="font-size: 16px;">Confirmar Oficialmente</button>
+        <button class="btn-danger" style="background: transparent; color: var(--text-muted); margin-top: 4px;" onclick="fecharModal('modal-confirmacao')">Cancelar</button>
     </div>
 </div>
 
@@ -679,7 +667,7 @@
             </div>
         </div>
         <div class="form-group">
-            <label>Pagamento Local:</label>
+            <label>Forma de Pagamento:</label>
             <select id="edit-reserva-pagamento">
                 <option value="Pix">Pix</option>
                 <option value="Cartão de Crédito">Cartão de Crédito</option>
@@ -687,8 +675,8 @@
                 <option value="Dinheiro">Dinheiro</option>
             </select>
         </div>
-        <button class="btn-gold" style="margin-top: 10px;" onclick="salvarEdicaoReserva()">Salvar Alterações</button>
-        <button class="btn-danger" onclick="fecharModal('modal-editar-reserva')">Cancelar</button>
+        <button class="btn-gold" style="margin-top: 15px;" onclick="salvarEdicaoReserva()">Salvar Alterações</button>
+        <button class="btn-danger" style="background: transparent; color: var(--text-muted); margin-top: 4px;" onclick="fecharModal('modal-editar-reserva')">Cancelar</button>
     </div>
 </div>
 
@@ -722,15 +710,15 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Nível de Acesso:</label>
+                <label>Acesso:</label>
                 <select id="edit-barbeiro-perfil">
-                    <option value="barbeiro">Barbeiro (Restrito)</option>
-                    <option value="admin">Administrador (Total)</option>
+                    <option value="barbeiro">Restrito</option>
+                    <option value="admin">Admin Total</option>
                 </select>
             </div>
         </div>
-        <button class="btn-gold" style="margin-top: 10px;" onclick="salvarEdicaoBarbeiro()">Salvar Profissional</button>
-        <button class="btn-danger" onclick="fecharModal('modal-editar-barbeiro')">Cancelar</button>
+        <button class="btn-gold" style="margin-top: 15px;" onclick="salvarEdicaoBarbeiro()">Atualizar Acessos</button>
+        <button class="btn-danger" style="background: transparent; color: var(--text-muted); margin-top: 4px;" onclick="fecharModal('modal-editar-barbeiro')">Cancelar</button>
     </div>
 </div>
 
@@ -752,8 +740,8 @@
                 <input type="date" id="edit-despesa-data">
             </div>
         </div>
-        <button class="btn-gold" style="margin-top: 10px;" onclick="salvarEdicaoDespesa()">Salvar Nova Despesa</button>
-        <button class="btn-danger" onclick="fecharModal('modal-editar-despesa')">Cancelar</button>
+        <button class="btn-gold" style="margin-top: 15px;" onclick="salvarEdicaoDespesa()">Salvar Edição</button>
+        <button class="btn-danger" style="background: transparent; color: var(--text-muted); margin-top: 4px;" onclick="fecharModal('modal-editar-despesa')">Cancelar</button>
     </div>
 </div>
 
@@ -771,12 +759,12 @@
                 <input type="number" id="edit-servico-preco" step="0.01">
             </div>
             <div class="form-group">
-                <label>Descrição/Duração:</label>
+                <label>Duração/Aviso:</label>
                 <input type="text" id="edit-servico-sub">
             </div>
         </div>
-        <button class="btn-gold" style="margin-top: 10px;" onclick="salvarEdicaoServico()">Salvar Alterações</button>
-        <button class="btn-danger" onclick="fecharModal('modal-editar-servico')">Cancelar</button>
+        <button class="btn-gold" style="margin-top: 15px;" onclick="salvarEdicaoServico()">Salvar Catálogo</button>
+        <button class="btn-danger" style="background: transparent; color: var(--text-muted); margin-top: 4px;" onclick="fecharModal('modal-editar-servico')">Cancelar</button>
     </div>
 </div>
 
