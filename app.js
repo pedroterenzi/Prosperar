@@ -604,7 +604,6 @@ async function executarCadastro() {
     }
 }
 
-// O LOGIN VOLTOU A SER EXATAMENTE O MODELO QUE VOCÊ VALIDOU
 async function executarLogin() {
     const loginInput = document.getElementById('login-usuario');
     const senhaInput = document.getElementById('login-senha');
@@ -648,7 +647,7 @@ async function executarLogin() {
             usuarioLogado = user.login;
             perfilLogado = user.perfil || 'cliente';
             nomeUsuarioLogado = user.nome;
-            ativarAcessoAoPainelProfissional(); // Retirado o await que quebrava o script
+            ativarAcessoAoPainelProfissional(); 
         } else {
             if(res.status === 404 || res.status === 401) {
                 alert("Usuário ou senha incorretos! Verifique os dados e tente novamente.");
@@ -732,6 +731,9 @@ async function ativarAcessoAoPainelProfissional() {
     }
 }
 
+// -------------------------------------------------------------
+// FUNÇÃO SUPER BLINDADA - Aqui tratamos e interceptamos TUDO!
+// -------------------------------------------------------------
 function inicializarListenersEstaticos() {
     const inputData = document.getElementById('data');
     if(inputData) {
@@ -743,41 +745,66 @@ function inicializarListenersEstaticos() {
     const btnPreAgendar = document.getElementById('btnPreAgendar');
     if(btnPreAgendar) {
         btnPreAgendar.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (!servicoSelecionado || !barbeiroSelecionado || !horarioSelecionado || !pagamentoSelecionado) {
-                return alert("Por favor, selecione: Serviço, Profissional, Horário e Pagamento.");
-            }
-            const dataSelecionada = document.getElementById('data').value;
-            if (!dataSelecionada) return alert("Selecione uma data válida.");
+            try {
+                e.preventDefault();
+                
+                // Validações Base
+                if (!servicoSelecionado) return alert("Atenção: Por favor, clique e selecione o Serviço.");
+                if (!barbeiroSelecionado) return alert("Atenção: Por favor, selecione o Profissional.");
+                if (!horarioSelecionado) return alert("Atenção: Por favor, selecione um Horário disponível.");
+                if (!pagamentoSelecionado) return alert("Atenção: Por favor, escolha a Forma de Pagamento.");
 
-            if (isSlotPast(dataSelecionada, horarioSelecionado)) {
-                alert("Este horário expirou. Escolha um horário futuro.");
-                renderizarGradeHorariosReais();
-                return;
-            }
+                const inputDataModal = document.getElementById('data');
+                if (!inputDataModal) return alert("Erro no App: O campo de Data sumiu da tela.");
+                
+                const dataSelecionada = inputDataModal.value;
+                if (!dataSelecionada) return alert("Atenção: Você precisa selecionar uma Data válida no calendário.");
 
-            const bInfo = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado);
+                if (isSlotPast(dataSelecionada, horarioSelecionado)) {
+                    alert("Atenção: Este horário já expirou ou passou. Escolha um horário válido no futuro.");
+                    renderizarGradeHorariosReais();
+                    return;
+                }
 
-            const boxPix = document.getElementById('box-pagamento-pix');
-            if (pagamentoSelecionado.toLowerCase() === 'pix') {
-                const chavePix = (bInfo && bInfo.pix) ? bInfo.pix : "Chave não cadastrada pelo profissional.";
-                document.getElementById('pix-chave-barbeiro').innerText = chavePix;
-                document.getElementById('pix-valor-servico').innerText = `R$ ${precoServico.toFixed(2)}`;
-                boxPix.classList.remove('escondido');
-            } else {
-                boxPix.classList.add('escondido');
-            }
+                // Proteção contra divergência de tipo (Garante que Barbeiro seja encontrado)
+                const bInfo = ESTRUTURA_BARBEIROS.find(b => String(b.id) === String(barbeiroSelecionado));
 
-            const r = document.getElementById('modal-resumo-detalhes');
-            if(r) {
-                r.innerHTML = `
-                    <strong>Procedimento:</strong> ${servicoSelecionado}<br>
-                    <strong>Profissional:</strong> ${bInfo?.nome || 'Não Selecionado'}<br>
-                    <strong>Data/Hora:</strong> ${dataSelecionada.split('-').reverse().join('/')} às ${horarioSelecionado}<br>
-                    <span style="color:var(--success-color); font-weight:bold;">Valor: R$ ${precoServico.toFixed(2)}</span>
-                `;
+                const boxPix = document.getElementById('box-pagamento-pix');
+                
+                if (pagamentoSelecionado.toLowerCase() === 'pix') {
+                    const chavePix = (bInfo && bInfo.pix) ? bInfo.pix : "Chave PIX não foi cadastrada por esse barbeiro.";
+                    const elChave = document.getElementById('pix-chave-barbeiro');
+                    const elValor = document.getElementById('pix-valor-servico');
+                    
+                    if(elChave) elChave.innerText = chavePix;
+                    if(elValor) elValor.innerText = `R$ ${precoServico.toFixed(2)}`;
+                    
+                    if(boxPix) boxPix.classList.remove('escondido');
+                } else {
+                    if(boxPix) boxPix.classList.add('escondido');
+                }
+
+                const r = document.getElementById('modal-resumo-detalhes');
+                if(r) {
+                    r.innerHTML = `
+                        <strong>Procedimento:</strong> ${servicoSelecionado}<br>
+                        <strong>Profissional:</strong> ${bInfo ? bInfo.nome : 'Não Encontrado'}<br>
+                        <strong>Data/Hora:</strong> ${dataSelecionada.split('-').reverse().join('/')} às ${horarioSelecionado}<br>
+                        <span style="color:var(--success-color); font-weight:bold;">Valor Estimado: R$ ${precoServico.toFixed(2)}</span>
+                    `;
+                }
+                
+                const modalConf = document.getElementById('modal-confirmacao');
+                if (modalConf) {
+                    modalConf.classList.remove('escondido');
+                } else {
+                    alert("Erro Estrutural Crítico: O seu HTML não possui a 'div' com o id 'modal-confirmacao'.");
+                }
+            } catch(err) {
+                // Se der qualquer erro em vez de "NADA ACONTECER", ele vai cuspir o motivo aqui!
+                alert("Ops! Ocorreu um erro no aplicativo: " + err.message);
+                console.error("Erro interno no botão Revisar e Confirmar:", err);
             }
-            document.getElementById('modal-confirmacao')?.classList.remove('escondido');
         });
     }
 
@@ -786,25 +813,25 @@ function inicializarListenersEstaticos() {
         btnConfirmarModal.addEventListener('click', async (e) => {
             e.preventDefault();
             const btn = e.target;
-            btn.innerText = "Enviando...";
+            btn.innerText = "Enviando pro Servidor...";
             btn.disabled = true;
 
-            const dataSelecionada = document.getElementById('data').value;
-            const bNome = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado)?.nome;
-            
-            const payload = {
-                cliente: nomeUsuarioLogado ? nomeUsuarioLogado.toUpperCase() : "CLIENTE ANÔNIMO",
-                servico: servicoSelecionado,
-                barbeiro: bNome,
-                data: dataSelecionada,
-                hora: horarioSelecionado,
-                pagamento: pagamentoSelecionado,
-                status: "Agendado",
-                valor_produtos: 0.00,
-                valor_gorjeta: 0.00
-            };
-
             try {
+                const dataSelecionada = document.getElementById('data').value;
+                const bNome = ESTRUTURA_BARBEIROS.find(b => String(b.id) === String(barbeiroSelecionado))?.nome;
+                
+                const payload = {
+                    cliente: nomeUsuarioLogado ? nomeUsuarioLogado.toUpperCase() : "CLIENTE ANÔNIMO",
+                    servico: servicoSelecionado,
+                    barbeiro: bNome,
+                    data: dataSelecionada,
+                    hora: horarioSelecionado,
+                    pagamento: pagamentoSelecionado,
+                    status: "Agendado",
+                    valor_produtos: 0.00,
+                    valor_gorjeta: 0.00
+                };
+
                 const res = await fetch(`${API_URL}/agendamentos`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -813,7 +840,7 @@ function inicializarListenersEstaticos() {
 
                 if(res.ok) {
                     fecharModal('modal-confirmacao');
-                    alert("✨ Reserva efetuada com sucesso!\nVocê será redirecionado para avisar o barbeiro.");
+                    alert("✨ Reserva confirmada no sistema e salva no banco!\nVocê será redirecionado para avisar o barbeiro no WhatsApp.");
                     
                     notificarBarbeiroWhatsApp('novo', payload);
 
@@ -822,10 +849,10 @@ function inicializarListenersEstaticos() {
                     carregarMeusAgendamentosDoBanco();
                     alternarTela('estilo');
                 } else {
-                    alert("Erro ao confirmar reserva.");
+                    alert("Erro ao confirmar a reserva no Banco de Dados.");
                 }
             } catch(error) {
-                alert("Falha de comunicação com o servidor.");
+                alert("Falha de comunicação com a Nuvem/Servidor.");
             } finally {
                 btn.innerText = "Confirmar Oficialmente";
                 btn.disabled = false;
