@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prosperar Club - Painel Corporativo</title>
-    <!-- Fonte Premium Startups -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -63,22 +62,48 @@
         .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; width: 100%; }
         .form-group label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
         
-        /* Ajuste do min-width e padding para caber nos celulares menores */
+        /* AJUSTES APLICADOS AQUI PARA CORRIGIR OS INPUTS NO MOBILE */
         .form-group input, .form-group select { 
             width: 100%; 
+            max-width: 100%;
             min-width: 0; 
-            padding: 12px 14px; 
+            height: 48px;
+            padding: 0 14px; 
             background: #18191c; 
             border: 1px solid #33353b; 
             border-radius: 12px; 
             color: white; 
-            font-size: 15px; 
+            font-size: 14px; 
             transition: all 0.3s ease;
+            -webkit-appearance: none;
+            appearance: none;
+            box-sizing: border-box;
         }
+
+        .form-group select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 32px;
+        }
+
         .form-group input:focus, .form-group select:focus { 
             border-color: var(--accent-color); 
             outline: none; 
             box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+
+        input[type="date"], 
+        input[type="time"] {
+            text-align: center;
+            font-weight: 600;
+        }
+
+        input[type="date"]::-webkit-date-and-time-value,
+        input[type="time"]::-webkit-date-and-time-value {
+            text-align: center;
+            min-height: 1.5em; 
         }
         
         input[type="date"]::-webkit-calendar-picker-indicator,
@@ -223,7 +248,6 @@
 
 <div class="app-container">
 
-    <!-- TELA DE LOGIN E CADASTRO -->
     <div id="tela-autenticacao" class="card" style="margin-top: 5vh;">
         <h2>Prosperar Club</h2>
         <p style="text-align:center; color:var(--text-muted); font-size: 14px; margin-top:-10px; margin-bottom: 25px;">Agende seu horário</p>
@@ -273,10 +297,8 @@
         </div>
     </div>
 
-    <!-- CONTEÚDO OPERACIONAL DO CORE APP -->
     <div id="conteudo-app" class="escondido">
         
-        <!-- SELETOR E FILTRO GLOBAL -->
         <div id="bloco-filtros-global-adm" class="escondido card" style="padding: 18px;">
             <h4 style="font-size: 12px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Painel de Controle:</h4>
             
@@ -302,7 +324,6 @@
             </div>
         </div>
 
-        <!-- ABA DO CLIENTE: AGENDAMENTO -->
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 24px; text-align: center;">
                 <h2 id="boas-vistas-cliente" style="font-size: 26px; margin-bottom: 6px;">Olá!</h2>
@@ -329,13 +350,11 @@
             </div>
         </section>
 
-        <!-- ABA DO CLIENTE: MEUS CORTES -->
         <section id="aba-estilo" class="escondido">
             <h3 style="text-align: center; margin-bottom: 20px;">Meus Agendamentos</h3>
             <div id="container-meus-agendamentos"></div>
         </section>
 
-        <!-- ABA BACKOFFICE: MONITOR FINANCEIRO & EQUIPE -->
         <section id="aba-adm-dash" class="escondido">
             <h2 class="gold-text" style="text-align: left; margin-bottom: 4px;">Métricas de Faturamento</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Visão geral do período selecionado:</p>
@@ -433,7 +452,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: AGENDA E BLOQUEIOS PESSOAIS -->
         <section id="aba-adm-agenda" class="escondido restrito-barbeiro-adm">
             <h3>📅 Minha Agenda e Folgas</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Tranque seus horários para compromissos ou folgas pessoais.</p>
@@ -472,7 +490,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: CONFIGURAÇÕES GERAIS -->
         <section id="aba-adm-config" class="escondido restrito-adm">
             <h3>⚙️ Configuração Geral</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Defina os horários de funcionamento do espaço físico:</p>
@@ -520,7 +537,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: SERVIÇOS -->
         <section id="aba-adm-servicos" class="escondido restrito-adm">
             <h3>Gestão de Serviços</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Adicione, edite ou exclua os serviços do aplicativo:</p>
@@ -550,7 +566,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: KANBAN MONITOR -->
         <section id="aba-adm-recepcao" class="escondido restrito-barbeiro-adm">
             <h3>Monitor de Atendimentos</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle a esteira de cortes em tempo real:</p>
@@ -599,7 +614,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: DESPESAS -->
         <section id="aba-adm-despesas" class="escondido restrito-adm">
             <h3>Gestão de Despesas</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle a saída de caixa da barbearia:</p>
@@ -636,7 +650,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: BUSINESS INTELLIGENCE -->
         <section id="aba-adm-analytics" class="escondido restrito-barbeiro-adm">
             <h3>Business Intelligence</h3>
             <div id="analytics-retencao" style="display: flex; justify-content: center; width: 100%; gap: 12px; margin-bottom: 20px;"></div>
@@ -650,7 +663,6 @@
             </div>
         </section>
 
-        <!-- ABA BACKOFFICE: CRM & COMUNICAÇÃO -->
         <section id="aba-adm-mkt" class="escondido restrito-adm">
             <h3>CRM de Clientes</h3>
             <div class="card">
@@ -660,13 +672,11 @@
             </div>
         </section>
 
-        <!-- MENU INFERIOR NATIVO E SCROLLÁVEL -->
         <nav class="nav-inferior" id="menu-navegacao"></nav>
 
     </div>
 </div>
 
-<!-- POP-UPS MODERNOS -->
 <div id="modal-confirmacao" class="modal-overlay escondido">
     <div class="modal-content">
         <h3 style="text-align: center; color: var(--accent-color);">Confirmar Agendamento</h3>
