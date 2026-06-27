@@ -282,7 +282,7 @@ async function salvarNovoBloqueio() {
     } catch(e) {
         alert("Erro ao bloquear horário.");
     } finally {
-        btn.innerText = "Trancar Agenda"; btn.disabled = false;
+        btn.innerText = "Trancar Minha Agenda"; btn.disabled = false;
     }
 }
 
@@ -1464,12 +1464,45 @@ async function carregarModoRecepcaoKanban() {
 
         container.innerHTML = "";
 
+        // Verificação 1: Barbearia fechada (Feriado Global)
+        let isGlobalBlocked = false;
+        const fechadas = DADOS_CONFIG.datas_fechadas ? DADOS_CONFIG.datas_fechadas.split(',').map(d => d.trim()).filter(Boolean) : [];
+        if(fechadas.includes(dataAlvo)) isGlobalBlocked = true;
+
+        if (isGlobalBlocked) {
+            container.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--danger-color); font-weight: bold; background: rgba(239, 68, 68, 0.1); border-radius: 10px; border: 1px dashed var(--danger-color);">Barbearia Fechada nesta Data (Feriado ou Folga Global).</div>`;
+            return;
+        }
+
         let atual = parseTime(DADOS_CONFIG.hora_abertura || '09:00');
         let fim = parseTime(DADOS_CONFIG.hora_fechamento || '20:00');
+        let intIni = parseTime(DADOS_CONFIG.intervalo_inicio || '12:00');
+        let intFim = parseTime(DADOS_CONFIG.intervalo_fim || '13:00');
+        const temIntervalo = DADOS_CONFIG.intervalo_inicio && DADOS_CONFIG.intervalo_fim;
 
         while(atual < fim) {
             const horaStr = formatTime(atual);
             const agendamentosNoHorario = agendamentosDoDia.filter(a => a.hora === horaStr);
+
+            let isSlotBlocked = false;
+            let labelBloqueio = "🔒 Bloqueado";
+
+            // Verificação 2: Almoço da barbearia
+            if(temIntervalo && atual >= intIni && atual < intFim) {
+                isSlotBlocked = true;
+                labelBloqueio = "🍽️ Horário de Almoço";
+            }
+
+            // Verificação 3: Bloqueio pessoal do Barbeiro (só aparece se filtrar o nome dele)
+            if(barbeiroAlvo !== 'todos') {
+                const bloqueiosBarbeiro = DADOS_BLOQUEIOS.filter(b => b.data === dataAlvo && b.barbeiro.trim().toLowerCase() === barbeiroAlvo.trim().toLowerCase());
+                bloqueiosBarbeiro.forEach(b => {
+                    if(atual >= parseTime(b.hora_inicio) && atual < parseTime(b.hora_fim)) {
+                        isSlotBlocked = true;
+                        labelBloqueio = "🚫 Pausa / Compromisso";
+                    }
+                });
+            }
 
             if (agendamentosNoHorario.length > 0) {
                 agendamentosNoHorario.forEach(item => {
@@ -1487,7 +1520,7 @@ async function carregarModoRecepcaoKanban() {
                         <div style="flex:1; background:${bgCor}; border-left:4px solid ${corBorda}; padding:12px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
                             <div>
                                 <strong style="font-size:14px; color:#fff;">👤 ${item.cliente}</strong><br>
-                                <span style="font-size:12px; color:var(--text-muted);">${item.servico} • Profissional: ${item.barbeiro}</span>
+                                <span style="font-size:12px; color:var(--text-muted);">${item.servico} • Prof: ${item.barbeiro}</span>
                             </div>
                             ${!isConcluido && !isFalta ? `
                             <div style="display:flex; gap:6px;">
@@ -1499,13 +1532,25 @@ async function carregarModoRecepcaoKanban() {
                     </div>`;
                 });
             } else {
-                container.innerHTML += `
-                <div style="display:flex; gap:12px; margin-bottom:8px; align-items: center; opacity: 0.5;">
-                    <div style="width:45px; flex-shrink:0; text-align:right; font-weight:600; color:#555; font-size:13px;">${horaStr}</div>
-                    <div style="flex:1; border: 1px dashed #444; padding:10px; border-radius:10px; cursor:pointer;" onclick="preencherEncaixeRapido('${horaStr}', '${dataAlvo}')">
-                        <span style="font-size:12px; color:#777;">+ Livre (Toque p/ Encaixe Rápido)</span>
-                    </div>
-                </div>`;
+                if (isSlotBlocked) {
+                    // Renderiza o Slot Bloqueado
+                    container.innerHTML += `
+                    <div style="display:flex; gap:12px; margin-bottom:8px; align-items: center; opacity: 0.7;">
+                        <div style="width:45px; flex-shrink:0; text-align:right; font-weight:600; color:#555; font-size:13px;">${horaStr}</div>
+                        <div style="flex:1; background: rgba(239,68,68,0.05); border: 1px dashed var(--danger-color); padding:10px; border-radius:10px;">
+                            <span style="font-size:12px; color:var(--danger-color); font-weight: bold;">${labelBloqueio}</span>
+                        </div>
+                    </div>`;
+                } else {
+                    // Renderiza o Slot Livre para Walk-in
+                    container.innerHTML += `
+                    <div style="display:flex; gap:12px; margin-bottom:8px; align-items: center; opacity: 0.5;">
+                        <div style="width:45px; flex-shrink:0; text-align:right; font-weight:600; color:#555; font-size:13px;">${horaStr}</div>
+                        <div style="flex:1; border: 1px dashed #444; padding:10px; border-radius:10px; cursor:pointer;" onclick="preencherEncaixeRapido('${horaStr}', '${dataAlvo}')">
+                            <span style="font-size:12px; color:#777;">+ Livre (Toque p/ Encaixe Rápido)</span>
+                        </div>
+                    </div>`;
+                }
             }
             atual += 30;
         }
