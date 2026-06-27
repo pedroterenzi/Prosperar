@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fetch(`${API_URL}/configuracoes`).catch(() => console.log("Aquecendo servidor..."));
 
     const todayStr = new Date().toISOString().split('T')[0];
-    const inputsData = ['data', 'encaixe-data', 'despesa-data', 'bloqueio-data', 'config-nova-data-folga'];
+    const inputsData = ['data', 'encaixe-data', 'despesa-data', 'bloqueio-data', 'config-nova-data-folga', 'filtro-data-visual'];
     inputsData.forEach(id => {
         const el = document.getElementById(id);
         if(el) el.value = todayStr;
@@ -299,7 +299,6 @@ async function excluirBloqueio(id) {
     }
 }
 
-
 // --------- FUNÇÕES DE CONFIGURAÇÃO GERAL (ABA ADMIN) ----------
 function renderizarConfiguracoesAdmin() {
     document.getElementById('config-abertura').value = DADOS_CONFIG.hora_abertura || '09:00';
@@ -415,6 +414,14 @@ function atualizarSeletoresEFormulariosDeEquipe() {
             seletorEncaixe.innerHTML += `<option value="${b.nome}">${b.nome}</option>`;
         });
     }
+    
+    const seletorVisual = document.getElementById('filtro-barbeiro-visual');
+    if(seletorVisual) {
+        seletorVisual.innerHTML = '<option value="todos">Todos</option>';
+        ESTRUTURA_BARBEIROS.forEach(b => {
+            seletorVisual.innerHTML += `<option value="${b.nome}">${b.nome}</option>`;
+        });
+    }
 
     const containerLista = document.getElementById('lista-equipe-cadastrada');
     if(containerLista) {
@@ -448,7 +455,7 @@ function abrirModalEdicaoBarbeiro(id) {
     document.getElementById('edit-barbeiro-nome').value = barbeiro.nome;
     document.getElementById('edit-barbeiro-celular').value = barbeiro.celular || "";
     document.getElementById('edit-barbeiro-pix').value = barbeiro.pix || "";
-    document.getElementById('edit-barbeiro-comissao').value = barbeiro.comissao.toFixed(2);
+    document.getElementById('edit-barbeiro-comissao').value = (barbeiro.comissao > 1 ? barbeiro.comissao : barbeiro.comissao * 100).toFixed(0);
     document.getElementById('edit-barbeiro-perfil').value = barbeiro.perfil;
     document.getElementById('modal-editar-barbeiro').classList.remove('escondido');
 }
@@ -458,7 +465,10 @@ async function salvarEdicaoBarbeiro() {
     const nome = document.getElementById('edit-barbeiro-nome').value.trim();
     const celular = document.getElementById('edit-barbeiro-celular').value.trim();
     const pix = document.getElementById('edit-barbeiro-pix').value.trim();
-    const comissao = parseFloat(document.getElementById('edit-barbeiro-comissao').value);
+    
+    let comissaoEdit = parseFloat(document.getElementById('edit-barbeiro-comissao').value) || 0;
+    const comissao = comissaoEdit > 1 ? comissaoEdit / 100 : comissaoEdit;
+
     const perfil = document.getElementById('edit-barbeiro-perfil').value;
     
     if(!nome) return alert("O nome não pode ficar vazio.");
@@ -487,7 +497,10 @@ async function incluirBarbeiroSistema() {
     const login = document.getElementById('adm-barbeiro-login').value.trim().toLowerCase();
     const celular = document.getElementById('adm-barbeiro-celular').value.trim();
     const pix = document.getElementById('adm-barbeiro-pix').value.trim();
-    const comissao = parseFloat(document.getElementById('adm-barbeiro-comissao').value);
+    
+    let comissaoInput = parseFloat(document.getElementById('adm-barbeiro-comissao').value) || 0;
+    const comissao = comissaoInput > 1 ? comissaoInput / 100 : comissaoInput;
+
     const perfil = document.getElementById('adm-barbeiro-perfil').value;
     const senha = document.getElementById('adm-barbeiro-senha').value;
 
@@ -864,22 +877,28 @@ function inicializarListenersEstaticos() {
     if(btnExecutarEncaixe) {
         btnExecutarEncaixe.addEventListener('click', async (e) => {
             const btn = e.target;
-            btn.innerText = "Salvando...";
-            btn.disabled = true;
+            
+            const nomeEl = document.getElementById('encaixe-nome');
+            const servicoEl = document.getElementById('encaixe-servico');
+            const barbeiroEl = document.getElementById('encaixe-barbeiro');
+            
+            if(!nomeEl || !servicoEl || !barbeiroEl) return alert("Erro estrutural: Campos não encontrados.");
 
-            const nome = document.getElementById('encaixe-nome')?.value.trim();
-            const servico = document.getElementById('encaixe-servico')?.value;
-            const barbeiro = document.getElementById('encaixe-barbeiro')?.value;
+            const nome = nomeEl.value.trim();
+            const servico = servicoEl.value;
+            const barbeiro = barbeiroEl.value;
             const dataEncaixe = document.getElementById('encaixe-data')?.value; 
-            const hora = document.getElementById('encaixe-hora')?.value;
-            const gorjeta = parseFloat(document.getElementById('encaixe-gorjeta')?.value || 0);
-            const pagamento = document.getElementById('encaixe-pagamento')?.value;
+            const hora = document.getElementById('encaixe-hora')?.value || "00:00";
+            const gorjeta = parseFloat(document.getElementById('encaixe-gorjeta')?.value) || 0.00;
+            const pagamento = document.getElementById('encaixe-pagamento')?.value || "PIX";
 
-            if(!nome || !dataEncaixe) {
-                btn.innerText = "Lançar Encaixe Concluído";
-                btn.disabled = false;
-                return alert("Insira o nome do cliente e a data correta.");
-            }
+            if(!nome) return alert("Insira o nome do cliente de balcão.");
+            if(!dataEncaixe) return alert("Insira a data do atendimento.");
+            if(!servico) return alert("Nenhum serviço selecionado (Cadastre um serviço primeiro).");
+            if(!barbeiro) return alert("Nenhum profissional selecionado (Cadastre um barbeiro primeiro).");
+
+            btn.innerText = "Registrando...";
+            btn.disabled = true;
 
             const payload = {
                 cliente: `WALK-IN: ${nome.toUpperCase()}`,
@@ -903,13 +922,19 @@ function inicializarListenersEstaticos() {
                 if(res.ok) {
                     alert("⚡ Encaixe registrado com sucesso!");
                     document.getElementById('encaixe-nome').value = "";
+                    document.getElementById('encaixe-gorjeta').value = "0";
+                    document.getElementById('box-encaixe-rapido')?.classList.add('escondido');
+                    
                     await sincronizarBancoDeDados();
-                    recarregarAbaAtivaAdm();
+                    carregarModoRecepcaoKanban();
+                    carregarDadosEstrategicosDoNeon(); 
+                } else {
+                    alert(`Falha do Banco de Dados: Confirme se todos os campos estão preenchidos.`);
                 }
             } catch (err) {
-                alert("Erro ao registrar encaixe.");
+                alert(`Erro de conexão ao salvar: ${err.message}`);
             } finally {
-                btn.innerText = "Lançar Encaixe Concluído";
+                btn.innerText = "Gravar no Banco de Dados";
                 btn.disabled = false;
             }
         });
@@ -1426,29 +1451,88 @@ async function carregarDadosEstrategicosDoNeon() {
 async function carregarModoRecepcaoKanban() {
     const container = document.getElementById('container-kanban-recepcao'); if(!container) return;
     try {
-        const dadosFiltrados = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
+        const dataFiltroEl = document.getElementById('filtro-data-visual');
+        if(!dataFiltroEl.value) dataFiltroEl.value = new Date().toISOString().split('T')[0];
         
-        dadosFiltrados.sort((a, b) => new Date(`${a.data||''}T${a.hora||''}:00`) - new Date(`${b.data||''}T${b.hora||''}:00`));
+        const dataAlvo = dataFiltroEl.value;
+        const barbeiroAlvo = document.getElementById('filtro-barbeiro-visual')?.value || 'todos';
 
-        container.innerHTML = dadosFiltrados.length === 0 ? "<p style='color:var(--text-muted); text-align:center;'>Nenhum registro para o escopo.</p>" : "";
-        
-        dadosFiltrados.forEach(item => {
-            const isConcluido = item.status && item.status.toLowerCase() === 'concluído';
-            const dataBr = item.data && item.data.includes('-') ? item.data.split('-').reverse().join('/') : (item.data||'');
-            
-            container.innerHTML += `
-                <div class="item-backoffice" style="border-left: 4px solid ${isConcluido ? 'var(--success-color)' : 'var(--accent-color)'}">
-                    <div><strong>👤 ${item.cliente} (${item.status})</strong><br><span style="font-size:12px; color:var(--text-muted);">${item.servico} - ${dataBr} às ${item.hora||''} [Barbeiro: ${item.barbeiro}]</span></div>
-                    <div style="display:flex; gap:6px;">
-                        <button class="btn-status" style="background:var(--success-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
-                        <button class="btn-status" style="background:var(--danger-color); color:white;" onclick="mudarStatusAgendamento(${item.id}, 'Falta')">✖</button>
+        let agendamentosDoDia = DADOS_AGENDAMENTOS.filter(a => a.data === dataAlvo);
+        if(barbeiroAlvo !== 'todos') {
+            agendamentosDoDia = agendamentosDoDia.filter(a => a.barbeiro === barbeiroAlvo);
+        }
+
+        container.innerHTML = "";
+
+        let atual = parseTime(DADOS_CONFIG.hora_abertura || '09:00');
+        let fim = parseTime(DADOS_CONFIG.hora_fechamento || '20:00');
+
+        while(atual < fim) {
+            const horaStr = formatTime(atual);
+            const agendamentosNoHorario = agendamentosDoDia.filter(a => a.hora === horaStr);
+
+            if (agendamentosNoHorario.length > 0) {
+                agendamentosNoHorario.forEach(item => {
+                    const isConcluido = item.status && item.status.toLowerCase() === 'concluído';
+                    const isFalta = item.status && item.status.toLowerCase() === 'falta';
+                    
+                    let corBorda = 'var(--accent-color)';
+                    let bgCor = 'rgba(212, 175, 55, 0.08)';
+                    if (isConcluido) { corBorda = 'var(--success-color)'; bgCor = 'rgba(16, 185, 129, 0.08)'; }
+                    if (isFalta) { corBorda = 'var(--danger-color)'; bgCor = 'rgba(239, 68, 68, 0.08)'; }
+
+                    container.innerHTML += `
+                    <div style="display:flex; gap:12px; margin-bottom:8px; align-items: stretch;">
+                        <div style="width:45px; flex-shrink:0; text-align:right; font-weight:800; color:var(--text-muted); font-size:13px; padding-top:12px;">${horaStr}</div>
+                        <div style="flex:1; background:${bgCor}; border-left:4px solid ${corBorda}; padding:12px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <strong style="font-size:14px; color:#fff;">👤 ${item.cliente}</strong><br>
+                                <span style="font-size:12px; color:var(--text-muted);">${item.servico} • Profissional: ${item.barbeiro}</span>
+                            </div>
+                            ${!isConcluido && !isFalta ? `
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn-status" style="background:var(--success-color); color:white; font-size:10px; padding:6px 10px;" onclick="mudarStatusAgendamento(${item.id}, 'Concluído')">✔</button>
+                                <button class="btn-status" style="background:var(--danger-color); color:white; font-size:10px; padding:6px 10px;" onclick="mudarStatusAgendamento(${item.id}, 'Falta')">✖</button>
+                            </div>
+                            ` : `<span style="font-size:11px; font-weight:bold; color:${corBorda}; text-transform:uppercase;">${item.status}</span>`}
+                        </div>
+                    </div>`;
+                });
+            } else {
+                container.innerHTML += `
+                <div style="display:flex; gap:12px; margin-bottom:8px; align-items: center; opacity: 0.5;">
+                    <div style="width:45px; flex-shrink:0; text-align:right; font-weight:600; color:#555; font-size:13px;">${horaStr}</div>
+                    <div style="flex:1; border: 1px dashed #444; padding:10px; border-radius:10px; cursor:pointer;" onclick="preencherEncaixeRapido('${horaStr}', '${dataAlvo}')">
+                        <span style="font-size:12px; color:#777;">+ Livre (Toque p/ Encaixe Rápido)</span>
                     </div>
                 </div>`;
-        });
+            }
+            atual += 30;
+        }
+        
+        const selVisual = document.getElementById('filtro-barbeiro-visual');
+        if(selVisual && selVisual.options.length <= 1) {
+            ESTRUTURA_BARBEIROS.forEach(b => {
+                selVisual.innerHTML += `<option value="${b.nome}">${b.nome}</option>`;
+            });
+        }
         preencherSelectServicosEncaixe();
     } catch(e) {
-        console.error("Erro no Kanban:", e);
+        console.error("Erro na Agenda Visual:", e);
     }
+}
+
+function preencherEncaixeRapido(hora, data) {
+    abrirModalEncaixe();
+    document.getElementById('encaixe-hora').value = hora;
+    document.getElementById('encaixe-data').value = data;
+    document.getElementById('encaixe-nome').focus();
+}
+
+function abrirModalEncaixe() {
+    const box = document.getElementById('box-encaixe-rapido');
+    box.classList.remove('escondido');
+    box.scrollIntoView({ behavior: 'smooth' });
 }
 
 function renderizarDespesas() {
@@ -1794,10 +1878,8 @@ async function alternarTela(idAba) {
         });
         const abaAlvo = document.getElementById(`aba-${idAba}`); if (abaAlvo) abaAlvo.classList.remove('escondido');
         
-        // CORREÇÃO: Remove de todos e readiciona no botão que acabou de ser clicado!
         document.querySelectorAll('.nav-inferior .nav-item').forEach(btn => {
             btn.classList.remove('ativo');
-            // Se o botão tem a aba atual no seu evento de clique, ele fica dourado/ativo
             if(btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(idAba)) {
                 btn.classList.add('ativo');
             }
