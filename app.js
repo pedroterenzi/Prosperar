@@ -282,7 +282,7 @@ async function salvarNovoBloqueio() {
     } catch(e) {
         alert("Erro ao bloquear horário.");
     } finally {
-        btn.innerText = "Trancar Minha Agenda"; btn.disabled = false;
+        btn.innerText = "Confirmar Bloqueio Individual"; btn.disabled = false;
     }
 }
 
