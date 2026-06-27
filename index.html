@@ -28,7 +28,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Bloqueia a rolagem horizontal que estava quebrando o app */
         body { 
             background-color: var(--bg-color); 
             color: var(--text-color); 
@@ -62,7 +61,6 @@
         .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; width: 100%; }
         .form-group label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
         
-        /* AJUSTES APLICADOS AQUI PARA CORRIGIR OS INPUTS NO MOBILE */
         .form-group input, .form-group select { 
             width: 100%; 
             max-width: 100%;
@@ -466,41 +464,41 @@
         </section>
 
         <section id="aba-adm-agenda" class="escondido restrito-barbeiro-adm">
-            <h3>📅 Minha Agenda e Folgas</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Tranque seus horários para compromissos ou folgas pessoais.</p>
+            <h3>📅 Agenda e Bloqueios Individuais</h3>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Tranque horários específicos (médico, folga) APENAS para um barbeiro. Os outros continuarão recebendo clientes normalmente.</p>
             
             <div class="card">
-                <h4>➕ Bloquear Horário na Agenda</h4>
+                <h4 style="color: var(--danger-color);">➕ Bloquear Horário na Agenda</h4>
                 
                 <div class="form-group">
-                    <label>Profissional:</label>
+                    <label>Profissional que ficará ausente:</label>
                     <select id="bloqueio-barbeiro"></select>
                 </div>
                 
                 <div class="form-group">
-                    <label>Data do Compromisso:</label>
+                    <label>Data da Ausência:</label>
                     <input type="date" id="bloqueio-data">
                 </div>
                 
                 <label class="checkbox-container">
-                    <input type="checkbox" id="bloqueio-dia-todo" onchange="toggleDiaTodoBloqueio()"> Bloquear o dia inteiro
+                    <input type="checkbox" id="bloqueio-dia-todo" onchange="toggleDiaTodoBloqueio()"> Folga o dia inteiro
                 </label>
 
                 <div class="intervalo-custom-grid" id="box-horarios-bloqueio">
                     <div class="form-group">
-                        <label>Das (Hora Início):</label>
-                        <input type="time" id="bloqueio-inicio" value="14:00">
+                        <label>Sairá às (Início):</label>
+                        <input type="time" id="bloqueio-inicio" value="13:00">
                     </div>
                     <div class="form-group">
-                        <label>Até (Hora Fim):</label>
+                        <label>Voltará às (Fim):</label>
                         <input type="time" id="bloqueio-fim" value="16:00">
                     </div>
                 </div>
-                <button class="btn-gold" id="btn-salvar-bloqueio" style="margin-top: 15px;" onclick="salvarNovoBloqueio()">Trancar Minha Agenda</button>
+                <button class="btn-danger" id="btn-salvar-bloqueio" style="margin-top: 15px;" onclick="salvarNovoBloqueio()">Confirmar Bloqueio Individual</button>
             </div>
 
             <div class="card">
-                <h4>Seus Bloqueios Ativos</h4>
+                <h4>Ausências Programadas</h4>
                 <div class="lista-backoffice" id="lista-bloqueios-cadastrados" style="max-height: 400px; overflow-y: auto;"></div>
             </div>
         </section>
@@ -538,8 +536,8 @@
             </div>
 
             <div class="card">
-                <h4>Feriados Nacionais (Fechado)</h4>
-                <p style="color: var(--text-muted); font-size: 12px; margin-top: -5px; margin-bottom: 15px;">A barbearia inteira ficará bloqueada nas datas abaixo.</p>
+                <h4 style="color: var(--danger-color);">Feriados Nacionais (Fecha TUDO)</h4>
+                <p style="color: var(--text-muted); font-size: 12px; margin-top: -5px; margin-bottom: 15px;">A barbearia INTEIRA ficará bloqueada. (Para bloquear apenas um barbeiro, vá na aba "Agenda").</p>
                 
                 <div class="form-group">
                     <label>Adicionar Feriado:</label>
