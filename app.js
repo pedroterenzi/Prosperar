@@ -1893,10 +1893,13 @@ function montarMenuNavegacao(role) {
     const nav = document.getElementById('menu-navigation'); 
     const menuNav = document.getElementById('menu-navegacao') || nav; 
     if (!menuNav) return;
+    
     if (role === 'admin') {
+        // AGORA O BOTÃO "AGENDA" APARECE NO MENU DO ADMINISTRADOR
         menuNav.innerHTML = `
             <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
             <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
+            <button class="nav-item" onclick="alternarTela('adm-agenda')">📅 Agenda</button>
             <button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>
             <button class="nav-item" onclick="alternarTela('adm-despesas')">💸 Despesas</button>
             <button class="nav-item" onclick="alternarTela('adm-servicos')">✂️ Serviços</button>
