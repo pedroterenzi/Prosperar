@@ -169,9 +169,6 @@
 
         .lista-backoffice { display: flex; flex-direction: column; gap: 12px; }
         
-        /* -------------------------------------------------------------
-           ESTRUTURA INTELIGENTE PARA CARTÕES RESPONSIVOS 
-           ------------------------------------------------------------- */
         .item-backoffice { 
             background: #18191c; border: 1px solid #2a2c32; padding: 16px; 
             border-radius: 16px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;
@@ -204,9 +201,6 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 2000; padding: 20px; }
         .modal-content { background: var(--card-bg); border: 1px solid #33353b; border-radius: 20px; padding: 28px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; animation: fadeIn 0.3s ease-out; box-shadow: 0 20px 40px rgba(0,0,0,0.6);}
         
-        /* -------------------------------------------------------------
-           NOVO MENU INFERIOR NATIVO E CENTRALIZADO
-           ------------------------------------------------------------- */
         .nav-inferior { 
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
             width: calc(100% - 40px); max-width: 460px; 
@@ -223,13 +217,12 @@
             background: transparent; border: none; color: #71717a; 
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; 
             cursor: pointer; transition: all 0.3s ease; 
-            padding: 8px 4px; /* Mais preenchimento para acomodar o fundo */
-            border-radius: 14px; /* Bordas suaves para o botão */
+            padding: 8px 4px; 
+            border-radius: 14px; 
         }
         .nav-item span { font-size: 10px; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif;}
         .nav-item i { font-size: 20px; font-style: normal; transition: transform 0.2s;}
         
-        /* AQUI FOI ADICIONADO O FUNDO E O DESTAQUE DO ITEM ATIVO */
         .nav-item.ativo { 
             color: var(--accent-color); 
             background: rgba(212, 175, 55, 0.15); 
@@ -247,9 +240,6 @@
         .btn-add-data { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; transition: all 0.2s; }
         .btn-add-data:hover { background: #10b981; color: white; }
 
-        /* =========================================================
-           AJUSTE DE SCROLL PARA COMPUTADOR (MOUSE)
-           ========================================================= */
         @media (pointer: fine) {
             .nav-inferior::-webkit-scrollbar { 
                 display: block !important; 
@@ -453,12 +443,7 @@
                     <div class="intervalo-custom-grid">
                         <div class="form-group">
                             <label>Comissão (%):</label>
-                            <select id="adm-barbeiro-comissao">
-                                <option value="0.30">30%</option>
-                                <option value="0.40" selected>40%</option>
-                                <option value="0.50">50%</option>
-                                <option value="0.60">60%</option>
-                            </select>
+                            <input type="number" id="adm-barbeiro-comissao" placeholder="Ex: 40" value="40" min="0" max="100">
                         </div>
                         <div class="form-group">
                             <label>Perfil do Sistema:</label>
@@ -595,18 +580,35 @@
         </section>
 
         <section id="aba-adm-recepcao" class="escondido restrito-barbeiro-adm">
-            <h3>Monitor de Atendimentos</h3>
-            <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle a esteira de cortes em tempo real:</p>
-            <div id="container-kanban-recepcao" style="display:flex; flex-direction:column; gap:12px;"></div>
-
-            <div class="card" style="margin-top:25px;">
-                <h4>⚡ Registrar Cliente Sem Hora (Walk-in)</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0;">📅 Agenda Visual</h3>
+                <button class="btn-status badge-sucesso" style="background: var(--accent-color); color: #000;" onclick="abrirModalEncaixe()">+ Lançamento Livre</button>
+            </div>
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: -5px; margin-bottom: 20px;">Selecione qualquer dia e acompanhe o movimento na linha do tempo:</p>
+        
+            <div class="intervalo-custom-grid" style="margin-bottom: 16px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Navegar pelos Dias:</label>
+                    <input type="date" id="filtro-data-visual" onchange="carregarModoRecepcaoKanban()">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label>Profissional:</label>
+                    <select id="filtro-barbeiro-visual" onchange="carregarModoRecepcaoKanban()">
+                        <option value="todos">Todos</option>
+                    </select>
+                </div>
+            </div>
+        
+            <div id="container-kanban-recepcao" style="display:flex; flex-direction:column; gap:4px; background: #1f2125; padding: 12px 8px; border-radius: 16px; border: 1px solid var(--border-color);"></div>
+        
+            <div id="box-encaixe-rapido" class="card escondido" style="margin-top:25px; border-color: var(--accent-color);">
+                <h4 style="color: var(--accent-color); margin-bottom: 15px;">⚡ Lançamento Rápido (Walk-in)</h4>
                 <div class="form-group">
                     <label>Nome do Cliente:</label>
                     <input type="text" id="encaixe-nome" placeholder="Ex: Cliente de Balcão">
                 </div>
                 <div class="form-group">
-                    <label>Serviço Desejado:</label>
+                    <label>Serviço Realizado:</label>
                     <select id="encaixe-servico"></select>
                 </div>
                 <div class="form-group">
@@ -625,7 +627,7 @@
                 </div>
                 <div class="intervalo-custom-grid" style="margin-top: 10px;">
                     <div class="form-group">
-                        <label>Gorjeta Adicional:</label>
+                        <label>Gorjeta Adicional (R$):</label>
                         <input type="number" id="encaixe-gorjeta" value="0" min="0" step="0.01">
                     </div>
                     <div class="form-group">
@@ -638,7 +640,7 @@
                         </select>
                     </div>
                 </div>
-                <button class="btn-gold" id="btn-executar-encaixe" style="margin-top:10px;">Lançar como Concluído</button>
+                <button class="btn-gold" id="btn-executar-encaixe" style="margin-top:10px;">Gravar no Banco de Dados</button>
             </div>
         </section>
 
@@ -780,13 +782,7 @@
         <div class="intervalo-custom-grid">
             <div class="form-group">
                 <label>Comissão (%):</label>
-                <select id="edit-barbeiro-comissao">
-                    <option value="0.30">30%</option>
-                    <option value="0.40">40%</option>
-                    <option value="0.50">50%</option>
-                    <option value="0.60">60%</option>
-                    <option value="0.70">70%</option>
-                </select>
+                <input type="number" id="edit-barbeiro-comissao" placeholder="Ex: 50" min="0" max="100">
             </div>
             <div class="form-group">
                 <label>Acesso:</label>
