@@ -123,11 +123,8 @@ def inicializar_banco():
 
         clientes_antigos = [
             ('gabriel', '123456', 'Gabriel Proprietário', 'admin', '11999999999', 'Premium', 0.50, ''),
-            ('pedroterenzi', 'pedrinho2013', 'pedro henrique', 'cliente', '19971374936', 'Nenhum', 0.0, ''),
-            ('denis', 'denis123', 'denis pompollino', 'cliente', '19 99749-4174', 'Nenhum', 0.0, ''),
-            ('cccc', '123456789', 'hchch', 'cliente', '191971347859', 'Nenhum', 0.0, ''),
-            ('pedrosilva', '123456', 'pedro silva', 'cliente', '19971232678', 'Nenhum', 0.0, ''),
-            ('joasilva', '123456', 'joao', 'cliente', '19987234567', 'Nenhum', 0.0, '')
+            ('pedroterenzi', 'pedrinho2013', 'pedro henrique', 'cliente', '19971374936', 'Nenhum', 0.0, '')
+          
         ]
         
         for c in clientes_antigos:
