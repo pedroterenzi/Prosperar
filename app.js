@@ -749,9 +749,6 @@ async function ativarAcessoAoPainelProfissional() {
     }
 }
 
-// -------------------------------------------------------------
-// FUNÇÃO SUPER BLINDADA - Aqui tratamos e interceptamos TUDO!
-// -------------------------------------------------------------
 function inicializarListenersEstaticos() {
     const inputData = document.getElementById('data');
     if(inputData) {
@@ -766,7 +763,6 @@ function inicializarListenersEstaticos() {
             try {
                 e.preventDefault();
                 
-                // Validações Base
                 if (!servicoSelecionado) return alert("Atenção: Por favor, clique e selecione o Serviço.");
                 if (!barbeiroSelecionado) return alert("Atenção: Por favor, selecione o Profissional.");
                 if (!horarioSelecionado) return alert("Atenção: Por favor, selecione um Horário disponível.");
@@ -784,7 +780,6 @@ function inicializarListenersEstaticos() {
                     return;
                 }
 
-                // Proteção contra divergência de tipo (Garante que Barbeiro seja encontrado)
                 const bInfo = ESTRUTURA_BARBEIROS.find(b => String(b.id) === String(barbeiroSelecionado));
 
                 const boxPix = document.getElementById('box-pagamento-pix');
@@ -931,7 +926,7 @@ function inicializarListenersEstaticos() {
                     
                     await sincronizarBancoDeDados();
                     carregarModoRecepcaoKanban();
-                    carregarDadosEstrategicosDoNeon(); 
+                    if(abaAtivaAtual === 'adm-analytics') carregarPainelAnalytics();
                 } else {
                     alert(`Falha do Banco de Dados: Confirme se todos os campos estão preenchidos.`);
                 }
@@ -1352,7 +1347,7 @@ function recarregarAbaAtivaAdm() {
     if(abaAtivaAtual === 'adm-servicos' && perfilLogado === 'admin') renderizarServicosAdmin();
     if(abaAtivaAtual === 'adm-config' && perfilLogado === 'admin') renderizarConfiguracoesAdmin();
     if(abaAtivaAtual === 'adm-agenda') renderizarAgendaBloqueios();
-    if(abaAtivaAtual === 'adm-analytics') carregarPainelAnalytics(); // ATUALIZADO
+    if(abaAtivaAtual === 'adm-analytics') carregarPainelAnalytics();
 }
 
 async function carregarDadosEstrategicosDoNeon() {
@@ -1621,7 +1616,7 @@ function renderizarDespesas() {
     }
 }
 
-// --------- ATUALIZAÇÃO: RENDERIZAR BUSINESS INTELLIGENCE (ABA BI) ---------
+// --------- RENDERIZAR BUSINESS INTELLIGENCE (ABA BI) ---------
 async function carregarPainelAnalytics() {
     const containerMapa = document.getElementById('analytics-heatmap'); if(!containerMapa) return;
     try {
@@ -1639,13 +1634,13 @@ async function carregarPainelAnalytics() {
         agendamentos.forEach(a => {
             if(!a.hora || !a.data) return;
             
-            // 1. Lógica dos Turnos (Original Preservada)
+            // 1. Lógica dos Turnos 
             const h = parseInt(a.hora.split(':')[0]);
             if(h >= 9 && h < 12) turnos["Manhã"]++; else if(h >= 12 && h < 18) turnos["Tarde"]++; else turnos["Noite"]++;
             const dNome = nomesDias[new Date(a.data + 'T00:00:00').getDay()];
             if(dias[dNome] !== undefined) dias[dNome]++;
 
-            // 2. Lógica Financeira do BI (NOVO)
+            // 2. Lógica Financeira do BI
             const statusAtual = a.status ? a.status.toLowerCase() : "";
             if(statusAtual !== 'falta' && statusAtual !== 'cancelado') {
                 const serv = DADOS_SERVICOS.find(s => s.nome.trim().toLowerCase() === (a.servico || '').trim().toLowerCase());
@@ -1674,14 +1669,14 @@ async function carregarPainelAnalytics() {
             despDiarias[d.data] += val;
         });
 
-        // 4. Inserir Textos e KPIs (NOVO)
+        // 4. Inserir Textos e KPIs
         const ticketMedio = atendimentosFinalizados > 0 ? (faturamentoTotal / atendimentosFinalizados) : 0;
         if(document.getElementById('bi-faturamento')) document.getElementById('bi-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
         if(document.getElementById('bi-ticket')) document.getElementById('bi-ticket').innerText = `R$ ${ticketMedio.toFixed(2)}`;
         if(document.getElementById('bi-receita-badge')) document.getElementById('bi-receita-badge').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
         if(document.getElementById('bi-despesa-badge')) document.getElementById('bi-despesa-badge').innerText = `R$ ${totalDespesas.toFixed(2)}`;
 
-        // 5. Estruturar Gráficos Chart.js (NOVO)
+        // 5. Estruturar Gráficos Chart.js
         const labelsOrdenadas = Object.keys(dadosDiarios).sort();
         const dadosRec = labelsOrdenadas.map(d => dadosDiarios[d].rec);
         const dadosQtd = labelsOrdenadas.map(d => dadosDiarios[d].qtd);
@@ -1738,36 +1733,62 @@ async function carregarPainelAnalytics() {
             });
         }
 
-        // 6. Atualizar Gráficos Nativos (Original Preservado)
+        // ==============================================================
+        // 6. ATUALIZAÇÃO: VISÃO PROFISSIONAL - VOLUMETRIA POR TURNOS
+        // ==============================================================
         containerMapa.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 10px; background: #1f2125; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; font-size:14px;">
-                <div style="display:flex; justify-content:space-between;"><span>🌅 Manhã (09h - 12h):</span> <strong>${turnos['Manhã']} atendimentos</strong></div>
-                <div style="display:flex; justify-content:space-between; padding: 4px 0;"><span>🌤️ Tarde (12h - 18h):</span> <strong>${turnos['Tarde']} atendimentos</strong></div>
-                <div style="display:flex; justify-content:space-between;"><span>🌙 Noite (18h - 20h):</span> <strong>${turnos['Noite']} atendimentos</strong></div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <div style="background: rgba(250, 204, 21, 0.05); border: 1px solid rgba(250, 204, 21, 0.15); border-radius: 14px; padding: 16px 8px; text-align: center;">
+                    <div style="font-size: 22px; margin-bottom: 8px;">🌅</div>
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Manhã</div>
+                    <div style="font-size: 20px; font-weight: 800; color: #facc15; margin-top: 4px;">${turnos['Manhã']}</div>
+                </div>
+                <div style="background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.15); border-radius: 14px; padding: 16px 8px; text-align: center;">
+                    <div style="font-size: 22px; margin-bottom: 8px;">🌤️</div>
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Tarde</div>
+                    <div style="font-size: 20px; font-weight: 800; color: #06b6d4; margin-top: 4px;">${turnos['Tarde']}</div>
+                </div>
+                <div style="background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.15); border-radius: 14px; padding: 16px 8px; text-align: center;">
+                    <div style="font-size: 22px; margin-bottom: 8px;">🌙</div>
+                    <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;">Noite</div>
+                    <div style="font-size: 20px; font-weight: 800; color: #a855f7; margin-top: 4px;">${turnos['Noite']}</div>
+                </div>
             </div>`;
 
+        // ==============================================================
+        // 7. ATUALIZAÇÃO: VISÃO PROFISSIONAL - MOVIMENTAÇÃO NA SEMANA
+        // ==============================================================
         const containerDias = document.getElementById('analytics-dias-semana');
         if(containerDias) {
             containerDias.innerHTML = '';
             const wrapper = document.createElement('div');
-            wrapper.style.cssText = "display: flex; flex-direction: column; gap: 12px; background: #1f2125; border: 1px solid var(--border-color); padding: 18px; border-radius: 12px;";
+            wrapper.style.cssText = "display: flex; flex-direction: column; gap: 14px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); padding: 20px 15px; border-radius: 16px;";
             
+            // Calculamos o dia de MAIOR pico para que a barra dele represente 100% (mais bonito visualmente do que usar a porcentagem do total)
+            const valoresDias = Object.values(dias);
+            const maxClientes = valoresDias.length > 0 ? Math.max(...valoresDias) : 0;
+
             for(let dia in dias) {
-                const pct = agendamentos.length > 0 ? Math.min((dias[dia] / agendamentos.length) * 100, 100) : 0;
+                // Diminui o texto "Segunda-feira" para "Segunda" para caber melhor na tela
+                const diaCurto = dia.split('-')[0]; 
+                const pct = maxClientes > 0 ? (dias[dia] / maxClientes) * 100 : 0;
+                const isZero = dias[dia] === 0;
+                
                 wrapper.innerHTML += `
-                    <div class="analytics-bar-container">
-                        <div class="analytics-bar-header">
-                            <span>${dia}</span>
-                            <strong style="color: ${dias[dia] > 0 ? 'var(--accent-color)' : 'var(--text-muted)'}">${dias[dia]} clientes</strong>
+                    <div style="display: flex; align-items: center;">
+                        <div style="width: 70px; font-size: 12px; color: ${isZero ? 'var(--text-muted)' : '#fff'}; font-weight: ${isZero ? '500' : '600'};">${diaCurto}</div>
+                        
+                        <div style="flex: 1; background: #27272a; height: 10px; border-radius: 12px; margin: 0 12px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);">
+                            <div style="height: 100%; width: ${pct}%; background: linear-gradient(90deg, var(--accent-color), #f1c40f); border-radius: 12px; box-shadow: ${isZero ? 'none' : '0 0 10px rgba(212, 175, 55, 0.4)'}; transition: width 0.8s ease-out;"></div>
                         </div>
-                        <div class="analytics-bar-bg">
-                            <div class="analytics-bar-fill" style="width: ${pct}%"></div>
-                        </div>
+                        
+                        <div style="width: 25px; text-align: right; font-size: 13px; font-weight: 800; color: ${isZero ? 'var(--text-muted)' : 'var(--accent-color)'};">${dias[dia]}</div>
                     </div>`;
             }
             containerDias.appendChild(wrapper);
         }
 
+        // Retenção
         const uClientes = [...new Set(agendamentos.map(a => a.cliente))];
         let rec = 0; uClientes.forEach(c => { if(agendamentos.filter(a => a.cliente === c).length > 1) rec++; });
         
@@ -1785,77 +1806,6 @@ async function carregarPainelAnalytics() {
         }
     } catch(e) {
         console.error("Erro no BI:", e);
-    }
-}
-
-function renderizarGradeHorariosReais() {
-    const container = document.getElementById('container-horarios'); 
-    if (!container) return;
-    
-    try {
-        const dataSel = document.getElementById('data').value || '';
-        const bInfo = ESTRUTURA_BARBEIROS.find(b => b.id === barbeiroSelecionado);
-        
-        container.innerHTML = ""; 
-
-        if (!bInfo) {
-            container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; margin: 10px 0;'>👆 Selecione o profissional acima para ver os horários.</p>";
-            return;
-        }
-
-        const HORARIOS_GERADOS = gerarHorariosDoDia(dataSel, bInfo.nome);
-
-        if(HORARIOS_GERADOS.length === 0) {
-            container.innerHTML = "<p style='color:var(--danger-color); font-size:14px; margin: 10px 0; font-weight: 600;'>A barbearia não funcionará nesta data (Folga/Feriado).</p>";
-            return;
-        }
-
-        let ocupados = DADOS_AGENDAMENTOS
-            .filter(a => a && a.data === dataSel && a.barbeiro === bInfo.nome && (a.status ? a.status.toLowerCase() !== 'falta' : true))
-            .map(a => a.hora ? a.hora.trim() : '');
-            
-        HORARIOS_GERADOS.forEach(g => {
-            if(g.horas.length === 0) return; 
-
-            const tituloTurno = document.createElement('div');
-            tituloTurno.className = "turno-title";
-            tituloTurno.innerText = g.turno;
-            container.appendChild(tituloTurno);
-            
-            const grid = document.createElement('div'); 
-            grid.className = "grid-horarios";
-            
-            g.horas.forEach(h => {
-                const btn = document.createElement('button'); 
-                btn.className = "btn-horario"; 
-                btn.innerText = h;
-                btn.type = "button";
-                
-                if (isSlotPast(dataSel, h.trim())) { 
-                    btn.disabled = true; 
-                    btn.style.opacity = "0.3"; 
-                    btn.innerText = "Expirado"; 
-                } else if (ocupados.includes(h.trim())) { 
-                    btn.disabled = true; 
-                    btn.innerText = "Ocupado"; 
-                } else { 
-                    if(horarioSelecionado === h.trim()) {
-                        btn.classList.add('selecionado');
-                    }
-                    
-                    btn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        document.querySelectorAll('.btn-horario').forEach(b => b.classList.remove('selecionado')); 
-                        btn.classList.add('selecionado'); 
-                        horarioSelecionado = h.trim(); 
-                    });
-                }
-                grid.appendChild(btn);
-            });
-            container.appendChild(grid);
-        });
-    } catch (e) {
-        console.error("Erro nos horários:", e);
     }
 }
 
