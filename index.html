@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Biblioteca de Gráficos (Chart.js) -->
+    <!-- Biblioteca Chart.js para os gráficos do BI -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -24,13 +24,6 @@
             --success-color: #10b981;
             --danger-color: #ef4444;
             --blue-color: #3b82f6;
-
-            /* Cores estilo Neon para o Dashboard Pro */
-            --dash-bg: #1e2235;
-            --dash-card: #272c44;
-            --neon-purple: #a855f7;
-            --neon-cyan: #06b6d4;
-            --neon-pink: #ec4899;
         }
 
         * {
@@ -251,33 +244,10 @@
 
         @media (pointer: fine) {
             .nav-inferior::-webkit-scrollbar { display: block !important; height: 6px; }
-            .nav-inferior::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3); border-radius: 10px; margin: 0 15px;}
+            .nav-inferior::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3); border-radius: 10px; margin: 0 15px; }
             .nav-inferior::-webkit-scrollbar-thumb { background: var(--accent-color); border-radius: 10px; }
             .nav-inferior { scrollbar-width: thin; scrollbar-color: var(--accent-color) rgba(0, 0, 0, 0.3); padding-bottom: 8px; }
         }
-
-        /* -------------- CSS EXCLUSIVO DO DASHBOARD PRO -------------- */
-        .dashboard-wrapper { background: var(--dash-bg); padding: 16px; border-radius: 20px; color: white; margin-bottom: 20px; border: 1px solid #2e3450; box-shadow: inset 0 0 20px rgba(0,0,0,0.5); }
-        .dash-grid-top { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 12px; }
-        .dash-card { background: var(--dash-card); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #3a4161; position: relative;}
-        .dash-card-full { grid-column: span 2; display: flex; flex-direction: row; justify-content: space-between; align-items: center;}
-        
-        .dash-chart-container { position: relative; width: 80px; height: 80px; margin-bottom: 10px; }
-        .dash-chart-val { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: 800; font-size: 16px; color: white; }
-        .dash-label { font-size: 11px; color: #a1a6bd; font-weight: 600; text-transform: uppercase; text-align: center; }
-        .dash-trend { font-size: 10px; font-weight: 700; margin-top: 4px; }
-        .trend-up { color: var(--success-color); }
-        .trend-down { color: var(--neon-pink); }
-        
-        .dash-wide-card { background: var(--dash-card); border-radius: 16px; padding: 16px; margin-bottom: 12px; border: 1px solid #3a4161; }
-        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .dash-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px;}
-        .dash-badge { width: 30px; height: 30px; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-weight: 800; font-size: 14px;}
-        .badge-a { background: rgba(168, 85, 247, 0.2); color: var(--neon-purple); }
-        .badge-b { background: rgba(6, 182, 212, 0.2); color: var(--neon-cyan); }
-        
-        .canvas-container { width: 100%; height: 120px; }
-        .canvas-container-large { width: 100%; height: 200px; }
     </style>
 </head>
 <body>
@@ -391,80 +361,38 @@
             <div id="container-meus-agendamentos"></div>
         </section>
 
-        <!-- ================= ABA DASHBOARD PRO (ANTIGA ADM-DASH) ================= -->
-        <section id="aba-dashboard-pro" class="escondido restrito-barbeiro-adm">
-            <h2 style="text-align: left; margin-bottom: 15px; font-size: 22px;">Visão Geral <span style="color:var(--neon-cyan);">Pro</span></h2>
+        <section id="aba-adm-dash" class="escondido">
+            <h2 class="gold-text" style="text-align: left; margin-bottom: 4px;">Métricas de Faturamento</h2>
+            <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Visão geral do período selecionado:</p>
             
-            <div class="dashboard-wrapper">
-                
-                <!-- TOP KPIs CIRCULARES -->
-                <div class="dash-grid-top">
-                    <!-- Faturamento -->
-                    <div class="dash-card">
-                        <div class="dash-chart-container">
-                            <canvas id="chartDoughnutRev"></canvas>
-                            <div class="dash-chart-val" id="dash-val-rev" style="font-size: 13px;">R$ 0</div>
-                        </div>
-                        <div class="dash-label">Faturamento</div>
-                        <div class="dash-trend trend-up">Receita Bruta</div>
-                    </div>
-                    
-                    <!-- Atendimentos -->
-                    <div class="dash-card">
-                        <div class="dash-chart-container">
-                            <canvas id="chartDoughnutApp"></canvas>
-                            <div class="dash-chart-val" id="dash-val-app">0</div>
-                        </div>
-                        <div class="dash-label">Atendimentos</div>
-                        <div class="dash-trend trend-up">Concluídos</div>
-                    </div>
-
-                    <!-- Ticket Médio (Largo) -->
-                    <div class="dash-card dash-card-full">
-                        <div>
-                            <div class="dash-label" style="text-align: left;">Ticket Médio</div>
-                            <div style="font-size: 22px; font-weight: 800; color: white;" id="dash-val-tkt">R$ 0,00</div>
-                        </div>
-                        <div style="width: 50px; height: 50px; position: relative;">
-                            <canvas id="chartDoughnutTkt"></canvas>
-                        </div>
-                    </div>
+            <div class="grid-indicadores">
+                <div class="kpi-card restrito-adm">
+                    <div class="kpi-label">Faturamento</div>
+                    <div class="kpi-val" id="kpi-faturamento" style="color: var(--success-color);">R$ 0,00</div>
                 </div>
-
-                <!-- TRENDS A (Receitas) e B (Despesas) -->
-                <div class="dash-wide-card">
-                    <div class="dash-header">
-                        <div class="dash-title"><div class="dash-badge badge-a">R</div> Receitas Brutas</div>
-                        <div style="font-weight: 800; font-size: 18px;" id="dash-total-receita">R$ 0,00</div>
-                    </div>
-                    <div class="canvas-container">
-                        <canvas id="chartLineA"></canvas>
-                    </div>
+                <div class="kpi-card restrito-adm">
+                    <div class="kpi-label">Ticket Médio</div>
+                    <div class="kpi-val" id="kpi-ticket">R$ 0,00</div>
                 </div>
-
-                <div class="dash-wide-card restrito-adm">
-                    <div class="dash-header">
-                        <div class="dash-title"><div class="dash-badge badge-b">D</div> Despesas Operac.</div>
-                        <div style="font-weight: 800; font-size: 18px;" id="dash-total-despesa">R$ 0,00</div>
-                    </div>
-                    <div class="canvas-container">
-                        <canvas id="chartLineB"></canvas>
-                    </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Atendimentos</div>
+                    <div class="kpi-val" id="kpi-ocupacao">0</div>
                 </div>
-
-                <!-- MAIN BAR CHART -->
-                <div class="dash-wide-card">
-                    <div class="dash-header" style="justify-content: center;">
-                        <div class="dash-label" style="font-size: 12px;">Volume Diário de Clientes</div>
-                    </div>
-                    <div class="canvas-container-large">
-                        <canvas id="chartMainBar"></canvas>
-                    </div>
+                <div class="kpi-card restrito-adm">
+                    <div class="kpi-label">Taxa No-Show</div>
+                    <div class="kpi-val" id="kpi-noshow" style="color: var(--danger-color);">0%</div>
                 </div>
-
             </div>
 
-            <!-- CARTEIRA PESSOAL E SPLIT DE COMISSÃO -->
+            <div class="card restrito-adm">
+                <h3>Divisão de Comissão (Split Real)</h3>
+                <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; font-size: 13px; color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+                    <div id="detalhe-servicos">Serviços Brutos: R$ 0,00</div>
+                    <div id="detalhe-produtos">Produtos Brutos: R$ 0,00</div>
+                </div>
+                <div class="lista-backoffice" id="lista-split-comissoes-equipe"></div>
+            </div>
+            
             <div class="card escondido" id="card-rendimentos-barbeiro">
                 <h3 class="gold-text">Minha Carteira Pro</h3>
                 <div class="item-backoffice" style="background: rgba(16, 185, 129, 0.06); border-color: rgba(16, 185, 129, 0.3);">
@@ -476,11 +404,6 @@
                 </div>
             </div>
 
-            <div class="card restrito-adm">
-                <h3>Divisão de Comissão (Split Real)</h3>
-                <div class="lista-backoffice" id="lista-split-comissoes-equipe"></div>
-            </div>
-            
             <div class="card restrito-adm" style="border-color: rgba(212,175,55,0.3);">
                 <h3>👥 Gerenciamento de Equipe</h3>
                 <p style="color:var(--text-muted); font-size:13px; margin-top:-8px; margin-bottom: 20px;">Controle acessos e taxas de comissão.</p>
@@ -715,6 +638,13 @@
             <h3>Gestão de Despesas</h3>
             <p style="color: var(--text-muted); font-size: 13px; margin-top: -10px; margin-bottom: 20px;">Controle a saída de caixa da barbearia:</p>
             
+            <div class="grid-indicadores" style="grid-template-columns: 1fr;">
+                <div class="kpi-card" style="border-color: rgba(239, 68, 68, 0.4);">
+                    <div class="kpi-label">Saída Total (Período)</div>
+                    <div class="kpi-val" id="kpi-despesas-total" style="color: var(--danger-color);">R$ 0,00</div>
+                </div>
+            </div>
+
             <div class="card">
                 <h4>➕ Registrar Nova Despesa</h4>
                 <div class="form-group">
@@ -740,9 +670,62 @@
             </div>
         </section>
 
+        <!-- ================= ABA BUSINESS INTELLIGENCE (BI) ATUALIZADA ================= -->
         <section id="aba-adm-analytics" class="escondido restrito-barbeiro-adm">
-            <h3>Business Intelligence</h3>
+            <h3 style="margin-bottom: 20px;">Business Intelligence</h3>
+            
+            <!-- Retenção Original -->
             <div id="analytics-retencao" style="display: flex; justify-content: center; width: 100%; gap: 12px; margin-bottom: 20px;"></div>
+            
+            <!-- Novos KPIs Compactos do Dashboard Pro -->
+            <div class="grid-indicadores" style="margin-bottom: 15px; grid-template-columns: 1fr 1fr;">
+                <div class="kpi-card" style="padding: 16px 10px;">
+                    <div class="kpi-label">Faturamento</div>
+                    <div class="kpi-val" id="bi-faturamento" style="color: var(--success-color); font-size: 18px;">R$ 0,00</div>
+                </div>
+                <div class="kpi-card" style="padding: 16px 10px;">
+                    <div class="kpi-label">Ticket Médio</div>
+                    <div class="kpi-val" id="bi-ticket" style="font-size: 18px;">R$ 0,00</div>
+                </div>
+            </div>
+
+            <!-- Gráficos de Tendência Proporcionais para Mobile -->
+            <div class="card" style="padding: 18px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h4 style="margin:0; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--success-color);"></span> Evolução de Receitas
+                    </h4>
+                    <span id="bi-receita-badge" style="font-size: 13px; font-weight: 800; color: var(--success-color);">R$ 0,00</span>
+                </div>
+                <div style="height: 110px; width: 100%; position: relative;">
+                    <canvas id="biChartReceita"></canvas>
+                </div>
+            </div>
+
+            <div class="card restrito-adm" style="padding: 18px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h4 style="margin:0; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--danger-color);"></span> Despesas Operacionais
+                    </h4>
+                    <span id="bi-despesa-badge" style="font-size: 13px; font-weight: 800; color: var(--danger-color);">R$ 0,00</span>
+                </div>
+                <div style="height: 110px; width: 100%; position: relative;">
+                    <canvas id="biChartDespesa"></canvas>
+                </div>
+            </div>
+
+            <div class="card" style="padding: 18px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h4 style="margin:0; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue-color);"></span> Volume Diário
+                    </h4>
+                </div>
+                <div style="height: 120px; width: 100%; position: relative;">
+                    <canvas id="biChartVolume"></canvas>
+                </div>
+            </div>
+
+            <!-- Visualizações Originais Mantidas Intactas -->
             <div class="card">
                 <h4>Volumetria por Turnos</h4>
                 <div id="analytics-heatmap"></div>
