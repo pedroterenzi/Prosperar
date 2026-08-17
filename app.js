@@ -1,4 +1,4 @@
-    /**
+/**
  * ARQUITETURA CORE DE FINANÇAS E GESTÃO - PROSPERAR CLUB
  * Implementação Reativa Multi-Barbeiros Sincronizada com o Banco de Dados.
  */
@@ -24,9 +24,10 @@ let DADOS_SERVICOS = [];
 let DADOS_BLOQUEIOS = [];
 let ESTRUTURA_BARBEIROS = []; 
 
-// Variáveis Globais para os Gráficos Chart.js do Dashboard Pro
-let chartDoughnutRev, chartDoughnutApp, chartDoughnutTkt;
-let chartLineA, chartLineB, chartMainBar;
+// Variáveis para Controle dos Gráficos do BI
+let biChartReceitaIns = null;
+let biChartDespesaIns = null;
+let biChartVolumeIns = null;
 
 // Configurações gerais da barbearia
 let DADOS_CONFIG = {
@@ -719,7 +720,7 @@ async function ativarAcessoAoPainelProfissional() {
         
         const seletor = document.getElementById('filtro-barbeiro-alvo');
         if(seletor) { seletor.disabled = false; seletor.value = 'todos'; filtroBarbeiroAlvo = 'todos'; }
-        alternarTela('dashboard-pro');
+        alternarTela('adm-dash');
     } else if (perfilLogado === 'barbeiro') {
         document.querySelectorAll('.restrito-adm').forEach(el => el.classList.add('escondido'));
         document.querySelectorAll('.restrito-barbeiro-adm').forEach(el => el.classList.remove('escondido'));
@@ -732,7 +733,7 @@ async function ativarAcessoAoPainelProfissional() {
             const seletor = document.getElementById('filtro-barbeiro-alvo');
             if(seletor) { seletor.value = bInfo.id; seletor.disabled = true; }
         }
-        alternarTela('dashboard-pro');
+        alternarTela('adm-dash');
     } else {
         document.getElementById('bloco-filtros-global-adm')?.classList.add('escondido');
         const bv = document.getElementById('boas-vistas-cliente');
@@ -748,6 +749,9 @@ async function ativarAcessoAoPainelProfissional() {
     }
 }
 
+// -------------------------------------------------------------
+// FUNÇÃO SUPER BLINDADA - Aqui tratamos e interceptamos TUDO!
+// -------------------------------------------------------------
 function inicializarListenersEstaticos() {
     const inputData = document.getElementById('data');
     if(inputData) {
@@ -762,6 +766,7 @@ function inicializarListenersEstaticos() {
             try {
                 e.preventDefault();
                 
+                // Validações Base
                 if (!servicoSelecionado) return alert("Atenção: Por favor, clique e selecione o Serviço.");
                 if (!barbeiroSelecionado) return alert("Atenção: Por favor, selecione o Profissional.");
                 if (!horarioSelecionado) return alert("Atenção: Por favor, selecione um Horário disponível.");
@@ -779,6 +784,7 @@ function inicializarListenersEstaticos() {
                     return;
                 }
 
+                // Proteção contra divergência de tipo (Garante que Barbeiro seja encontrado)
                 const bInfo = ESTRUTURA_BARBEIROS.find(b => String(b.id) === String(barbeiroSelecionado));
 
                 const boxPix = document.getElementById('box-pagamento-pix');
@@ -925,7 +931,7 @@ function inicializarListenersEstaticos() {
                     
                     await sincronizarBancoDeDados();
                     carregarModoRecepcaoKanban();
-                    carregarDashboardPro(); 
+                    carregarDadosEstrategicosDoNeon(); 
                 } else {
                     alert(`Falha do Banco de Dados: Confirme se todos os campos estão preenchidos.`);
                 }
@@ -1071,7 +1077,7 @@ async function salvarEdicaoServico() {
             fecharModal('modal-editar-servico');
             await sincronizarBancoDeDados();
             renderizarServicosAdmin();
-            if(abaAtivaAtual === 'dashboard-pro') carregarDashboardPro();
+            if(abaAtivaAtual === 'adm-dash') carregarDadosEstrategicosDoNeon();
         }
     } catch(e) {
         alert("Erro ao editar o serviço.");
@@ -1328,10 +1334,9 @@ function atualizarFiltroDataRange() {
     }
 }
 
-// --------- 1. GATILHO GLOBAL ATUALIZADO ---------
-let abaAtivaAtual = 'dashboard-pro';
+let abaAtivaAtual = 'adm-dash';
 function recarregarAbaAtivaAdm() {
-    const abas = ['dashboard-pro', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-config', 'adm-agenda', 'adm-analytics'];
+    const abas = ['adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-config', 'adm-agenda', 'adm-analytics'];
     abas.forEach(id => {
         const el = document.getElementById(`aba-${id}`);
         if (el && !el.classList.contains('escondido')) abaAtivaAtual = id;
@@ -1340,58 +1345,59 @@ function recarregarAbaAtivaAdm() {
     const seletor = document.getElementById('filtro-barbeiro-alvo');
     if(seletor) filtroBarbeiroAlvo = seletor.value;
 
-    if(abaAtivaAtual === 'dashboard-pro') carregarDashboardPro();
+    if(abaAtivaAtual === 'adm-dash') carregarDadosEstrategicosDoNeon();
     if(abaAtivaAtual === 'adm-mkt' && perfilLogado === 'admin') carregarListaMarketingReal();
     if(abaAtivaAtual === 'adm-recepcao') carregarModoRecepcaoKanban();
     if(abaAtivaAtual === 'adm-despesas' && perfilLogado === 'admin') renderizarDespesas();
     if(abaAtivaAtual === 'adm-servicos' && perfilLogado === 'admin') renderizarServicosAdmin();
     if(abaAtivaAtual === 'adm-config' && perfilLogado === 'admin') renderizarConfiguracoesAdmin();
     if(abaAtivaAtual === 'adm-agenda') renderizarAgendaBloqueios();
-    if(abaAtivaAtual === 'adm-analytics') carregarPainelAnalytics();
+    if(abaAtivaAtual === 'adm-analytics') carregarPainelAnalytics(); // ATUALIZADO
 }
 
-// --------- 2. LÓGICA COMPLETA DO DASHBOARD PRO ---------
-async function carregarDashboardPro() {
+async function carregarDadosEstrategicosDoNeon() {
     try {
         const agendamentos = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
-        const despesas = DADOS_DESPESAS.filter(d => regraDeFiltroDeTempo(d.data));
 
-        let faturamentoTotal = 0, faturamentoServicosBrutos = 0, faturamentoProdutosBrutos = 0, atendimentosFinalizados = 0;
+        let faturamentoTotal = 0, faturamentoServicosBrutos = 0, faturamentoProdutosBrutos = 0, atendimentosFinalizados = 0, totalFaltasNoShow = 0;
         let balançoEquipe = {};
-        let dadosDiarios = {}; 
         
-        // 1. Setup inicial de comissões por equipe
         ESTRUTURA_BARBEIROS.forEach(b => {
-            if (filtroBarbeiroAlvo !== 'todos' && String(b.id) !== String(filtroBarbeiroAlvo)) return;
+            if (filtroBarbeiroAlvo !== 'todos' && String(b.id) !== String(filtroBarbeiroAlvo)) {
+                return;
+            }
 
-            let rateio = parseFloat(b.comissao) || 0.40;
+            let rateio = parseFloat(b.comissao);
+            if (isNaN(rateio)) rateio = 0.40;
             if (rateio > 1) rateio = rateio / 100;
 
             balançoEquipe[b.nome.trim().toLowerCase()] = { 
                 nomeOriginal: b.nome,
-                servicosLiquidos: 0, produtos: 0, gorjetas: 0, totalPagar: 0, rateio: rateio 
+                servicosLiquidos: 0, 
+                produtos: 0, 
+                gorjetas: 0, 
+                totalPagar: 0, 
+                rateio: rateio 
             };
         });
 
-        // 2. Processar Lançamentos & Alimentar Chart.js
         agendamentos.forEach(a => {
+            const serv = DADOS_SERVICOS.find(s => s.nome.trim().toLowerCase() === (a.servico || '').trim().toLowerCase());
+            const valorServico = serv ? parseFloat(serv.preco) : 0.00;
+            
+            const valorProd = parseFloat(a.valor_produtos || 0);
+            const valorGorjeta = parseFloat(a.valor_gorjeta || 0);
+            
+            const forma = String(a.pagamento || 'Pix').toLowerCase();
+            const taxaMaquininha = (forma.includes('cartao') || forma.includes('crédito') || forma.includes('débito')) ? 0.025 : 0.00;
+            const valorServicoLiquido = valorServico - (valorServico * taxaMaquininha);
+
             const statusAtual = a.status ? a.status.toLowerCase() : "";
 
             if(statusAtual !== 'falta' && statusAtual !== 'cancelado') {
-                const serv = DADOS_SERVICOS.find(s => s.nome.trim().toLowerCase() === (a.servico || '').trim().toLowerCase());
-                const valorServico = serv ? parseFloat(serv.preco) : 0.00;
-                const valorProd = parseFloat(a.valor_produtos || 0);
-                const valorGorjeta = parseFloat(a.valor_gorjeta || 0);
-                
-                const forma = String(a.pagamento || 'Pix').toLowerCase();
-                const taxaMaquininha = (forma.includes('cartao') || forma.includes('crédito') || forma.includes('débito')) ? 0.025 : 0.00;
-                const valorServicoLiquido = valorServico - (valorServico * taxaMaquininha);
-
-                const totalDoAtendimento = (valorServico + valorProd + valorGorjeta);
-
-                faturamentoTotal += totalDoAtendimento; 
                 faturamentoServicosBrutos += valorServico; 
                 faturamentoProdutosBrutos += valorProd;
+                faturamentoTotal += (valorServico + valorProd + valorGorjeta); 
                 atendimentosFinalizados++;
                 
                 const keyBarbeiro = (a.barbeiro || '').trim().toLowerCase();
@@ -1401,95 +1407,22 @@ async function carregarDashboardPro() {
                     balançoEquipe[keyBarbeiro].produtos += (valorProd * 0.10); 
                     balançoEquipe[keyBarbeiro].gorjetas += valorGorjeta;
                 }
-
-                // Agrupando para os gráficos de linhas
-                const dataBase = a.data;
-                if(!dadosDiarios[dataBase]) dadosDiarios[dataBase] = { rec: 0, qtd: 0 };
-                dadosDiarios[dataBase].rec += totalDoAtendimento;
-                dadosDiarios[dataBase].qtd += 1;
+            } else if (statusAtual === 'falta') { 
+                totalFaltasNoShow++; 
             }
         });
 
-        // 3. Processar Despesas 
-        let totalDespesas = 0;
-        let despDiarias = {};
-        despesas.forEach(d => {
-            const val = parseFloat(d.valor);
-            totalDespesas += val;
-            if(!despDiarias[d.data]) despDiarias[d.data] = 0;
-            despDiarias[d.data] += val;
-        });
-
-        // 4. Inserir Textos TOP Dash
-        const ticketMedio = atendimentosFinalizados > 0 ? (faturamentoTotal / atendimentosFinalizados) : 0;
-        if(document.getElementById('dash-val-rev')) {
-            document.getElementById('dash-val-rev').innerText = `R$ ${faturamentoTotal.toFixed(0)}`;
-            document.getElementById('dash-val-app').innerText = atendimentosFinalizados;
-            document.getElementById('dash-val-tkt').innerText = `R$ ${ticketMedio.toFixed(2)}`;
-            document.getElementById('dash-total-receita').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
-            document.getElementById('dash-total-despesa').innerText = `R$ ${totalDespesas.toFixed(2)}`;
-            
+        if(document.getElementById('kpi-faturamento')) {
+            document.getElementById('kpi-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
+            const ticketMedio = atendimentosFinalizados > 0 ? (faturamentoServicosBrutos / atendimentosFinalizados) : 0;
+            document.getElementById('kpi-ticket').innerText = `R$ ${ticketMedio.toFixed(2)}`;
+            document.getElementById('kpi-ocupacao').innerText = atendimentosFinalizados;
+            const taxaNoShow = agendamentos.length > 0 ? ((totalFaltasNoShow / agendamentos.length) * 100) : 0;
+            document.getElementById('kpi-noshow').innerText = `${taxaNoShow.toFixed(1)}%`;
             document.getElementById('detalhe-servicos').innerText = `Serviços Brutos: R$ ${faturamentoServicosBrutos.toFixed(2)}`;
             document.getElementById('detalhe-produtos').innerText = `Produtos Brutos: R$ ${faturamentoProdutosBrutos.toFixed(2)}`;
         }
 
-        // 5. Destruir gráficos anteriores para não bugar o canvas
-        if(chartDoughnutRev) chartDoughnutRev.destroy();
-        if(chartDoughnutApp) chartDoughnutApp.destroy();
-        if(chartDoughnutTkt) chartDoughnutTkt.destroy();
-        if(chartLineA) chartLineA.destroy();
-        if(chartLineB) chartLineB.destroy();
-        if(chartMainBar) chartMainBar.destroy();
-
-        // Ordenar dados no tempo
-        const labelsOrdenadas = Object.keys(dadosDiarios).sort();
-        const dadosRec = labelsOrdenadas.map(d => dadosDiarios[d].rec);
-        const dadosQtd = labelsOrdenadas.map(d => dadosDiarios[d].qtd);
-        
-        const labelsDespOrdenadas = Object.keys(despDiarias).sort();
-        const dadosDesp = labelsDespOrdenadas.map(d => despDiarias[d]);
-
-        // 6. RENDERIZAR CHART.JS
-        const chartOptionsCircle = { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { tooltip: { enabled: false } } };
-
-        if(document.getElementById('chartDoughnutRev')) {
-            chartDoughnutRev = new Chart(document.getElementById('chartDoughnutRev'), {
-                type: 'doughnut',
-                data: { datasets: [{ data: [faturamentoTotal, faturamentoTotal === 0 ? 1 : 0], backgroundColor: ['#a855f7', '#3a4161'], borderWidth: 0 }] },
-                options: chartOptionsCircle
-            });
-            chartDoughnutApp = new Chart(document.getElementById('chartDoughnutApp'), {
-                type: 'doughnut',
-                data: { datasets: [{ data: [atendimentosFinalizados, atendimentosFinalizados === 0 ? 1 : 0], backgroundColor: ['#06b6d4', '#3a4161'], borderWidth: 0 }] },
-                options: chartOptionsCircle
-            });
-            chartDoughnutTkt = new Chart(document.getElementById('chartDoughnutTkt'), {
-                type: 'doughnut',
-                data: { datasets: [{ data: [100], backgroundColor: ['#ec4899'], borderWidth: 0 }] },
-                options: chartOptionsCircle
-            });
-            chartLineA = new Chart(document.getElementById('chartLineA'), {
-                type: 'line',
-                data: { labels: labelsOrdenadas.map(d => d.substring(8,10)+'/'+d.substring(5,7)), datasets: [{ data: dadosRec, borderColor: '#a855f7', backgroundColor: 'rgba(168, 85, 247, 0.2)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
-            });
-            chartLineB = new Chart(document.getElementById('chartLineB'), {
-                type: 'line',
-                data: { labels: labelsDespOrdenadas.map(d => d.substring(8,10)+'/'+d.substring(5,7)), datasets: [{ data: dadosDesp, borderColor: '#06b6d4', backgroundColor: 'rgba(6, 182, 212, 0.2)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
-            });
-            chartMainBar = new Chart(document.getElementById('chartMainBar'), {
-                type: 'bar',
-                data: { labels: labelsOrdenadas.map(d => d.substring(8,10)+'/'+d.substring(5,7)), datasets: [{ label: 'Clientes', data: dadosQtd, backgroundColor: '#06b6d4', borderRadius: 4 }] },
-                options: { 
-                    responsive: true, maintainAspectRatio: false, 
-                    plugins: { legend: { display: false } }, 
-                    scales: { x: { grid: { display: false, color: '#3a4161' }, ticks: { color: '#a1a6bd' } }, y: { grid: { color: '#3a4161' }, ticks: { color: '#a1a6bd' } } } 
-                }
-            });
-        }
-
-        // 7. Fechar Split Real de Pagamentos da Equipe
         const containerSplit = document.getElementById('lista-split-comissoes-equipe');
         if(containerSplit) {
             containerSplit.innerHTML = '';
@@ -1504,7 +1437,6 @@ async function carregarDashboardPro() {
             }
         }
 
-        // 8. Wallet Pessoal (Barbeiro Isolado)
         if(perfilLogado === 'barbeiro') {
             const bLogado = ESTRUTURA_BARBEIROS.find(b => b.login === usuarioLogado);
             if(bLogado) {
@@ -1516,7 +1448,7 @@ async function carregarDashboardPro() {
             }
         }
     } catch(e) {
-        console.error("Erro dados estratégicos/dashboard:", e);
+        console.error("Erro dados estratégicos:", e);
     }
 }
 
@@ -1605,6 +1537,7 @@ async function carregarModoRecepcaoKanban() {
                 });
             } else {
                 if (isSlotBlocked) {
+                    // Renderiza o Slot Bloqueado
                     container.innerHTML += `
                     <div style="display:flex; gap:12px; margin-bottom:8px; align-items: center; opacity: 0.7;">
                         <div style="width:45px; flex-shrink:0; text-align:right; font-weight:600; color:#555; font-size:13px;">${horaStr}</div>
@@ -1613,6 +1546,7 @@ async function carregarModoRecepcaoKanban() {
                         </div>
                     </div>`;
                 } else {
+                    // Renderiza o Slot Livre para Walk-in
                     container.innerHTML += `
                     <div style="display:flex; gap:12px; margin-bottom:8px; align-items: center; opacity: 0.5;">
                         <div style="width:45px; flex-shrink:0; text-align:right; font-weight:600; color:#555; font-size:13px;">${horaStr}</div>
@@ -1652,15 +1586,18 @@ function abrirModalEncaixe() {
 
 function renderizarDespesas() {
     const container = document.getElementById('lista-despesas-cadastradas');
-    if(!container) return;
+    const labelTotal = document.getElementById('kpi-despesas-total');
+    if(!container || !labelTotal) return;
 
     try {
         const despesasFiltradas = DADOS_DESPESAS.filter(d => regraDeFiltroDeTempo(d.data));
         
+        let somaDespesas = 0;
         container.innerHTML = despesasFiltradas.length === 0 ? "<p style='color:var(--text-muted); font-size: 13px;'>Nenhuma despesa para este período.</p>" : "";
 
         despesasFiltradas.forEach(d => {
             const valor = parseFloat(d.valor);
+            somaDespesas += valor;
             const dataBr = d.data && d.data.includes('-') ? d.data.split('-').reverse().join('/') : (d.data||'');
             
             container.innerHTML += `
@@ -1678,28 +1615,130 @@ function renderizarDespesas() {
             `;
         });
 
+        labelTotal.innerText = `R$ ${somaDespesas.toFixed(2)}`;
     } catch(e) {
         console.error("Erro nas despesas:", e);
     }
 }
 
+// --------- ATUALIZAÇÃO: RENDERIZAR BUSINESS INTELLIGENCE (ABA BI) ---------
 async function carregarPainelAnalytics() {
     const containerMapa = document.getElementById('analytics-heatmap'); if(!containerMapa) return;
     try {
         const agendamentos = DADOS_AGENDAMENTOS.filter(filtrarAgendamentoPorRegraGlobal);
+        const despesas = DADOS_DESPESAS.filter(d => regraDeFiltroDeTempo(d.data));
 
         const turnos = { "Manhã": 0, "Tarde": 0, "Noite": 0 };
         const dias = { "Segunda-feira": 0, "Terça-feira": 0, "Quarta-feira": 0, "Quinta-feira": 0, "Sexta-feira": 0, "Sábado": 0, "Domingo": 0 };
         const nomesDias = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
 
+        let faturamentoTotal = 0;
+        let atendimentosFinalizados = 0;
+        let dadosDiarios = {}; 
+
         agendamentos.forEach(a => {
             if(!a.hora || !a.data) return;
+            
+            // 1. Lógica dos Turnos (Original Preservada)
             const h = parseInt(a.hora.split(':')[0]);
             if(h >= 9 && h < 12) turnos["Manhã"]++; else if(h >= 12 && h < 18) turnos["Tarde"]++; else turnos["Noite"]++;
             const dNome = nomesDias[new Date(a.data + 'T00:00:00').getDay()];
             if(dias[dNome] !== undefined) dias[dNome]++;
+
+            // 2. Lógica Financeira do BI (NOVO)
+            const statusAtual = a.status ? a.status.toLowerCase() : "";
+            if(statusAtual !== 'falta' && statusAtual !== 'cancelado') {
+                const serv = DADOS_SERVICOS.find(s => s.nome.trim().toLowerCase() === (a.servico || '').trim().toLowerCase());
+                const valS = serv ? parseFloat(serv.preco) : 0.00;
+                const valP = parseFloat(a.valor_produtos || 0);
+                const valG = parseFloat(a.valor_gorjeta || 0);
+                const totalAtendimento = valS + valP + valG;
+                
+                faturamentoTotal += totalAtendimento;
+                atendimentosFinalizados++;
+
+                const dataBase = a.data;
+                if(!dadosDiarios[dataBase]) dadosDiarios[dataBase] = { rec: 0, qtd: 0 };
+                dadosDiarios[dataBase].rec += totalAtendimento;
+                dadosDiarios[dataBase].qtd += 1;
+            }
         });
 
+        // 3. Processar Despesas 
+        let totalDespesas = 0;
+        let despDiarias = {};
+        despesas.forEach(d => {
+            const val = parseFloat(d.valor);
+            totalDespesas += val;
+            if(!despDiarias[d.data]) despDiarias[d.data] = 0;
+            despDiarias[d.data] += val;
+        });
+
+        // 4. Inserir Textos e KPIs (NOVO)
+        const ticketMedio = atendimentosFinalizados > 0 ? (faturamentoTotal / atendimentosFinalizados) : 0;
+        if(document.getElementById('bi-faturamento')) document.getElementById('bi-faturamento').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
+        if(document.getElementById('bi-ticket')) document.getElementById('bi-ticket').innerText = `R$ ${ticketMedio.toFixed(2)}`;
+        if(document.getElementById('bi-receita-badge')) document.getElementById('bi-receita-badge').innerText = `R$ ${faturamentoTotal.toFixed(2)}`;
+        if(document.getElementById('bi-despesa-badge')) document.getElementById('bi-despesa-badge').innerText = `R$ ${totalDespesas.toFixed(2)}`;
+
+        // 5. Estruturar Gráficos Chart.js (NOVO)
+        const labelsOrdenadas = Object.keys(dadosDiarios).sort();
+        const dadosRec = labelsOrdenadas.map(d => dadosDiarios[d].rec);
+        const dadosQtd = labelsOrdenadas.map(d => dadosDiarios[d].qtd);
+        const labelsDespOrdenadas = Object.keys(despDiarias).sort();
+        const dadosDesp = labelsDespOrdenadas.map(d => despDiarias[d]);
+
+        if(biChartReceitaIns) biChartReceitaIns.destroy();
+        if(biChartDespesaIns) biChartDespesaIns.destroy();
+        if(biChartVolumeIns) biChartVolumeIns.destroy();
+
+        const commonOptions = {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { 
+                x: { display: true, ticks: {font:{size: 9}, color: '#a1a1aa'}, grid: {display: false} }, 
+                y: { display: false } 
+            },
+            layout: { padding: 0 }
+        };
+
+        const ctxRec = document.getElementById('biChartReceita');
+        if(ctxRec) {
+            biChartReceitaIns = new Chart(ctxRec, {
+                type: 'line',
+                data: { 
+                    labels: labelsOrdenadas.map(d => d.substring(8,10)+'/'+d.substring(5,7)), 
+                    datasets: [{ data: dadosRec, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2 }] 
+                },
+                options: commonOptions
+            });
+        }
+
+        const ctxDesp = document.getElementById('biChartDespesa');
+        if(ctxDesp) {
+            biChartDespesaIns = new Chart(ctxDesp, {
+                type: 'line',
+                data: { 
+                    labels: labelsDespOrdenadas.map(d => d.substring(8,10)+'/'+d.substring(5,7)), 
+                    datasets: [{ data: dadosDesp, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 2 }] 
+                },
+                options: commonOptions
+            });
+        }
+
+        const ctxVol = document.getElementById('biChartVolume');
+        if(ctxVol) {
+            biChartVolumeIns = new Chart(ctxVol, {
+                type: 'bar',
+                data: { 
+                    labels: labelsOrdenadas.map(d => d.substring(8,10)+'/'+d.substring(5,7)), 
+                    datasets: [{ data: dadosQtd, backgroundColor: '#3b82f6', borderRadius: 4 }] 
+                },
+                options: { ...commonOptions, scales: { x: { display: true, ticks: {font:{size: 9}, color: '#a1a1aa'}, grid: {display: false} }, y: { display: false } } }
+            });
+        }
+
+        // 6. Atualizar Gráficos Nativos (Original Preservado)
         containerMapa.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 10px; background: #1f2125; border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; font-size:14px;">
                 <div style="display:flex; justify-content:space-between;"><span>🌅 Manhã (09h - 12h):</span> <strong>${turnos['Manhã']} atendimentos</strong></div>
@@ -1955,7 +1994,6 @@ function carregarMeusAgendamentosDoBanco() {
     }
 }
 
-// --------- 3. MENU COM REFERÊNCIA AO DASHBOARD ---------
 function montarMenuNavegacao(role) {
     const nav = document.getElementById('menu-navigation'); 
     const menuNav = document.getElementById('menu-navegacao') || nav; 
@@ -1963,7 +2001,7 @@ function montarMenuNavegacao(role) {
     
     if (role === 'admin') {
         menuNav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('dashboard-pro')">🚀 Dashboard</button>
+            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
             <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
             <button class="nav-item" onclick="alternarTela('adm-agenda')">📅 Agenda</button>
             <button class="nav-item" onclick="alternarTela('adm-mkt')">📢 CRM</button>
@@ -1973,7 +2011,7 @@ function montarMenuNavegacao(role) {
             <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 BI</button>`;
     } else if (role === 'barbeiro') {
         menuNav.innerHTML = `
-            <button class="nav-item ativo" onclick="alternarTela('dashboard-pro')">🚀 Dashboard</button>
+            <button class="nav-item ativo" onclick="alternarTela('adm-dash')">💰 Finanças</button>
             <button class="nav-item" onclick="alternarTela('adm-recepcao')">📺 Monitor</button>
             <button class="nav-item" onclick="alternarTela('adm-agenda')">📅 Agenda</button>
             <button class="nav-item" onclick="alternarTela('adm-analytics')">📊 BI</button>`;
@@ -1987,7 +2025,7 @@ function montarMenuNavegacao(role) {
 
 async function alternarTela(idAba) {
     try {
-        ['home', 'estilo', 'dashboard-pro', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-config', 'adm-agenda', 'adm-analytics'].forEach(id => {
+        ['home', 'estilo', 'adm-dash', 'adm-mkt', 'adm-recepcao', 'adm-despesas', 'adm-servicos', 'adm-config', 'adm-agenda', 'adm-analytics'].forEach(id => {
             const el = document.getElementById(`aba-${id}`); if (el) el.classList.add('escondido');
         });
         const abaAlvo = document.getElementById(`aba-${idAba}`); if (abaAlvo) abaAlvo.classList.remove('escondido');
