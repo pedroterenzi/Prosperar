@@ -233,11 +233,6 @@
         
         .escondido { display: none !important; }
         .btn-status { padding: 6px 12px; border: none; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer; text-transform: uppercase;}
-        
-        .analytics-bar-container { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-        .analytics-bar-header { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
-        .analytics-bar-bg { width: 100%; background: #27272a; height: 10px; border-radius: 99px; overflow: hidden; }
-        .analytics-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent-color), #f1c40f); border-radius: 99px; transition: width 0.5s ease-out; }
 
         .btn-add-data { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; width: 100%; transition: all 0.2s; }
         .btn-add-data:hover { background: #10b981; color: white; }
@@ -254,6 +249,7 @@
 
 <div class="app-container">
 
+    <!-- Tela de Autenticação -->
     <div id="tela-autenticacao" class="card" style="margin-top: 5vh;">
         <h2>Prosperar Club</h2>
         <p style="text-align:center; color:var(--text-muted); font-size: 14px; margin-top:-10px; margin-bottom: 25px;">Agende seu horário</p>
@@ -303,8 +299,10 @@
         </div>
     </div>
 
+    <!-- Conteúdo do Aplicativo (Logado) -->
     <div id="conteudo-app" class="escondido">
         
+        <!-- Filtros Globais do Admin/Barbeiro -->
         <div id="bloco-filtros-global-adm" class="escondido card" style="padding: 18px;">
             <h4 style="font-size: 12px; margin-bottom: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Painel de Controle:</h4>
             
@@ -330,6 +328,7 @@
             </div>
         </div>
 
+        <!-- Abas dos Clientes -->
         <section id="aba-home" class="escondido">
             <div style="margin-bottom: 24px; text-align: center;">
                 <h2 id="boas-vistas-cliente" style="font-size: 26px; margin-bottom: 6px;">Olá!</h2>
@@ -361,6 +360,7 @@
             <div id="container-meus-agendamentos"></div>
         </section>
 
+        <!-- Abas do Admin/Barbeiro -->
         <section id="aba-adm-dash" class="escondido">
             <h2 class="gold-text" style="text-align: left; margin-bottom: 4px;">Métricas de Faturamento</h2>
             <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Visão geral do período selecionado:</p>
@@ -725,13 +725,22 @@
                 </div>
             </div>
 
-            <!-- Visualizações Originais Mantidas Intactas -->
-            <div class="card">
-                <h4>Volumetria por Turnos</h4>
+            <!-- Visualizações Atualizadas de Volumetria e Movimentação -->
+            <div class="card" style="padding: 18px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h4 style="margin:0; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#facc15;"></span> Volumetria por Turnos
+                    </h4>
+                </div>
                 <div id="analytics-heatmap"></div>
             </div>
-            <div class="card">
-                <h4>Movimentação na Semana</h4>
+            
+            <div class="card" style="padding: 18px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h4 style="margin:0; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent-color);"></span> Movimentação na Semana
+                    </h4>
+                </div>
                 <div id="analytics-dias-semana"></div>
             </div>
         </section>
