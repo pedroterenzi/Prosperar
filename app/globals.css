@@ -1,0 +1,270 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Design System V2 — "Vivo" (redesign premium)
+   Grafite com gradiente, dourado fosco, glassmorphism sutil e cantos 2XL/3XL.
+   ========================================================================== */
+:root,
+[data-theme='dark'] {
+  --bg-base: #0b0c0e;
+  --bg-surface: rgba(255, 255, 255, 0.04);
+  --bg-raised: #1a1b21;
+  --bg-inset: #0f1013;
+  --border-default: rgba(255, 255, 255, 0.09);
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --accent: #c9a227;
+  --accent-hover: #d4b23c;
+  --accent-soft: rgba(201, 162, 39, 0.12);
+  --accent-contrast: #0b0c0e;
+  --positive: #34d399;
+  --critical: #f87171;
+  --warning: #fbbf24;
+  --info: #60a5fa;
+  --glass-blur: saturate(140%) blur(18px);
+  --shine: rgba(255, 255, 255, 0.07);
+  --shadow-card: 0 8px 32px -12px rgb(0 0 0 / 0.65), inset 0 1px 0 var(--shine);
+  --shadow-gold: 0 10px 30px -10px rgb(201 162 39 / 0.45);
+  --grad-gold: linear-gradient(135deg, #e3c65b 0%, #c9a227 55%, #a3801a 100%);
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --bg-base: #f4f4f1;
+  --bg-surface: rgba(255, 255, 255, 0.72);
+  --bg-raised: #ffffff;
+  --bg-inset: #ececeA;
+  --border-default: rgba(23, 24, 27, 0.09);
+  --border-subtle: rgba(23, 24, 27, 0.05);
+  --border-strong: rgba(23, 24, 27, 0.2);
+  --text-primary: #17181b;
+  --text-secondary: #4b5563;
+  --text-muted: #9aa0a6;
+  --accent: #a9871b;
+  --accent-hover: #8f7116;
+  --accent-soft: rgba(169, 135, 27, 0.1);
+  --accent-contrast: #ffffff;
+  --positive: #10b981;
+  --critical: #ef4444;
+  --warning: #d97706;
+  --info: #2563eb;
+  --glass-blur: saturate(160%) blur(20px);
+  --shine: rgba(255, 255, 255, 0.9);
+  --shadow-card: 0 10px 30px -14px rgb(23 24 27 / 0.25), inset 0 1px 0 var(--shine);
+  --shadow-gold: 0 10px 26px -12px rgb(169 135 27 / 0.4);
+  --grad-gold: linear-gradient(135deg, #d9b53f 0%, #b8941f 55%, #96771a 100%);
+  color-scheme: light;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  /* Fundo grafite com brilho dourado no topo (gradiente vivo) */
+  body {
+    @apply font-sans text-primary antialiased;
+    background:
+      radial-gradient(130% 55% at 50% -12%, rgb(201 162 39 / 0.13), transparent 62%),
+      radial-gradient(90% 45% at 110% 105%, rgb(96 165 250 / 0.06), transparent 55%),
+      var(--bg-base);
+    background-attachment: fixed;
+    overscroll-behavior-y: none;
+  }
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer components {
+  /* CTA primário — gradiente dourado com brilho e elevação */
+  .btn-primary {
+    @apply relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-[15px] font-semibold text-accent-contrast transition active:scale-[0.97];
+    background: var(--grad-gold);
+    box-shadow: var(--shadow-gold);
+  }
+  .btn-primary::after {
+    /* faixa de brilho que cruza o botão ao repousar/hover */
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, var(--shine) 50%, transparent 65%);
+    transform: translateX(-120%);
+    transition: transform 0.7s ease;
+  }
+  .btn-primary:hover::after,
+  .btn-primary:focus-visible::after {
+    transform: translateX(120%);
+  }
+  .btn-primary:disabled {
+    @apply pointer-events-none opacity-40 saturate-0;
+  }
+
+  .btn-glass {
+    @apply flex w-full items-center justify-center gap-2 rounded-2xl border px-6 py-3.5 text-[15px] font-semibold text-primary transition active:scale-[0.97];
+    background: var(--bg-surface);
+    border-color: var(--border-default);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+  .btn-glass:hover {
+    border-color: var(--border-strong);
+  }
+
+  .field {
+    @apply w-full rounded-2xl border bg-surface px-4 py-3.5 text-[15px] text-primary placeholder:text-muted transition focus:outline-none;
+    border-color: var(--border-default);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+  .field:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  /* Cartão de vidro — borda refinada + brilho interno sutil */
+  .glass {
+    @apply rounded-2xl border;
+    background: var(--bg-surface);
+    border-color: var(--border-default);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+  .glass-strong {
+    @apply rounded-3xl border;
+    background: var(--bg-surface);
+    border-color: var(--border-default);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+
+  /* Badge dourada (escassez, "mais procurado", etc.) */
+  .badge-gold {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid rgb(201 162 39 / 0.25);
+  }
+
+  .step-label {
+    @apply mb-3 block text-[12px] font-semibold uppercase tracking-[0.14em] text-muted;
+  }
+
+  /* Skeleton com varredura shimmer */
+  .skeleton {
+    @apply relative overflow-hidden rounded-xl;
+    background: var(--bg-raised);
+  }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, var(--shine), transparent);
+    animation: shimmer 1.4s infinite;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Perfação do "ticket" de confirmação */
+  .ticket-notch {
+    @apply absolute h-6 w-6 rounded-full;
+    background: var(--bg-base);
+  }
+  .ticket-shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .ticket-shine::before {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: linear-gradient(115deg, transparent 42%, var(--shine) 50%, transparent 58%);
+    transform: translateX(-80%);
+    animation: sweep 2.6s 0.4s ease-in-out infinite;
+  }
+}
+
+/* ---- Animações ---- */
+.anim-fade-up {
+  animation: fade-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-stamp {
+  animation: stamp 0.5s 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.anim-check circle,
+.anim-check path {
+  stroke-dasharray: 220;
+  stroke-dashoffset: 220;
+  animation: draw 0.7s 0.15s ease forwards;
+}
+.anim-check path {
+  animation-delay: 0.55s;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+@keyframes sweep {
+  0%,
+  100% {
+    transform: translateX(-80%);
+  }
+  50% {
+    transform: translateX(80%);
+  }
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes stamp {
+  from {
+    opacity: 0;
+    transform: rotate(-14deg) scale(1.8);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-8deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
